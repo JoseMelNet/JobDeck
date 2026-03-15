@@ -4,9 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a027a28-f8d8-4ccb-aed6-a6be7d70df04" name="Changes" comment="Version 01">
+    <list default="true" id="9a027a28-f8d8-4ccb-aed6-a6be7d70df04" name="Changes" comment="se crean modulos registrar aplicaciones y mis aplicaciones">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/database.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -97,7 +97,31 @@
       <option name="project" value="LOCAL" />
       <updated>1773589398215</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="database.py incluye nuevas funciones CRUD para modulo aplicaciones">
+      <option name="closed" value="true" />
+      <created>1773604121173</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1773604121173</updated>
+    </task>
+    <task id="LOCAL-00004" summary="se crea nueva tabla aplicaciones en la db">
+      <option name="closed" value="true" />
+      <created>1773604198185</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1773604198185</updated>
+    </task>
+    <task id="LOCAL-00005" summary="se crean modulos registrar aplicaciones y mis aplicaciones">
+      <option name="closed" value="true" />
+      <created>1773604328925</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1773604328925</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -113,17 +137,9 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Version 01" />
-    <option name="LAST_COMMIT_MESSAGE" value="Version 01" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/app.py</url>
-          <line>8</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+    <MESSAGE value="database.py incluye nuevas funciones CRUD para modulo aplicaciones" />
+    <MESSAGE value="se crea nueva tabla aplicaciones en la db" />
+    <MESSAGE value="se crean modulos registrar aplicaciones y mis aplicaciones" />
+    <option name="LAST_COMMIT_MESSAGE" value="se crean modulos registrar aplicaciones y mis aplicaciones" />
   </component>
 </project>

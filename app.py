@@ -2,13 +2,15 @@
 app.py - MVP: Sistema de Almacenamiento de Vacantes
 Archivo principal: estructura base y composición de pestañas
 
-Este archivo importa y organiza el contenido de cada pestaña
+Este archivo importa y organiza el contenido de cada pestaña.
 """
 
 import streamlit as st
 import database
 from modules.registrar_vacante import mostrar_registrar_vacante
 from modules.mis_vacantes import mostrar_mis_vacantes
+from modules.registrar_aplicacion import mostrar_registrar_aplicacion
+from modules.mis_aplicaciones import mostrar_mis_aplicaciones
 
 # ============================================================
 # CONFIGURACIÓN STREAMLIT
@@ -65,22 +67,43 @@ if not database.test_connection():
 # ============================================================
 st.markdown("<h1 class='header-main'>📋 Gestor de Vacantes</h1>", unsafe_allow_html=True)
 
-# Contar vacantes DINÁMICAMENTE
-total_vacantes = database.contar_vacantes()
-col1, col2, col3 = st.columns(3)
+# Métricas globales dinámicas
+total_vacantes     = database.contar_vacantes()
+stats_aplicaciones = database.contar_aplicaciones_por_estado()
+
+col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
-    st.metric("📊 Total Vacantes", total_vacantes)
+    st.metric("📊 Total Vacantes",    total_vacantes)
+with col2:
+    st.metric("📋 Total Aplicaciones", stats_aplicaciones['Total'])
+with col3:
+    st.metric("⏳ Pendientes",         stats_aplicaciones['Pendiente'])
+with col4:
+    st.metric("🗓️ Entrevistas",        stats_aplicaciones['Entrevista'])
+with col5:
+    st.metric("🎉 Ofertas",            stats_aplicaciones['Oferta'])
 
 # ============================================================
-# PESTAÑAS: COMPOSICIÓN DE MÓDULOS
+# PESTAÑAS
 # ============================================================
-tab1, tab2 = st.tabs(["➕ Registrar Vacante", "📰 Mis Vacantes"])
+tab1, tab2, tab3, tab4 = st.tabs([
+    "➕ Registrar Vacante",
+    "📰 Mis Vacantes",
+    "✉️ Registrar Aplicación",
+    "📂 Mis Aplicaciones",
+])
 
 with tab1:
     mostrar_registrar_vacante()
 
 with tab2:
     mostrar_mis_vacantes()
+
+with tab3:
+    mostrar_registrar_aplicacion()
+
+with tab4:
+    mostrar_mis_aplicaciones()
 
 # ============================================================
 # FOOTER
