@@ -15,10 +15,13 @@ import time
 
 
 ESTADO_EMOJIS = {
-    'Pendiente':  '⏳ Pendiente',
-    'Entrevista': '🗓️ Entrevista',
-    'Rechazado':  '❌ Rechazado',
-    'Oferta':     '🎉 Oferta',
+    'Pending':        '⏳ Pending',
+    'Applied':        '📤 Applied',
+    'Technical Test': '🧪 Technical Test',
+    'In Interview':   '🗓️ In Interview',
+    'Done':           '✅ Done',
+    'Rejected':       '❌ Rejected',
+    'Open Offer':     '🎉 Open Offer',
 }
 
 ESTADOS = list(ESTADO_EMOJIS.keys())
@@ -144,18 +147,28 @@ def mostrar_mis_aplicaciones():
 # ============================================================
 def _mostrar_estadisticas(aplicaciones: list):
     """Muestra métricas rápidas de las aplicaciones."""
-    total     = len(aplicaciones)
-    pendiente = sum(1 for a in aplicaciones if a['estado'] == 'Pendiente')
-    entrevista = sum(1 for a in aplicaciones if a['estado'] == 'Entrevista')
-    rechazado = sum(1 for a in aplicaciones if a['estado'] == 'Rechazado')
-    oferta    = sum(1 for a in aplicaciones if a['estado'] == 'Oferta')
+    total          = len(aplicaciones)
+    pending        = sum(1 for a in aplicaciones if a['estado'] == 'Pending')
+    applied        = sum(1 for a in aplicaciones if a['estado'] == 'Applied')
+    tech_test      = sum(1 for a in aplicaciones if a['estado'] == 'Technical Test')
+    in_interview   = sum(1 for a in aplicaciones if a['estado'] == 'In Interview')
+    done           = sum(1 for a in aplicaciones if a['estado'] == 'Done')
+    rejected       = sum(1 for a in aplicaciones if a['estado'] == 'Rejected')
+    open_offer     = sum(1 for a in aplicaciones if a['estado'] == 'Open Offer')
 
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("📋 Total",         total)
-    c2.metric("⏳ Pendientes",    pendiente)
-    c3.metric("🗓️ Entrevistas",   entrevista)
-    c4.metric("❌ Rechazadas",    rechazado)
-    c5.metric("🎉 Ofertas",       oferta)
+    # Fila 1: totales principales
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("📋 Total",            total)
+    c2.metric("⏳ Pending",          pending)
+    c3.metric("📤 Applied",          applied)
+    c4.metric("🧪 Technical Test",   tech_test)
+
+    # Fila 2: estados avanzados
+    c5, c6, c7, c8 = st.columns(4)
+    c5.metric("🗓️ In Interview",     in_interview)
+    c6.metric("✅ Done",             done)
+    c7.metric("❌ Rejected",         rejected)
+    c8.metric("🎉 Open Offer",       open_offer)
 
 
 # ============================================================

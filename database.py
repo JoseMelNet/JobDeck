@@ -417,10 +417,13 @@ if __name__ == "__main__":
 """
 database_aplicaciones.py
 Nuevas funciones CRUD para la tabla "aplicaciones".
+
+INSTRUCCIONES: Copia estas funciones al final de tu database.py existente.
 """
 
 # ============================================================
 # FUNCIONES DE APLICACIONES
+# Pega todo este bloque al final de database.py
 # ============================================================
 
 def insertar_aplicacion(
@@ -446,7 +449,7 @@ def insertar_aplicacion(
         cursor = conn.cursor()
 
         # Validar estado
-        estados_validos = ['Pendiente', 'Entrevista', 'Rechazado', 'Oferta']
+        estados_validos = ['Pending', 'Applied', 'Technical Test', 'In Interview', 'Done', 'Rejected', 'Open Offer']
         if estado not in estados_validos:
             return {'success': False, 'message': f'Estado inválido. Usa: {", ".join(estados_validos)}', 'id': None}
 
@@ -640,9 +643,9 @@ def obtener_aplicacion_por_id(aplicacion_id: int) -> Optional[Dict]:
 def actualizar_estado_aplicacion(aplicacion_id: int, nuevo_estado: str) -> Dict:
     """
     Actualiza solo el campo 'estado' de una aplicación.
-    Estados válidos: Pendiente, Entrevista, Rechazado, Oferta
+    Estados válidos: Pending, Applied, Technical Test, In Interview, Done, Rejected, Open Offer
     """
-    estados_validos = ['Pendiente', 'Entrevista', 'Rechazado', 'Oferta']
+    estados_validos = ['Pending', 'Applied', 'Technical Test', 'In Interview', 'Done', 'Rejected', 'Open Offer']
     if nuevo_estado not in estados_validos:
         return {'success': False, 'message': f'Estado inválido. Opciones: {", ".join(estados_validos)}'}
 
@@ -697,7 +700,7 @@ def actualizar_datos_aplicacion(
     """
     Actualiza todos los campos editables de una aplicación (excepto vacante_id y fechas).
     """
-    estados_validos = ['Pendiente', 'Entrevista', 'Rechazado', 'Oferta']
+    estados_validos = ['Pending', 'Applied', 'Technical Test', 'In Interview', 'Done', 'Rejected', 'Open Offer']
     if estado not in estados_validos:
         return {'success': False, 'message': f'Estado inválido. Opciones: {", ".join(estados_validos)}'}
 
@@ -851,7 +854,10 @@ def contar_aplicaciones_por_estado() -> Dict:
     """
     conn = get_connection()
     if not conn:
-        return {'Pendiente': 0, 'Entrevista': 0, 'Rechazado': 0, 'Oferta': 0, 'Total': 0}
+        return {
+            'Pending': 0, 'Applied': 0, 'Technical Test': 0,
+            'In Interview': 0, 'Done': 0, 'Rejected': 0, 'Open Offer': 0, 'Total': 0
+        }
 
     try:
         cursor = conn.cursor()
@@ -861,7 +867,10 @@ def contar_aplicaciones_por_estado() -> Dict:
             GROUP BY estado
         """)
 
-        conteos = {'Pendiente': 0, 'Entrevista': 0, 'Rechazado': 0, 'Oferta': 0}
+        conteos = {
+            'Pending': 0, 'Applied': 0, 'Technical Test': 0,
+            'In Interview': 0, 'Done': 0, 'Rejected': 0, 'Open Offer': 0
+        }
         for row in cursor.fetchall():
             conteos[row[0]] = row[1]
 

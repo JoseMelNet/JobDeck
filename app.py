@@ -77,11 +77,11 @@ with col1:
 with col2:
     st.metric("📋 Total Aplicaciones", stats_aplicaciones['Total'])
 with col3:
-    st.metric("⏳ Pendientes",         stats_aplicaciones['Pendiente'])
+    st.metric("🗓️ In Interview",       stats_aplicaciones['In Interview'])
 with col4:
-    st.metric("🗓️ Entrevistas",        stats_aplicaciones['Entrevista'])
+    st.metric("🎉 Open Offer",         stats_aplicaciones['Open Offer'])
 with col5:
-    st.metric("🎉 Ofertas",            stats_aplicaciones['Oferta'])
+    st.metric("❌ Rejected",           stats_aplicaciones['Rejected'])
 
 # ============================================================
 # PESTAÑAS

@@ -15,13 +15,24 @@ import time
 
 
 # Estados disponibles con sus emojis para mostrar en UI
-ESTADOS = ['Pendiente', 'Entrevista', 'Rechazado', 'Oferta']
+ESTADOS = [
+    'Pending',
+    'Applied',
+    'Technical Test',
+    'In Interview',
+    'Done',
+    'Rejected',
+    'Open Offer',
+]
 
 ESTADO_EMOJIS = {
-    'Pendiente':   '⏳ Pendiente',
-    'Entrevista':  '🗓️ Entrevista',
-    'Rechazado':   '❌ Rechazado',
-    'Oferta':      '🎉 Oferta',
+    'Pending':        '⏳ Pending',
+    'Applied':        '📤 Applied',
+    'Technical Test': '🧪 Technical Test',
+    'In Interview':   '🗓️ In Interview',
+    'Done':           '✅ Done',
+    'Rejected':       '❌ Rejected',
+    'Open Offer':     '🎉 Open Offer',
 }
 
 
