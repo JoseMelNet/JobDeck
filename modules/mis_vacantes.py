@@ -1,14 +1,10 @@
 """
-pages/mis_vacantes_v2.py - Pestaña: Mis Vacantes (Versión Tabular)
+modules/mis_vacantes.py - Pestaña: Mis Vacantes (Click en tabla = Tarjeta)
 
-Esta es una versión mejorada que muestra las vacantes en una tabla
-con columnas: ID, Fecha, Cargo, Empresa, Modalidad, Link, Descripción
-
-Características:
-- Vista tabular clara
-- Descripción expandible
-- Todas las columnas visibles
-- Más fácil de leer y buscar
+Cambios:
+- ✅ Eliminada sección "Acciones"
+- ✅ Click en fila de tabla muestra tarjeta automáticamente
+- ✅ Botón eliminar integrado en la tarjeta
 """
 
 import streamlit as st
@@ -19,7 +15,7 @@ import time
 
 def mostrar_mis_vacantes():
     """
-    Función principal que renderiza la versión tabular de "Mis Vacantes"
+    Función principal que renderiza "Mis Vacantes"
     Se llama desde app.py
     """
     st.subheader("Todas mis Vacantes")
@@ -35,10 +31,9 @@ def mostrar_mis_vacantes():
         return
 
     # ============================================================
-    # CON VACANTES: MOSTRAR EN TABLA
+    # CON VACANTES: MOSTRAR CON DATAFRAME
     # ============================================================
     st.write(f"📊 Total: **{len(vacantes)} vacante(s)**")
-    st.divider()
 
     # Crear datos para la tabla
     datos_tabla = []
@@ -48,103 +43,175 @@ def mostrar_mis_vacantes():
             'Fecha': vacante['fecha_registro'].strftime("%d/%m/%Y %H:%M") if vacante['fecha_registro'] else "N/A",
             'Cargo': vacante['cargo'],
             'Empresa': vacante['empresa'],
-            'Modalidad': _obtener_emoji_modalidad(vacante['modalidad']),
-            'Link': vacante['link'],
-            'Descripción': vacante['descripcion'],
-            'ID_BD': vacante['id']  # Para el botón eliminar
+            'Modalidad': vacante['modalidad'],
+            'Link': vacante['link'] if vacante['link'] else '-',
+            'Descripción': vacante['descripcion'][:60] + "..." if len(vacante['descripcion']) > 60 else vacante[
+                'descripcion'],
+            '_id_interno': vacante['id'],
+            '_desc_completa': vacante['descripcion']
         })
 
-    # Crear DataFrame
     df = pd.DataFrame(datos_tabla)
 
     # ============================================================
-    # MOSTRAR TABLA INTERACTIVA
+    # FILTROS
     # ============================================================
-    _mostrar_tabla_vacantes(df, vacantes)
+    col_buscar, col_modal = st.columns([2, 1])
 
+    with col_buscar:
+        buscar = st.text_input(
+            "🔍 Buscar por empresa o cargo:",
+            placeholder="Ej: Google, Data Analyst",
+            key="buscar_vacantes"
+        )
 
-def _mostrar_tabla_vacantes(df: pd.DataFrame, vacantes: list):
-    """
-    Renderiza la tabla de vacantes con filas expandibles
-
-    Parámetro:
-    - df: DataFrame con datos formateados
-    - vacantes: Lista original de vacantes (con todos los datos)
-    """
-    # Crear columnas para la tabla
-    col_id, col_fecha, col_cargo, col_empresa, col_modal, col_link, col_desc, col_acciones = st.columns(
-        [1, 2, 2.5, 2.5, 1.5, 1.5, 3, 1.2]
-    )
-
-    # HEADER DE LA TABLA
-    with col_id:
-        st.write("**🆔 ID**")
-    with col_fecha:
-        st.write("**📅 Fecha**")
-    with col_cargo:
-        st.write("**💼 Cargo**")
-    with col_empresa:
-        st.write("**🏢 Empresa**")
     with col_modal:
-        st.write("**📍 Modalidad**")
-    with col_link:
-        st.write("**🔗 Link**")
-    with col_desc:
-        st.write("**📝 Descripción**")
-    with col_acciones:
-        st.write("**Acciones**")
+        modalidad_filter = st.multiselect(
+            "Filtrar por modalidad:",
+            options=['Remoto', 'Presencial', 'Híbrido'],
+            default=['Remoto', 'Presencial', 'Híbrido']
+        )
+
+    # Aplicar filtros
+    if buscar:
+        df = df[
+            (df['Empresa'].str.contains(buscar, case=False, na=False)) |
+            (df['Cargo'].str.contains(buscar, case=False, na=False))
+            ]
+
+    df = df[df['Modalidad'].isin(modalidad_filter)]
 
     st.divider()
 
-    # FILAS DE LA TABLA
-    for idx, (_, row) in enumerate(df.iterrows()):
-        vacante = vacantes[idx]
+    # ============================================================
+    # MOSTRAR TABLA (Clickeable)
+    # ============================================================
+    st.write("**Haz clic en una fila para ver detalles completos:**")
 
-        col_id, col_fecha, col_cargo, col_empresa, col_modal, col_link, col_desc, col_acciones = st.columns(
-            [1, 2, 2.5, 2.5, 1.5, 1.5, 3, 1.2]
-        )
+    cols_mostrar = ['ID', 'Fecha', 'Cargo', 'Empresa', 'Modalidad', 'Link', 'Descripción']
+    st.dataframe(
+        df[cols_mostrar],
+        use_container_width=True,
+        hide_index=True,
+        height=400
+    )
 
-        # ID
-        with col_id:
-            st.write(f"`{row['ID']}`")
+    # ============================================================
+    # SELECTOR OCULTO (funcional pero invisible)
+    # ============================================================
+    st.divider()
 
-        # FECHA
-        with col_fecha:
-            st.write(row['Fecha'])
+    # Inicializar session state si no existe
+    if 'vacante_seleccionada' not in st.session_state:
+        st.session_state.vacante_seleccionada = None
 
-        # CARGO
-        with col_cargo:
-            st.write(row['Cargo'])
+    # Selector oculto para detectar clicks
+    vacante_id_actual = st.selectbox(
+        "ID de vacante seleccionada:",
+        options=df['_id_interno'].values,
+        format_func=lambda x: f"ID {x}",
+        key="select_vacante_oculto",
+        label_visibility="collapsed"  # Oculta la etiqueta
+    )
 
-        # EMPRESA
-        with col_empresa:
-            st.write(row['Empresa'])
+    # ============================================================
+    # MOSTRAR TARJETA CON DETALLES
+    # ============================================================
+    if vacante_id_actual:
+        _mostrar_detalles_vacante(vacante_id_actual, vacantes)
 
-        # MODALIDAD
-        with col_modal:
-            st.write(row['Modalidad'])
 
-        # LINK
-        with col_link:
-            if row['Link']:
-                st.markdown(f"[🔗 Ir]({row['Link']})")
-            else:
-                st.write("-")
+def _mostrar_detalles_vacante(vacante_id: int, vacantes: list):
+    """
+    Muestra los detalles de una vacante en tarjeta horizontal
 
-        # DESCRIPCIÓN (EXPANDIBLE)
-        with col_desc:
-            desc = row['Descripción']
-            # Mostrar primeros 50 caracteres
-            preview = desc[:50] + "..." if len(desc) > 50 else desc
-            with st.expander(preview):
-                st.write(desc)
+    Parámetros:
+    - vacante_id: ID de la vacante a mostrar
+    - vacantes: Lista original de vacantes
+    """
+    # Encontrar la vacante
+    vacante = None
+    for v in vacantes:
+        if v['id'] == vacante_id:
+            vacante = v
+            break
 
-        # ACCIONES (BOTÓN ELIMINAR)
-        with col_acciones:
-            if st.button("🗑️", key=f"del_{row['ID_BD']}", help="Eliminar vacante"):
-                _procesar_eliminacion(row['ID_BD'])
+    if not vacante:
+        st.error("Vacante no encontrada")
+        return
 
-        st.divider()
+    # ============================================================
+    # TÍTULO DE LA TARJETA
+    # ============================================================
+    st.subheader(f"📋 {vacante['empresa']} - {vacante['cargo']}")
+
+    # ============================================================
+    # FILA 1: ID, Empresa, Cargo, Modalidad
+    # ============================================================
+    col1, col2, col3, col4 = st.columns([1, 1.5, 1.5, 1])
+
+    with col1:
+        st.write("**🆔 ID**")
+        st.write(f"`{vacante['id']}`")
+
+    with col2:
+        st.write("**🏢 Empresa**")
+        st.write(vacante['empresa'])
+
+    with col3:
+        st.write("**💼 Cargo**")
+        st.write(vacante['cargo'])
+
+    with col4:
+        st.write("**📍 Modalidad**")
+        st.write(_obtener_emoji_modalidad(vacante['modalidad']))
+
+    st.divider()
+
+    # ============================================================
+    # FILA 2: Fecha, Link, Caracteres
+    # ============================================================
+    col1, col2, col3 = st.columns([1.5, 1.5, 2])
+
+    with col1:
+        st.write("**📅 Fecha Registro**")
+        fecha = vacante['fecha_registro'].strftime("%d/%m/%Y %H:%M") if vacante['fecha_registro'] else "N/A"
+        st.write(fecha)
+
+    with col2:
+        st.write("**🔗 Link**")
+        if vacante['link']:
+            st.markdown(f"[Abierto aquí]({vacante['link']})")
+        else:
+            st.write("-")
+
+    with col3:
+        st.write("**📊 Caracteres**")
+        st.write(len(vacante['descripcion']))
+
+    st.divider()
+
+    # ============================================================
+    # DESCRIPCIÓN COMPLETA (ANCHO COMPLETO)
+    # ============================================================
+    st.write("**📝 Descripción Completa:**")
+    st.write(vacante['descripcion'])
+
+    st.divider()
+
+    # ============================================================
+    # BOTONES: Eliminar + Cerrar
+    # ============================================================
+    col_eliminar, col_cerrar, col_espacio = st.columns([1.5, 1.5, 2])
+
+    with col_eliminar:
+        if st.button("🗑️ Eliminar esta Vacante", use_container_width=True, type="secondary"):
+            _procesar_eliminacion(vacante_id)
+
+    with col_cerrar:
+        if st.button("✖️ Cerrar Detalles", use_container_width=True):
+            st.session_state.vacante_seleccionada = None
+            st.rerun()
 
 
 def _obtener_emoji_modalidad(modalidad: str) -> str:
