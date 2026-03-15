@@ -412,3 +412,520 @@ if __name__ == "__main__":
         print("✅ Conexión exitosa")
     else:
         print("❌ Error de conexión")
+
+
+"""
+database_aplicaciones.py
+Nuevas funciones CRUD para la tabla "aplicaciones".
+"""
+
+# ============================================================
+# FUNCIONES DE APLICACIONES
+# ============================================================
+
+def insertar_aplicacion(
+    vacante_id: int,
+    fecha_aplicacion,
+    estado: str,
+    nombre_recruiter: str = None,
+    email_recruiter: str = None,
+    telefono_recruiter: str = None,
+    notas: str = None
+) -> dict:
+    """
+    Inserta una nueva aplicación en la BD.
+    Valida que no exista una aplicación previa para la misma vacante.
+
+    Retorna dict con: {'success': bool, 'message': str, 'id': int}
+    """
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Error: No hay conexión a la base de datos', 'id': None}
+
+    try:
+        cursor = conn.cursor()
+
+        # Validar estado
+        estados_validos = ['Pendiente', 'Entrevista', 'Rechazado', 'Oferta']
+        if estado not in estados_validos:
+            return {'success': False, 'message': f'Estado inválido. Usa: {", ".join(estados_validos)}', 'id': None}
+
+        # Verificar si ya existe aplicación para esta vacante
+        cursor.execute("SELECT id FROM aplicaciones WHERE vacante_id = ?", (vacante_id,))
+        if cursor.fetchone():
+            return {
+                'success': False,
+                'message': '⚠️ Ya existe una aplicación registrada para esta vacante.',
+                'id': None
+            }
+
+        # Limpiar campos opcionales
+        def clean(val):
+            return val.strip() if val and str(val).strip() else None
+
+        cursor.execute("""
+            INSERT INTO aplicaciones
+                (vacante_id, fecha_aplicacion, estado, nombre_recruiter,
+                 email_recruiter, telefono_recruiter, notas)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+        """, (
+            vacante_id,
+            fecha_aplicacion,
+            estado,
+            clean(nombre_recruiter),
+            clean(email_recruiter),
+            clean(telefono_recruiter),
+            clean(notas)
+        ))
+
+        cursor.execute("SELECT @@IDENTITY AS id;")
+        result = cursor.fetchone()
+
+        if result and result[0] is not None:
+            aplicacion_id = int(result[0])
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return {
+                'success': True,
+                'message': f'✓ Aplicación guardada exitosamente (ID: {aplicacion_id})',
+                'id': aplicacion_id
+            }
+        else:
+            conn.rollback()
+            cursor.close()
+            conn.close()
+            return {'success': False, 'message': 'Error: No se pudo obtener el ID de la aplicación', 'id': None}
+
+    except pyodbc.Error as e:
+        try:
+            conn.rollback()
+        except:
+            pass
+        print(f"[ERROR] pyodbc insertar_aplicacion: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}', 'id': None}
+
+    except Exception as e:
+        try:
+            conn.rollback()
+        except:
+            pass
+        print(f"[ERROR] insertar_aplicacion: {e}")
+        return {'success': False, 'message': f'Error inesperado: {str(e)}', 'id': None}
+
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            conn.close()
+        except:
+            pass
+
+
+def obtener_todas_aplicaciones() -> list:
+    """
+    Obtiene todas las aplicaciones con datos de la vacante asociada.
+    Ordenadas por fecha_aplicacion DESC.
+    """
+    conn = get_connection()
+    if not conn:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT
+                a.id,
+                a.vacante_id,
+                v.empresa,
+                v.cargo,
+                v.modalidad,
+                v.link,
+                a.fecha_aplicacion,
+                a.estado,
+                a.nombre_recruiter,
+                a.email_recruiter,
+                a.telefono_recruiter,
+                a.notas,
+                a.fecha_registro
+            FROM aplicaciones a
+            INNER JOIN vacantes v ON a.vacante_id = v.id
+            ORDER BY a.fecha_aplicacion DESC
+        """)
+
+        aplicaciones = []
+        for row in cursor.fetchall():
+            aplicaciones.append({
+                'id':                 row[0],
+                'vacante_id':         row[1],
+                'empresa':            row[2],
+                'cargo':              row[3],
+                'modalidad':          row[4],
+                'link':               row[5],
+                'fecha_aplicacion':   row[6],
+                'estado':             row[7],
+                'nombre_recruiter':   row[8],
+                'email_recruiter':    row[9],
+                'telefono_recruiter': row[10],
+                'notas':              row[11],
+                'fecha_registro':     row[12],
+            })
+
+        cursor.close()
+        conn.close()
+        return aplicaciones
+
+    except Exception as e:
+        print(f"[ERROR] obtener_todas_aplicaciones: {e}")
+        return []
+
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            conn.close()
+        except:
+            pass
+
+
+def obtener_aplicacion_por_id(aplicacion_id: int) -> Optional[Dict]:
+    """Obtiene una aplicación específica con datos de su vacante."""
+    conn = get_connection()
+    if not conn:
+        return None
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT
+                a.id, a.vacante_id, v.empresa, v.cargo, v.modalidad, v.link,
+                a.fecha_aplicacion, a.estado, a.nombre_recruiter,
+                a.email_recruiter, a.telefono_recruiter, a.notas, a.fecha_registro
+            FROM aplicaciones a
+            INNER JOIN vacantes v ON a.vacante_id = v.id
+            WHERE a.id = ?
+        """, (aplicacion_id,))
+
+        row = cursor.fetchone()
+        if row:
+            return {
+                'id': row[0], 'vacante_id': row[1], 'empresa': row[2],
+                'cargo': row[3], 'modalidad': row[4], 'link': row[5],
+                'fecha_aplicacion': row[6], 'estado': row[7],
+                'nombre_recruiter': row[8], 'email_recruiter': row[9],
+                'telefono_recruiter': row[10], 'notas': row[11],
+                'fecha_registro': row[12],
+            }
+        return None
+
+    except Exception as e:
+        print(f"[ERROR] obtener_aplicacion_por_id: {e}")
+        return None
+
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            conn.close()
+        except:
+            pass
+
+
+def actualizar_estado_aplicacion(aplicacion_id: int, nuevo_estado: str) -> Dict:
+    """
+    Actualiza solo el campo 'estado' de una aplicación.
+    Estados válidos: Pendiente, Entrevista, Rechazado, Oferta
+    """
+    estados_validos = ['Pendiente', 'Entrevista', 'Rechazado', 'Oferta']
+    if nuevo_estado not in estados_validos:
+        return {'success': False, 'message': f'Estado inválido. Opciones: {", ".join(estados_validos)}'}
+
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Error: No hay conexión a la base de datos'}
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE aplicaciones SET estado = ? WHERE id = ?",
+            (nuevo_estado, aplicacion_id)
+        )
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            cursor.close()
+            conn.close()
+            return {'success': True, 'message': f'✓ Estado actualizado a "{nuevo_estado}"'}
+        else:
+            cursor.close()
+            conn.close()
+            return {'success': False, 'message': f'No se encontró aplicación con ID {aplicacion_id}'}
+
+    except Exception as e:
+        try:
+            conn.rollback()
+        except:
+            pass
+        print(f"[ERROR] actualizar_estado_aplicacion: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            conn.close()
+        except:
+            pass
+
+
+def actualizar_datos_aplicacion(
+    aplicacion_id: int,
+    estado: str,
+    nombre_recruiter: str = None,
+    email_recruiter: str = None,
+    telefono_recruiter: str = None,
+    notas: str = None
+) -> Dict:
+    """
+    Actualiza todos los campos editables de una aplicación (excepto vacante_id y fechas).
+    """
+    estados_validos = ['Pendiente', 'Entrevista', 'Rechazado', 'Oferta']
+    if estado not in estados_validos:
+        return {'success': False, 'message': f'Estado inválido. Opciones: {", ".join(estados_validos)}'}
+
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Error: No hay conexión a la base de datos'}
+
+    def clean(val):
+        return val.strip() if val and str(val).strip() else None
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE aplicaciones
+            SET estado             = ?,
+                nombre_recruiter   = ?,
+                email_recruiter    = ?,
+                telefono_recruiter = ?,
+                notas              = ?
+            WHERE id = ?
+        """, (
+            estado,
+            clean(nombre_recruiter),
+            clean(email_recruiter),
+            clean(telefono_recruiter),
+            clean(notas),
+            aplicacion_id
+        ))
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            cursor.close()
+            conn.close()
+            return {'success': True, 'message': f'✓ Aplicación actualizada correctamente'}
+        else:
+            cursor.close()
+            conn.close()
+            return {'success': False, 'message': f'No se encontró aplicación con ID {aplicacion_id}'}
+
+    except Exception as e:
+        try:
+            conn.rollback()
+        except:
+            pass
+        print(f"[ERROR] actualizar_datos_aplicacion: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            conn.close()
+        except:
+            pass
+
+
+def eliminar_aplicacion(aplicacion_id: int) -> Dict:
+    """Elimina una aplicación por ID."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Error: No hay conexión a la base de datos'}
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM aplicaciones WHERE id = ?", (aplicacion_id,))
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            cursor.close()
+            conn.close()
+            return {'success': True, 'message': f'✓ Aplicación ID {aplicacion_id} eliminada'}
+        else:
+            cursor.close()
+            conn.close()
+            return {'success': False, 'message': f'No se encontró aplicación con ID {aplicacion_id}'}
+
+    except Exception as e:
+        try:
+            conn.rollback()
+        except:
+            pass
+        print(f"[ERROR] eliminar_aplicacion: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            conn.close()
+        except:
+            pass
+
+
+def obtener_aplicaciones_por_vacante(vacante_id: int) -> list:
+    """Obtiene todas las aplicaciones asociadas a una vacante específica."""
+    conn = get_connection()
+    if not conn:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT
+                a.id, a.vacante_id, v.empresa, v.cargo, v.modalidad,
+                a.fecha_aplicacion, a.estado, a.nombre_recruiter,
+                a.email_recruiter, a.telefono_recruiter, a.notas, a.fecha_registro
+            FROM aplicaciones a
+            INNER JOIN vacantes v ON a.vacante_id = v.id
+            WHERE a.vacante_id = ?
+            ORDER BY a.fecha_aplicacion DESC
+        """, (vacante_id,))
+
+        aplicaciones = []
+        for row in cursor.fetchall():
+            aplicaciones.append({
+                'id': row[0], 'vacante_id': row[1], 'empresa': row[2],
+                'cargo': row[3], 'modalidad': row[4],
+                'fecha_aplicacion': row[5], 'estado': row[6],
+                'nombre_recruiter': row[7], 'email_recruiter': row[8],
+                'telefono_recruiter': row[9], 'notas': row[10],
+                'fecha_registro': row[11],
+            })
+
+        cursor.close()
+        conn.close()
+        return aplicaciones
+
+    except Exception as e:
+        print(f"[ERROR] obtener_aplicaciones_por_vacante: {e}")
+        return []
+
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            conn.close()
+        except:
+            pass
+
+
+def contar_aplicaciones_por_estado() -> Dict:
+    """
+    Retorna un dict con el conteo de aplicaciones por estado.
+    Útil para estadísticas del dashboard.
+    """
+    conn = get_connection()
+    if not conn:
+        return {'Pendiente': 0, 'Entrevista': 0, 'Rechazado': 0, 'Oferta': 0, 'Total': 0}
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT estado, COUNT(*) as total
+            FROM aplicaciones
+            GROUP BY estado
+        """)
+
+        conteos = {'Pendiente': 0, 'Entrevista': 0, 'Rechazado': 0, 'Oferta': 0}
+        for row in cursor.fetchall():
+            conteos[row[0]] = row[1]
+
+        conteos['Total'] = sum(conteos.values())
+        cursor.close()
+        conn.close()
+        return conteos
+
+    except Exception as e:
+        print(f"[ERROR] contar_aplicaciones_por_estado: {e}")
+        return {'Pendiente': 0, 'Entrevista': 0, 'Rechazado': 0, 'Oferta': 0, 'Total': 0}
+
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            conn.close()
+        except:
+            pass
+
+
+def obtener_vacantes_sin_aplicacion() -> list:
+    """
+    Retorna vacantes que todavía NO tienen aplicación registrada.
+    Útil para el dropdown del formulario de nueva aplicación.
+    """
+    conn = get_connection()
+    if not conn:
+        return []
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT v.id, v.empresa, v.cargo, v.modalidad
+            FROM vacantes v
+            WHERE v.id NOT IN (SELECT vacante_id FROM aplicaciones)
+            ORDER BY v.fecha_registro DESC
+        """)
+
+        vacantes = []
+        for row in cursor.fetchall():
+            vacantes.append({
+                'id':        row[0],
+                'empresa':   row[1],
+                'cargo':     row[2],
+                'modalidad': row[3],
+            })
+
+        cursor.close()
+        conn.close()
+        return vacantes
+
+    except Exception as e:
+        print(f"[ERROR] obtener_vacantes_sin_aplicacion: {e}")
+        return []
+
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            conn.close()
+        except:
+            pass
