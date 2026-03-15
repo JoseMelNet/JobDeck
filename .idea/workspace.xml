@@ -4,12 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a027a28-f8d8-4ccb-aed6-a6be7d70df04" name="Changes" comment="se actualiza app.py para cargar modulos de postulaciones">
+    <list default="true" id="9a027a28-f8d8-4ccb-aed6-a6be7d70df04" name="Changes" comment="MPV Aplicaciones a Vacantes Funcionando OK">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/database.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/mis_aplicaciones.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/mis_aplicaciones.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/registrar_aplicacion.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/registrar_aplicacion.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -132,7 +129,15 @@
       <option name="project" value="LOCAL" />
       <updated>1773604484432</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="MPV Aplicaciones a Vacantes Funcionando OK">
+      <option name="closed" value="true" />
+      <created>1773607353218</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1773607353218</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -152,6 +157,7 @@
     <MESSAGE value="se crea nueva tabla aplicaciones en la db" />
     <MESSAGE value="se crean modulos registrar aplicaciones y mis aplicaciones" />
     <MESSAGE value="se actualiza app.py para cargar modulos de postulaciones" />
-    <option name="LAST_COMMIT_MESSAGE" value="se actualiza app.py para cargar modulos de postulaciones" />
+    <MESSAGE value="MPV Aplicaciones a Vacantes Funcionando OK" />
+    <option name="LAST_COMMIT_MESSAGE" value="MPV Aplicaciones a Vacantes Funcionando OK" />
   </component>
 </project>

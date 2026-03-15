@@ -423,7 +423,6 @@ INSTRUCCIONES: Copia estas funciones al final de tu database.py existente.
 
 # ============================================================
 # FUNCIONES DE APLICACIONES
-# Pega todo este bloque al final de database.py
 # ============================================================
 
 def insertar_aplicacion(
