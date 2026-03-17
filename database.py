@@ -937,3 +937,735 @@ def obtener_vacantes_sin_aplicacion() -> list:
             conn.close()
         except:
             pass
+
+"""
+database_perfil.py
+Funciones CRUD para las tablas del perfil de usuario.
+
+Tablas cubiertas:
+  - perfil_usuario
+  - perfil_skills
+  - perfil_experiencia_laboral
+  - perfil_proyectos
+  - perfil_educacion
+  - perfil_cursos
+  - perfil_certificaciones
+"""
+
+# ============================================================
+# PERFIL USUARIO — datos personales y configuración base
+# ============================================================
+
+def obtener_perfil() -> Optional[Dict]:
+    """
+    Obtiene el perfil activo del usuario.
+    Retorna None si no existe ningún perfil aún.
+    """
+    conn = get_connection()
+    if not conn:
+        return None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, nombre, titulo_profesional, ciudad, direccion,
+                   celular, correo, perfil_linkedin, perfil_github,
+                   nivel_actual, anos_experiencia,
+                   salario_min, salario_max, moneda,
+                   modalidades_aceptadas,
+                   fecha_creacion, fecha_actualizacion
+            FROM perfil_usuario
+            WHERE activo = 1
+        """)
+        row = cursor.fetchone()
+        if row:
+            return {
+                'id': row[0], 'nombre': row[1], 'titulo_profesional': row[2],
+                'ciudad': row[3], 'direccion': row[4], 'celular': row[5],
+                'correo': row[6], 'perfil_linkedin': row[7], 'perfil_github': row[8],
+                'nivel_actual': row[9], 'anos_experiencia': row[10],
+                'salario_min': row[11], 'salario_max': row[12], 'moneda': row[13],
+                'modalidades_aceptadas': row[14],
+                'fecha_creacion': row[15], 'fecha_actualizacion': row[16],
+            }
+        return None
+    except Exception as e:
+        print(f"[ERROR] obtener_perfil: {e}")
+        return None
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def guardar_perfil(datos: Dict) -> Dict:
+    """
+    Crea o actualiza el perfil del usuario.
+    Si ya existe un perfil activo lo actualiza (UPDATE).
+    Si no existe lo crea (INSERT).
+
+    datos: dict con las claves del perfil_usuario.
+    Retorna {'success': bool, 'message': str, 'id': int}
+    """
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD', 'id': None}
+
+    def c(val):
+        return val.strip() if val and str(val).strip() else None
+
+    try:
+        cursor = conn.cursor()
+
+        # ¿Ya existe un perfil activo?
+        cursor.execute("SELECT id FROM perfil_usuario WHERE activo = 1")
+        existing = cursor.fetchone()
+
+        if existing:
+            perfil_id = existing[0]
+            cursor.execute("""
+                UPDATE perfil_usuario SET
+                    nombre                = ?,
+                    titulo_profesional    = ?,
+                    ciudad                = ?,
+                    direccion             = ?,
+                    celular               = ?,
+                    correo                = ?,
+                    perfil_linkedin       = ?,
+                    perfil_github         = ?,
+                    nivel_actual          = ?,
+                    anos_experiencia      = ?,
+                    salario_min           = ?,
+                    salario_max           = ?,
+                    moneda                = ?,
+                    modalidades_aceptadas = ?,
+                    fecha_actualizacion   = GETDATE()
+                WHERE id = ?
+            """, (
+                c(datos.get('nombre')),
+                c(datos.get('titulo_profesional')),
+                c(datos.get('ciudad')),
+                c(datos.get('direccion')),
+                c(datos.get('celular')),
+                c(datos.get('correo')),
+                c(datos.get('perfil_linkedin')),
+                c(datos.get('perfil_github')),
+                datos.get('nivel_actual', 'Mid'),
+                datos.get('anos_experiencia', 0),
+                datos.get('salario_min'),
+                datos.get('salario_max'),
+                datos.get('moneda', 'COP'),
+                datos.get('modalidades_aceptadas', 'Remoto,Híbrido,Presencial'),
+                perfil_id
+            ))
+            conn.commit()
+            return {'success': True, 'message': '✓ Perfil actualizado correctamente', 'id': perfil_id}
+        else:
+            cursor.execute("""
+                INSERT INTO perfil_usuario (
+                    nombre, titulo_profesional, ciudad, direccion,
+                    celular, correo, perfil_linkedin, perfil_github,
+                    nivel_actual, anos_experiencia,
+                    salario_min, salario_max, moneda, modalidades_aceptadas
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                c(datos.get('nombre')),
+                c(datos.get('titulo_profesional')),
+                c(datos.get('ciudad')),
+                c(datos.get('direccion')),
+                c(datos.get('celular')),
+                c(datos.get('correo')),
+                c(datos.get('perfil_linkedin')),
+                c(datos.get('perfil_github')),
+                datos.get('nivel_actual', 'Mid'),
+                datos.get('anos_experiencia', 0),
+                datos.get('salario_min'),
+                datos.get('salario_max'),
+                datos.get('moneda', 'COP'),
+                datos.get('modalidades_aceptadas', 'Remoto,Híbrido,Presencial'),
+            ))
+            cursor.execute("SELECT @@IDENTITY AS id")
+            perfil_id = int(cursor.fetchone()[0])
+            conn.commit()
+            return {'success': True, 'message': '✓ Perfil creado correctamente', 'id': perfil_id}
+
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        print(f"[ERROR] guardar_perfil: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}', 'id': None}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+# ============================================================
+# PERFIL SKILLS
+# ============================================================
+
+def obtener_skills(perfil_id: int) -> List[Dict]:
+    """Obtiene todas las skills del perfil, ordenadas por categoría."""
+    conn = get_connection()
+    if not conn:
+        return []
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, categoria, skill, nivel
+            FROM perfil_skills
+            WHERE perfil_id = ?
+            ORDER BY categoria, skill
+        """, (perfil_id,))
+        return [
+            {'id': r[0], 'categoria': r[1], 'skill': r[2], 'nivel': r[3]}
+            for r in cursor.fetchall()
+        ]
+    except Exception as e:
+        print(f"[ERROR] obtener_skills: {e}")
+        return []
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def insertar_skill(perfil_id: int, categoria: str, skill: str, nivel: str) -> Dict:
+    """Inserta una nueva skill para el perfil."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO perfil_skills (perfil_id, categoria, skill, nivel)
+            VALUES (?, ?, ?, ?)
+        """, (perfil_id, categoria.strip(), skill.strip(), nivel.strip()))
+        conn.commit()
+        return {'success': True, 'message': f'✓ Skill "{skill}" agregada'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        print(f"[ERROR] insertar_skill: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def eliminar_skill(skill_id: int) -> Dict:
+    """Elimina una skill por ID."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM perfil_skills WHERE id = ?", (skill_id,))
+        conn.commit()
+        return {'success': True, 'message': '✓ Skill eliminada'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+# ============================================================
+# PERFIL EXPERIENCIA LABORAL
+# ============================================================
+
+def obtener_experiencias(perfil_id: int) -> List[Dict]:
+    """Obtiene todas las experiencias laborales, de más reciente a más antigua."""
+    conn = get_connection()
+    if not conn:
+        return []
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, cargo, empresa, ciudad, fecha_inicio, fecha_fin,
+                   es_trabajo_actual, descripcion_empresa, funciones, logros
+            FROM perfil_experiencia_laboral
+            WHERE perfil_id = ?
+            ORDER BY es_trabajo_actual DESC, fecha_inicio DESC
+        """, (perfil_id,))
+        return [
+            {
+                'id': r[0], 'cargo': r[1], 'empresa': r[2], 'ciudad': r[3],
+                'fecha_inicio': r[4], 'fecha_fin': r[5],
+                'es_trabajo_actual': bool(r[6]),
+                'descripcion_empresa': r[7], 'funciones': r[8], 'logros': r[9],
+            }
+            for r in cursor.fetchall()
+        ]
+    except Exception as e:
+        print(f"[ERROR] obtener_experiencias: {e}")
+        return []
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def insertar_experiencia(perfil_id: int, datos: Dict) -> Dict:
+    """Inserta una nueva experiencia laboral."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+
+    def c(val):
+        return val.strip() if val and str(val).strip() else None
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO perfil_experiencia_laboral (
+                perfil_id, cargo, empresa, ciudad,
+                fecha_inicio, fecha_fin, es_trabajo_actual,
+                descripcion_empresa, funciones, logros
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            perfil_id,
+            c(datos.get('cargo')),
+            c(datos.get('empresa')),
+            c(datos.get('ciudad')),
+            datos.get('fecha_inicio'),
+            datos.get('fecha_fin') if not datos.get('es_trabajo_actual') else None,
+            1 if datos.get('es_trabajo_actual') else 0,
+            c(datos.get('descripcion_empresa')),
+            c(datos.get('funciones')),
+            c(datos.get('logros')),
+        ))
+        conn.commit()
+        return {'success': True, 'message': f'✓ Experiencia en "{datos.get("empresa")}" agregada'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        print(f"[ERROR] insertar_experiencia: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def eliminar_experiencia(exp_id: int) -> Dict:
+    """Elimina una experiencia laboral por ID."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM perfil_experiencia_laboral WHERE id = ?", (exp_id,))
+        conn.commit()
+        return {'success': True, 'message': '✓ Experiencia eliminada'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+# ============================================================
+# PERFIL PROYECTOS
+# ============================================================
+
+def obtener_proyectos(perfil_id: int) -> List[Dict]:
+    """Obtiene todos los proyectos del perfil."""
+    conn = get_connection()
+    if not conn:
+        return []
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, nombre, empresa, ciudad, fecha_inicio, fecha_fin,
+                   es_proyecto_actual, stack, funciones, logros, url_repositorio
+            FROM perfil_proyectos
+            WHERE perfil_id = ?
+            ORDER BY es_proyecto_actual DESC, fecha_inicio DESC
+        """, (perfil_id,))
+        return [
+            {
+                'id': r[0], 'nombre': r[1], 'empresa': r[2], 'ciudad': r[3],
+                'fecha_inicio': r[4], 'fecha_fin': r[5],
+                'es_proyecto_actual': bool(r[6]),
+                'stack': r[7], 'funciones': r[8], 'logros': r[9],
+                'url_repositorio': r[10],
+            }
+            for r in cursor.fetchall()
+        ]
+    except Exception as e:
+        print(f"[ERROR] obtener_proyectos: {e}")
+        return []
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def insertar_proyecto(perfil_id: int, datos: Dict) -> Dict:
+    """Inserta un nuevo proyecto."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+
+    def c(val):
+        return val.strip() if val and str(val).strip() else None
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO perfil_proyectos (
+                perfil_id, nombre, empresa, ciudad,
+                fecha_inicio, fecha_fin, es_proyecto_actual,
+                stack, funciones, logros, url_repositorio
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            perfil_id,
+            c(datos.get('nombre')),
+            c(datos.get('empresa')),
+            c(datos.get('ciudad')),
+            datos.get('fecha_inicio'),
+            datos.get('fecha_fin') if not datos.get('es_proyecto_actual') else None,
+            1 if datos.get('es_proyecto_actual') else 0,
+            c(datos.get('stack')),
+            c(datos.get('funciones')),
+            c(datos.get('logros')),
+            c(datos.get('url_repositorio')),
+        ))
+        conn.commit()
+        return {'success': True, 'message': f'✓ Proyecto "{datos.get("nombre")}" agregado'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        print(f"[ERROR] insertar_proyecto: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def eliminar_proyecto(proyecto_id: int) -> Dict:
+    """Elimina un proyecto por ID."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM perfil_proyectos WHERE id = ?", (proyecto_id,))
+        conn.commit()
+        return {'success': True, 'message': '✓ Proyecto eliminado'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+# ============================================================
+# PERFIL EDUCACION
+# ============================================================
+
+def obtener_educacion(perfil_id: int) -> List[Dict]:
+    """Obtiene toda la formación académica del perfil."""
+    conn = get_connection()
+    if not conn:
+        return []
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, titulo, institucion, ciudad, nivel,
+                   fecha_inicio, fecha_fin, status
+            FROM perfil_educacion
+            WHERE perfil_id = ?
+            ORDER BY fecha_inicio DESC
+        """, (perfil_id,))
+        return [
+            {
+                'id': r[0], 'titulo': r[1], 'institucion': r[2],
+                'ciudad': r[3], 'nivel': r[4],
+                'fecha_inicio': r[5], 'fecha_fin': r[6], 'status': r[7],
+            }
+            for r in cursor.fetchall()
+        ]
+    except Exception as e:
+        print(f"[ERROR] obtener_educacion: {e}")
+        return []
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def insertar_educacion(perfil_id: int, datos: Dict) -> Dict:
+    """Inserta un nuevo registro de educación."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+
+    def c(val):
+        return val.strip() if val and str(val).strip() else None
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO perfil_educacion (
+                perfil_id, titulo, institucion, ciudad,
+                nivel, fecha_inicio, fecha_fin, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            perfil_id,
+            c(datos.get('titulo')),
+            c(datos.get('institucion')),
+            c(datos.get('ciudad')),
+            datos.get('nivel', 'Pregrado'),
+            datos.get('fecha_inicio'),
+            datos.get('fecha_fin'),
+            datos.get('status', 'Completado'),
+        ))
+        conn.commit()
+        return {'success': True, 'message': f'✓ Educación "{datos.get("titulo")}" agregada'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        print(f"[ERROR] insertar_educacion: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def eliminar_educacion(edu_id: int) -> Dict:
+    """Elimina un registro de educación por ID."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM perfil_educacion WHERE id = ?", (edu_id,))
+        conn.commit()
+        return {'success': True, 'message': '✓ Educación eliminada'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+# ============================================================
+# PERFIL CURSOS
+# ============================================================
+
+def obtener_cursos(perfil_id: int) -> List[Dict]:
+    """Obtiene todos los cursos del perfil."""
+    conn = get_connection()
+    if not conn:
+        return []
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, titulo, institucion, fecha_inicio, fecha_fin,
+                   status, url_certificado
+            FROM perfil_cursos
+            WHERE perfil_id = ?
+            ORDER BY fecha_fin DESC, fecha_inicio DESC
+        """, (perfil_id,))
+        return [
+            {
+                'id': r[0], 'titulo': r[1], 'institucion': r[2],
+                'fecha_inicio': r[3], 'fecha_fin': r[4],
+                'status': r[5], 'url_certificado': r[6],
+            }
+            for r in cursor.fetchall()
+        ]
+    except Exception as e:
+        print(f"[ERROR] obtener_cursos: {e}")
+        return []
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def insertar_curso(perfil_id: int, datos: Dict) -> Dict:
+    """Inserta un nuevo curso."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+
+    def c(val):
+        return val.strip() if val and str(val).strip() else None
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO perfil_cursos (
+                perfil_id, titulo, institucion,
+                fecha_inicio, fecha_fin, status, url_certificado
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            perfil_id,
+            c(datos.get('titulo')),
+            c(datos.get('institucion')),
+            datos.get('fecha_inicio'),
+            datos.get('fecha_fin'),
+            datos.get('status', 'Completado'),
+            c(datos.get('url_certificado')),
+        ))
+        conn.commit()
+        return {'success': True, 'message': f'✓ Curso "{datos.get("titulo")}" agregado'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        print(f"[ERROR] insertar_curso: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def eliminar_curso(curso_id: int) -> Dict:
+    """Elimina un curso por ID."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM perfil_cursos WHERE id = ?", (curso_id,))
+        conn.commit()
+        return {'success': True, 'message': '✓ Curso eliminado'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+# ============================================================
+# PERFIL CERTIFICACIONES
+# ============================================================
+
+def obtener_certificaciones(perfil_id: int) -> List[Dict]:
+    """Obtiene todas las certificaciones del perfil."""
+    conn = get_connection()
+    if not conn:
+        return []
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, titulo, institucion, fecha_obtencion,
+                   fecha_vencimiento, status, url_certificado
+            FROM perfil_certificaciones
+            WHERE perfil_id = ?
+            ORDER BY fecha_obtencion DESC
+        """, (perfil_id,))
+        return [
+            {
+                'id': r[0], 'titulo': r[1], 'institucion': r[2],
+                'fecha_obtencion': r[3], 'fecha_vencimiento': r[4],
+                'status': r[5], 'url_certificado': r[6],
+            }
+            for r in cursor.fetchall()
+        ]
+    except Exception as e:
+        print(f"[ERROR] obtener_certificaciones: {e}")
+        return []
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def insertar_certificacion(perfil_id: int, datos: Dict) -> Dict:
+    """Inserta una nueva certificación."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+
+    def c(val):
+        return val.strip() if val and str(val).strip() else None
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO perfil_certificaciones (
+                perfil_id, titulo, institucion,
+                fecha_obtencion, fecha_vencimiento, status, url_certificado
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            perfil_id,
+            c(datos.get('titulo')),
+            c(datos.get('institucion')),
+            datos.get('fecha_obtencion'),
+            datos.get('fecha_vencimiento'),
+            datos.get('status', 'Vigente'),
+            c(datos.get('url_certificado')),
+        ))
+        conn.commit()
+        return {'success': True, 'message': f'✓ Certificación "{datos.get("titulo")}" agregada'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        print(f"[ERROR] insertar_certificacion: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def eliminar_certificacion(cert_id: int) -> Dict:
+    """Elimina una certificación por ID."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM perfil_certificaciones WHERE id = ?", (cert_id,))
+        conn.commit()
+        return {'success': True, 'message': '✓ Certificación eliminada'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass

@@ -11,6 +11,7 @@ from modules.registrar_vacante import mostrar_registrar_vacante
 from modules.mis_vacantes import mostrar_mis_vacantes
 from modules.registrar_aplicacion import mostrar_registrar_aplicacion
 from modules.mis_aplicaciones import mostrar_mis_aplicaciones
+from modules.mi_perfil import mostrar_mi_perfil
 
 # ============================================================
 # CONFIGURACIÓN STREAMLIT
@@ -86,11 +87,12 @@ with col5:
 # ============================================================
 # PESTAÑAS
 # ============================================================
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "➕ Registrar Vacante",
     "📰 Mis Vacantes",
     "✉️ Registrar Aplicación",
     "📂 Mis Aplicaciones",
+    "👤 Mi Perfil"
 ])
 
 with tab1:
@@ -104,6 +106,9 @@ with tab3:
 
 with tab4:
     mostrar_mis_aplicaciones()
+
+with tab5:
+    mostrar_mi_perfil()
 
 # ============================================================
 # FOOTER
