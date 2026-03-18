@@ -1279,6 +1279,63 @@ def eliminar_experiencia(exp_id: int) -> Dict:
         except: pass
 
 
+def actualizar_experiencia(exp_id: int, datos: dict) -> dict:
+    """
+    Actualiza todos los campos editables de una experiencia laboral.
+    """
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+
+    def c(val):
+        return val.strip() if val and str(val).strip() else None
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE perfil_experiencia_laboral SET
+                cargo               = ?,
+                empresa             = ?,
+                ciudad              = ?,
+                descripcion_empresa = ?,
+                fecha_inicio        = ?,
+                fecha_fin           = ?,
+                es_trabajo_actual   = ?,
+                funciones           = ?,
+                logros              = ?,
+                fecha_actualizacion = GETDATE()
+            WHERE id = ?
+        """, (
+            c(datos.get('cargo')),
+            c(datos.get('empresa')),
+            c(datos.get('ciudad')),
+            c(datos.get('descripcion_empresa')),
+            datos.get('fecha_inicio'),
+            datos.get('fecha_fin') if not datos.get('es_trabajo_actual') else None,
+            1 if datos.get('es_trabajo_actual') else 0,
+            c(datos.get('funciones')),
+            c(datos.get('logros')),
+            exp_id
+        ))
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            return {'success': True, 'message': '✓ Experiencia actualizada correctamente'}
+        else:
+            return {'success': False, 'message': f'No se encontró experiencia con ID {exp_id}'}
+
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        print(f"[ERROR] actualizar_experiencia: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
 # ============================================================
 # PERFIL PROYECTOS
 # ============================================================

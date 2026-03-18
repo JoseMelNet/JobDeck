@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a027a28-f8d8-4ccb-aed6-a6be7d70df04" name="Changes" comment="Mis Aplicaciones Pop Up View">
+    <list default="true" id="9a027a28-f8d8-4ccb-aed6-a6be7d70df04" name="Changes" comment="Consultas SQL agregadas a Git">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/database.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/mi_perfil.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/mi_perfil.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -154,7 +154,23 @@
       <option name="project" value="LOCAL" />
       <updated>1773625690902</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Modulo mi perfil agregado y funcionando">
+      <option name="closed" value="true" />
+      <created>1773772640264</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1773772640264</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Consultas SQL agregadas a Git">
+      <option name="closed" value="true" />
+      <created>1773772666174</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1773772666174</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -177,6 +193,8 @@
     <MESSAGE value="MPV Aplicaciones a Vacantes Funcionando OK" />
     <MESSAGE value="Mis Vacantes View Kanban OK" />
     <MESSAGE value="Mis Aplicaciones Pop Up View" />
-    <option name="LAST_COMMIT_MESSAGE" value="Mis Aplicaciones Pop Up View" />
+    <MESSAGE value="Modulo mi perfil agregado y funcionando" />
+    <MESSAGE value="Consultas SQL agregadas a Git" />
+    <option name="LAST_COMMIT_MESSAGE" value="Consultas SQL agregadas a Git" />
   </component>
 </project>
