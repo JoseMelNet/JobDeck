@@ -4,6 +4,7 @@ VERSIÓN CON LINK: Incluye campo link en inserción
 """
 import pyodbc
 import os
+import json
 from dotenv import load_dotenv
 from datetime import datetime
 from typing import List, Optional, Dict
@@ -1717,6 +1718,265 @@ def eliminar_certificacion(cert_id: int) -> Dict:
         cursor.execute("DELETE FROM perfil_certificaciones WHERE id = ?", (cert_id,))
         conn.commit()
         return {'success': True, 'message': '✓ Certificación eliminada'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+"""
+INSTRUCCIONES: Copia estas funciones al final de tu database.py existente.
+Asegúrate de tener 'import json' al inicio de database.py.
+"""
+
+import json
+
+
+# ============================================================
+# ANÁLISIS DE VACANTES
+# ============================================================
+
+def obtener_perfil_completo_para_analisis(perfil_id: int) -> Optional[Dict]:
+    """
+    Retorna el perfil activo con todas sus tablas dependientes,
+    estructurado como dict listo para serializar y enviar a OpenAI.
+    """
+    perfil = obtener_perfil()
+    if not perfil:
+        return None
+
+    # Usar el perfil_id recibido como parámetro
+    pid = perfil_id
+
+    skills       = obtener_skills(pid)
+    experiencias = obtener_experiencias(pid)
+    educacion    = obtener_educacion(pid)
+    cursos       = obtener_cursos(pid)
+    certs        = obtener_certificaciones(pid)
+
+    def fmt(f):
+        if not f: return None
+        return f.strftime('%Y-%m') if hasattr(f, 'strftime') else str(f)
+
+    return {
+        'nombre':               perfil['nombre'],
+        'titulo':               perfil['titulo_profesional'],
+        'nivel_actual':         perfil['nivel_actual'],
+        'anos_experiencia':     perfil['anos_experiencia'],
+        'salario_min':          float(perfil['salario_min']) if perfil.get('salario_min') else None,
+        'salario_max':          float(perfil['salario_max']) if perfil.get('salario_max') else None,
+        'moneda':               perfil.get('moneda', 'COP'),
+        'modalidades_aceptadas': perfil.get('modalidades_aceptadas', ''),
+        'skills': [
+            {'categoria': s['categoria'], 'skill': s['skill'], 'nivel': s['nivel']}
+            for s in skills
+        ],
+        'experiencias': [
+            {
+                'cargo':        e['cargo'],
+                'empresa':      e['empresa'],
+                'fecha_inicio': fmt(e['fecha_inicio']),
+                'fecha_fin':    'Actualidad' if e['es_trabajo_actual'] else fmt(e['fecha_fin']),
+                'funciones':    e['funciones'],
+                'logros':       e['logros'],
+            }
+            for e in experiencias
+        ],
+        'educacion': [
+            {
+                'titulo':      e['titulo'],
+                'institucion': e['institucion'],
+                'nivel':       e['nivel'],
+                'status':      e['status'],
+            }
+            for e in educacion
+        ],
+        'cursos':          [{'titulo': c['titulo'], 'institucion': c['institucion']} for c in cursos],
+        'certificaciones': [{'titulo': c['titulo'], 'institucion': c['institucion'], 'status': c['status']} for c in certs],
+    }
+
+
+def guardar_analisis_vacante(vacante_id: int, perfil_id: int, analisis: Dict) -> Dict:
+    """
+    Inserta o actualiza el análisis de una vacante en vacantes_analisis.
+    Si ya existe un análisis para esa vacante lo reemplaza (upsert).
+    """
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+
+    def jdump(val):
+        if isinstance(val, (list, dict)):
+            return json.dumps(val, ensure_ascii=False)
+        return val or '[]'
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM vacantes_analisis WHERE vacante_id = ?", (vacante_id,))
+        existing = cursor.fetchone()
+
+        params = (
+            perfil_id,
+            jdump(analisis.get('skills_requeridas', [])),
+            jdump(analisis.get('skills_blandas_detectadas', [])),
+            analisis.get('seniority_inferido', 'No especificado'),
+            analisis.get('justificacion_seniority'),
+            analisis.get('modalidad_detectada'),
+            analisis.get('salario_detectado'),
+            jdump(analisis.get('idiomas_requeridos', [])),
+            analisis.get('score_total', 0),
+            analisis.get('score_skills_tecnicas', 0),
+            analisis.get('score_seniority', 0),
+            analisis.get('score_modalidad', 0),
+            analisis.get('score_idiomas', 0),
+            analisis.get('score_skills_blandas', 0),
+            analisis.get('semaforo', 'gris'),
+            analisis.get('resumen_analisis'),
+            jdump(analisis.get('skills_match', [])),
+            jdump(analisis.get('skills_gap', [])),
+            analisis.get('aspiracion_salarial_sugerida'),
+        )
+
+        if existing:
+            cursor.execute("""
+                UPDATE vacantes_analisis SET
+                    perfil_id=?, skills_requeridas=?, skills_blandas_detectadas=?,
+                    seniority_inferido=?, justificacion_seniority=?,
+                    modalidad_detectada=?, salario_detectado=?, idiomas_requeridos=?,
+                    score_total=?, score_skills_tecnicas=?, score_seniority=?,
+                    score_modalidad=?, score_idiomas=?, score_skills_blandas=?,
+                    semaforo=?, resumen_analisis=?, skills_match=?, skills_gap=?,
+                    aspiracion_salarial_sugerida=?, fecha_analisis=GETDATE()
+                WHERE vacante_id=?
+            """, (*params, vacante_id))
+        else:
+            cursor.execute("""
+                INSERT INTO vacantes_analisis (
+                    perfil_id, skills_requeridas, skills_blandas_detectadas,
+                    seniority_inferido, justificacion_seniority,
+                    modalidad_detectada, salario_detectado, idiomas_requeridos,
+                    score_total, score_skills_tecnicas, score_seniority,
+                    score_modalidad, score_idiomas, score_skills_blandas,
+                    semaforo, resumen_analisis, skills_match, skills_gap,
+                    aspiracion_salarial_sugerida, vacante_id
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (*params, vacante_id))
+
+        conn.commit()
+        return {'success': True, 'message': '✓ Análisis guardado'}
+
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        print(f"[ERROR] guardar_analisis_vacante: {e}")
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def obtener_analisis_vacante(vacante_id: int) -> Optional[Dict]:
+    """Obtiene el análisis guardado de una vacante. Retorna None si no existe."""
+    conn = get_connection()
+    if not conn:
+        return None
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, vacante_id, perfil_id,
+                   skills_requeridas, skills_blandas_detectadas,
+                   seniority_inferido, justificacion_seniority,
+                   modalidad_detectada, salario_detectado, idiomas_requeridos,
+                   score_total, score_skills_tecnicas, score_seniority,
+                   score_modalidad, score_idiomas, score_skills_blandas,
+                   semaforo, resumen_analisis, skills_match, skills_gap,
+                   aspiracion_salarial_sugerida, fecha_analisis
+            FROM vacantes_analisis WHERE vacante_id = ?
+        """, (vacante_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+
+        def sjson(val):
+            if not val: return []
+            try: return json.loads(val)
+            except: return val
+
+        return {
+            'id': row[0], 'vacante_id': row[1], 'perfil_id': row[2],
+            'skills_requeridas':         sjson(row[3]),
+            'skills_blandas_detectadas': sjson(row[4]),
+            'seniority_inferido':        row[5],
+            'justificacion_seniority':   row[6],
+            'modalidad_detectada':       row[7],
+            'salario_detectado':         row[8],
+            'idiomas_requeridos':        sjson(row[9]),
+            'score_total':               float(row[10]) if row[10] else 0,
+            'score_skills_tecnicas':     float(row[11]) if row[11] else 0,
+            'score_seniority':           float(row[12]) if row[12] else 0,
+            'score_modalidad':           float(row[13]) if row[13] else 0,
+            'score_idiomas':             float(row[14]) if row[14] else 0,
+            'score_skills_blandas':      float(row[15]) if row[15] else 0,
+            'semaforo':                  row[16],
+            'resumen_analisis':          row[17],
+            'skills_match':              sjson(row[18]),
+            'skills_gap':                sjson(row[19]),
+            'aspiracion_salarial_sugerida': row[20],
+            'fecha_analisis':            row[21],
+        }
+    except Exception as e:
+        print(f"[ERROR] obtener_analisis_vacante: {e}")
+        return None
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def archivar_vacante(vacante_id: int, motivo: str) -> Dict:
+    """Archiva una vacante registrando el motivo."""
+    motivos_validos = ['No calificado', 'Sobre calificado', 'Empresa no interesa', 'Salario no acorde', 'Otro']
+    if motivo not in motivos_validos:
+        return {'success': False, 'message': f'Motivo inválido.'}
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE vacantes SET motivo_archivo = ? WHERE id = ?", (motivo, vacante_id))
+        conn.commit()
+        return {'success': True, 'message': f'✓ Vacante archivada: {motivo}'} \
+               if cursor.rowcount > 0 else \
+               {'success': False, 'message': f'No se encontró vacante ID {vacante_id}'}
+    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        return {'success': False, 'message': f'Error en BD: {str(e)}'}
+    finally:
+        try: cursor.close()
+        except: pass
+        try: conn.close()
+        except: pass
+
+
+def desarchivar_vacante(vacante_id: int) -> Dict:
+    """Reactiva una vacante archivada."""
+    conn = get_connection()
+    if not conn:
+        return {'success': False, 'message': 'Sin conexión a BD'}
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE vacantes SET motivo_archivo = NULL WHERE id = ?", (vacante_id,))
+        conn.commit()
+        return {'success': True, 'message': '✓ Vacante reactivada'}
     except Exception as e:
         try: conn.rollback()
         except: pass

@@ -4,10 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a027a28-f8d8-4ccb-aed6-a6be7d70df04" name="Changes" comment="Consultas SQL agregadas a Git">
+    <list default="true" id="9a027a28-f8d8-4ccb-aed6-a6be7d70df04" name="Changes" comment="Ajuste en Formularios Modulo Perfil del usuario para mantenerlos en la parte superior">
+      <change afterPath="$PROJECT_DIR$/modules/analizar_vacante.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/database.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/mi_perfil.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/mi_perfil.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/mis_vacantes.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/mis_vacantes.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -170,7 +172,15 @@
       <option name="project" value="LOCAL" />
       <updated>1773772666174</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="Ajuste en Formularios Modulo Perfil del usuario para mantenerlos en la parte superior">
+      <option name="closed" value="true" />
+      <created>1773797421310</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1773797421311</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -195,6 +205,7 @@
     <MESSAGE value="Mis Aplicaciones Pop Up View" />
     <MESSAGE value="Modulo mi perfil agregado y funcionando" />
     <MESSAGE value="Consultas SQL agregadas a Git" />
-    <option name="LAST_COMMIT_MESSAGE" value="Consultas SQL agregadas a Git" />
+    <MESSAGE value="Ajuste en Formularios Modulo Perfil del usuario para mantenerlos en la parte superior" />
+    <option name="LAST_COMMIT_MESSAGE" value="Ajuste en Formularios Modulo Perfil del usuario para mantenerlos en la parte superior" />
   </component>
 </project>
