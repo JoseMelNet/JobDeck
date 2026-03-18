@@ -11,9 +11,11 @@ Cambios v2:
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import database
 from datetime import date, datetime
 import time
+
 
 
 # ─────────────────────────────────────────────────────────────
@@ -927,82 +929,28 @@ def _tab_certificaciones(perfil_id):
 # TAB 8 — Vista CV
 # ─────────────────────────────────────────────────────────────
 
+"""
+INSTRUCCIONES:
+Reemplaza la función _tab_vista_cv() completa en mi_perfil.py por esta versión.
+Agrega también este import al inicio del archivo si no está:
+
+    import streamlit.components.v1 as components
+
+Cambio principal: st.markdown(html) → components.html(html_completo, height=...)
+Esto evita que Streamlit sanitice el HTML y lo muestre como texto plano.
+"""
+
 def _tab_vista_cv(perfil, perfil_id):
     """
     Vista de lectura del perfil completo con la estructura
     visual del CV: encabezado, habilidades, experiencia,
     educación, certificaciones y cursos.
     """
+    import streamlit.components.v1 as components
+
     if not perfil or not perfil_id:
         st.warning("⚠️ Completa tus **Datos Personales** para ver la Vista CV.")
         return
-
-    st.markdown("""
-    <style>
-    .cv-wrap {
-        max-width: 860px;
-        margin: 0 auto;
-        font-family: 'Segoe UI', Calibri, sans-serif;
-        color: #1a1a1a;
-        padding: 8px 0;
-    }
-    .cv-header    { text-align: center; margin-bottom: 6px; }
-    .cv-name      {
-        font-size: 1.65rem; font-weight: 800;
-        letter-spacing: 0.05em; text-transform: uppercase;
-        color: #111; margin-bottom: 3px;
-    }
-    .cv-titulo    {
-        font-size: 0.76rem; font-weight: 600; color: #444;
-        letter-spacing: 0.14em; text-transform: uppercase;
-        margin-bottom: 5px;
-    }
-    .cv-tags      { font-size: 0.71rem; color: #666; margin-bottom: 5px; }
-    .cv-contact   { font-size: 0.71rem; color: #555; }
-    .cv-contact a { color: #1a73e8; text-decoration: none; }
-    .cv-hr        { border: none; border-top: 2px solid #111; margin: 10px 0 14px; }
-    .cv-hr-thin   { border: none; border-top: 1px solid #ccc; margin: 10px 0 14px; }
-    .cv-sec-title {
-        font-size: 0.71rem; font-weight: 800;
-        letter-spacing: 0.16em; text-transform: uppercase;
-        color: #111; margin-bottom: 8px;
-    }
-    .cv-resumen   { font-size: 0.8rem; line-height: 1.7; color: #333; }
-    .cv-skill-row {
-        display: flex; gap: 6px; align-items: baseline;
-        margin-bottom: 3px; font-size: 0.77rem;
-    }
-    .cv-skill-cat { font-weight: 700; color: #111; min-width: 200px; flex-shrink: 0; }
-    .cv-skill-lst { color: #333; }
-    .cv-exp-hdr   {
-        display: flex; justify-content: space-between;
-        align-items: baseline; margin-bottom: 1px;
-    }
-    .cv-exp-cargo {
-        font-size: 0.8rem; font-weight: 700;
-        text-transform: uppercase; color: #111;
-    }
-    .cv-exp-fecha { font-size: 0.71rem; color: #555; font-style: italic; }
-    .cv-exp-emp   { font-size: 0.77rem; color: #444; font-style: italic; margin-bottom: 5px; }
-    .cv-bullet    {
-        font-size: 0.77rem; color: #333; line-height: 1.65;
-        padding-left: 14px; text-indent: -8px; margin-bottom: 2px;
-    }
-    .cv-bullet::before { content: "• "; color: #111; }
-    .cv-edu-row   {
-        display: flex; justify-content: space-between;
-        font-size: 0.77rem; margin-bottom: 3px;
-    }
-    .cv-edu-tit   { font-weight: 600; color: #111; }
-    .cv-edu-inst  { color: #555; font-style: italic; }
-    .cv-edu-fecha { color: #666; white-space: nowrap; margin-left: 8px; }
-    .cv-subsec    {
-        font-size: 0.69rem; font-weight: 700; color: #555;
-        letter-spacing: 0.1em; text-transform: uppercase;
-        margin: 8px 0 4px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
     # ── Cargar datos ──────────────────────────────────────────
     skills       = database.obtener_skills(perfil_id)
@@ -1011,119 +959,196 @@ def _tab_vista_cv(perfil, perfil_id):
     cursos       = database.obtener_cursos(perfil_id)
     certs        = database.obtener_certificaciones(perfil_id)
 
-    # ── Construir HTML ────────────────────────────────────────
-    html = '<div class="cv-wrap">'
+    # ── CSS ───────────────────────────────────────────────────
+    css = """
+    <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: 'Segoe UI', Calibri, sans-serif;
+        color: #1a1a1a;
+        background: #fff;
+        padding: 24px 32px;
+    }
+    .cv-wrap { max-width: 820px; margin: 0 auto; }
+    .cv-header    { text-align: center; margin-bottom: 8px; }
+    .cv-name {
+        font-size: 1.55rem; font-weight: 800;
+        letter-spacing: 0.05em; text-transform: uppercase;
+        color: #111; margin-bottom: 4px;
+    }
+    .cv-titulo {
+        font-size: 0.72rem; font-weight: 600; color: #444;
+        letter-spacing: 0.14em; text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+    .cv-tags   { font-size: 0.68rem; color: #666; margin-bottom: 5px; }
+    .cv-contact { font-size: 0.68rem; color: #555; }
+    .cv-contact a { color: #1a73e8; text-decoration: none; }
+    .cv-hr     { border: none; border-top: 2px solid #111; margin: 10px 0 14px; }
+    .cv-hr-thin { border: none; border-top: 1px solid #ccc; margin: 8px 0 12px; }
+    .cv-sec-title {
+        font-size: 0.68rem; font-weight: 800;
+        letter-spacing: 0.16em; text-transform: uppercase;
+        color: #111; margin-bottom: 8px;
+    }
+    .cv-resumen { font-size: 0.78rem; line-height: 1.7; color: #333; }
+    .cv-skill-row {
+        display: flex; gap: 8px; align-items: baseline;
+        margin-bottom: 3px; font-size: 0.75rem;
+    }
+    .cv-skill-cat { font-weight: 700; color: #111; min-width: 200px; flex-shrink: 0; }
+    .cv-skill-lst { color: #333; }
+    .cv-exp-hdr {
+        display: flex; justify-content: space-between;
+        align-items: baseline; margin-bottom: 1px;
+    }
+    .cv-exp-cargo {
+        font-size: 0.78rem; font-weight: 700;
+        text-transform: uppercase; color: #111;
+    }
+    .cv-exp-fecha { font-size: 0.68rem; color: #555; font-style: italic; }
+    .cv-exp-emp { font-size: 0.74rem; color: #444; font-style: italic; margin-bottom: 5px; }
+    .cv-bullet {
+        font-size: 0.74rem; color: #333; line-height: 1.65;
+        padding-left: 14px; text-indent: -8px; margin-bottom: 2px;
+    }
+    .cv-bullet::before { content: "• "; color: #111; }
+    .cv-edu-row {
+        display: flex; justify-content: space-between;
+        font-size: 0.74rem; margin-bottom: 4px; gap: 8px;
+    }
+    .cv-edu-left { flex: 1; }
+    .cv-edu-tit  { font-weight: 600; color: #111; }
+    .cv-edu-inst { color: #555; font-style: italic; }
+    .cv-edu-fecha { color: #666; white-space: nowrap; flex-shrink: 0; }
+    .cv-subsec {
+        font-size: 0.66rem; font-weight: 700; color: #555;
+        letter-spacing: 0.1em; text-transform: uppercase;
+        margin: 10px 0 5px;
+    }
+    .cv-exp-block { margin-bottom: 12px; }
+    </style>
+    """
 
-    # ENCABEZADO
+    # ── Construir HTML ────────────────────────────────────────
     nombre = perfil.get('nombre', '').upper()
     titulo = perfil.get('titulo_profesional', '')
     tags   = ' • '.join([t.strip() for t in titulo.replace('|', '•').split('•') if t.strip()])
 
     contacto = []
-    if perfil.get('correo'):
-        contacto.append(perfil['correo'])
+    if perfil.get('correo'):        contacto.append(perfil['correo'])
     if perfil.get('perfil_linkedin'):
         url = perfil['perfil_linkedin']
         contacto.append(f"<a href='{url}' target='_blank'>{url}</a>")
-    if perfil.get('ciudad'):
-        contacto.append(perfil['ciudad'])
-    if perfil.get('celular'):
-        contacto.append(perfil['celular'])
+    if perfil.get('ciudad'):        contacto.append(perfil['ciudad'])
+    if perfil.get('celular'):       contacto.append(perfil['celular'])
 
-    html += f"""
-    <div class="cv-header">
+    body = f"""
+    <div class="cv-wrap">
+
+      <div class="cv-header">
         <div class="cv-name">{nombre}</div>
         <div class="cv-titulo">{titulo}</div>
         <div class="cv-tags">{tags}</div>
         <div class="cv-contact">{' • '.join(contacto)}</div>
-    </div>
-    <hr class="cv-hr">
-    """
+      </div>
+      <hr class="cv-hr">
 
-    # RESUMEN — usamos el título como placeholder hasta tener cv_base
-    html += f"""
-    <div class="cv-sec-title">Resumen Profesional</div>
-    <div class="cv-resumen">{titulo}</div>
-    <hr class="cv-hr-thin">
+      <div class="cv-sec-title">Resumen Profesional</div>
+      <div class="cv-resumen">{titulo}</div>
+      <hr class="cv-hr-thin">
     """
 
     # HABILIDADES
     if skills:
-        html += '<div class="cv-sec-title">Habilidades</div>'
+        body += '<div class="cv-sec-title">Habilidades</div>'
         cats: dict = {}
         for s in skills:
             cats.setdefault(s['categoria'], []).append(s['skill'])
         for cat, lista in cats.items():
-            html += f"""
+            body += f"""
             <div class="cv-skill-row">
                 <span class="cv-skill-cat">{cat}:</span>
                 <span class="cv-skill-lst">{' • '.join(lista)}</span>
             </div>"""
-        html += '<hr class="cv-hr-thin">'
+        body += '<hr class="cv-hr-thin">'
 
     # EXPERIENCIA LABORAL
     if experiencias:
-        html += '<div class="cv-sec-title">Experiencia Laboral</div>'
+        body += '<div class="cv-sec-title">Experiencia Laboral</div>'
         for exp in experiencias:
-            ff_str  = "Actualidad" if exp['es_trabajo_actual'] else _fmt_fecha(exp['fecha_fin'])
-            fi_str  = _fmt_fecha(exp['fecha_inicio'])
+            ff_str     = "Actualidad" if exp['es_trabajo_actual'] else _fmt_fecha(exp['fecha_fin'])
+            fi_str     = _fmt_fecha(exp['fecha_inicio'])
             ciudad_str = f" | {exp['ciudad']}" if exp.get('ciudad') else ''
-            html += f"""
-            <div class="cv-exp-hdr">
+
+            body += f"""
+            <div class="cv-exp-block">
+              <div class="cv-exp-hdr">
                 <span class="cv-exp-cargo">{exp['cargo']}</span>
                 <span class="cv-exp-fecha">{fi_str} – {ff_str}</span>
-            </div>
-            <div class="cv-exp-emp">{exp['empresa']}{ciudad_str}</div>
+              </div>
+              <div class="cv-exp-emp">{exp['empresa']}{ciudad_str}</div>
             """
             for bloque in [exp.get('funciones'), exp.get('logros')]:
                 if bloque:
                     for linea in bloque.split('\n'):
                         l = linea.lstrip('•- ').strip()
                         if l:
-                            html += f'<div class="cv-bullet">{l}</div>'
-            html += '<div style="margin-bottom:10px"></div>'
-        html += '<hr class="cv-hr-thin">'
+                            body += f'<div class="cv-bullet">{l}</div>'
+            body += '</div>'
+        body += '<hr class="cv-hr-thin">'
 
     # EDUCACIÓN Y FORMACIÓN
     if educacion or certs or cursos:
-        html += '<div class="cv-sec-title">Educación y Formación</div>'
+        body += '<div class="cv-sec-title">Educación y Formación</div>'
 
         if educacion:
-            html += '<div class="cv-subsec">Educación</div>'
+            body += '<div class="cv-subsec">Educación</div>'
             for e in educacion:
-                fi = _fmt_fecha(e['fecha_inicio'])
-                ff = _fmt_fecha(e['fecha_fin']) if e['fecha_fin'] else e['status']
+                fi   = _fmt_fecha(e['fecha_inicio'])
+                ff   = _fmt_fecha(e['fecha_fin']) if e['fecha_fin'] else e['status']
                 inst = e['institucion']
                 if e.get('ciudad'): inst += f" | {e['ciudad']}"
-                html += f"""
+                body += f"""
                 <div class="cv-edu-row">
-                    <span>
-                        <span class="cv-edu-tit">{e['titulo']}</span>
-                        — <span class="cv-edu-inst">{inst}</span>
-                    </span>
-                    <span class="cv-edu-fecha">{fi} – {ff}</span>
+                  <div class="cv-edu-left">
+                    <span class="cv-edu-tit">{e['titulo']}</span>
+                    — <span class="cv-edu-inst">{inst}</span>
+                  </div>
+                  <div class="cv-edu-fecha">{fi} – {ff}</div>
                 </div>"""
 
         if certs:
-            html += '<div class="cv-subsec">Certificaciones</div>'
+            body += '<div class="cv-subsec">Certificaciones</div>'
             for cert in certs:
-                fo     = _fmt_fecha(cert['fecha_obtencion'])
-                status = cert['status']
-                html += f"""
+                fo = _fmt_fecha(cert['fecha_obtencion'])
+                body += f"""
                 <div class="cv-edu-row">
-                    <span>
-                        <span class="cv-edu-tit">{cert['titulo']}</span>
-                        — <span class="cv-edu-inst">{cert['institucion']}</span>
-                    </span>
-                    <span class="cv-edu-fecha">{fo} [{status}]</span>
+                  <div class="cv-edu-left">
+                    <span class="cv-edu-tit">{cert['titulo']}</span>
+                    — <span class="cv-edu-inst">{cert['institucion']}</span>
+                  </div>
+                  <div class="cv-edu-fecha">{fo} [{cert['status']}]</div>
                 </div>"""
 
         if cursos:
-            html += '<div class="cv-subsec">Cursos Relevantes</div>'
-            html += f'<div style="font-size:0.77rem;color:#333;line-height:1.7">'
-            html += ' • '.join([c['titulo'] for c in cursos])
-            html += '</div>'
+            body += '<div class="cv-subsec">Cursos Relevantes</div>'
+            body += '<div style="font-size:0.74rem;color:#333;line-height:1.8">'
+            body += ' • '.join([c['titulo'] for c in cursos])
+            body += '</div>'
 
-    html += '</div>'  # cv-wrap
+    body += '</div>'  # cv-wrap
 
-    st.markdown(html, unsafe_allow_html=True)
+    # ── Render como componente HTML nativo ────────────────────
+    # Estima la altura según el contenido para evitar scroll innecesario
+    lineas_estimadas = (
+        len(experiencias) * 120 +
+        len(skills) * 20 +
+        len(educacion) * 30 +
+        len(certs) * 25 +
+        len(cursos) * 15 +
+        300  # encabezado + resumen + márgenes
+    )
+    altura = max(600, min(lineas_estimadas, 3000))
+
+    components.html(css + body, height=altura, scrolling=True)
