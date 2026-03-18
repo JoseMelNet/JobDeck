@@ -215,91 +215,184 @@ def _mostrar_detalle_vacante(vacante: dict, analisis: dict):
 # ─────────────────────────────────────────────────────────────
 
 def _mostrar_panel_analisis(analisis: dict):
-    """Muestra el resultado del análisis: score, semáforo y breakdown."""
-    sem    = analisis['semaforo']
-    meta   = SEMAFORO_META[sem]
-    score  = analisis['score_total']
-    fecha  = analisis['fecha_analisis']
-    fecha_str = fecha.strftime("%d/%m/%Y %H:%M") if fecha else "—"
+    """
+    Panel de resultados del análisis v2.
+    Muestra: decisión, afinidad, score, breakdown, fortalezas,
+    riesgos, skills match/gap, encaje estratégico y ajustes CV.
+    """
 
-    # Score principal
+    # ── Metadatos del análisis ─────────────────────────────────
+    AFINIDAD_META = {
+        'Alta':  {'emoji': '🟢', 'color': '#10B981'},
+        'Media': {'emoji': '🟡', 'color': '#F59E0B'},
+        'Baja':  {'emoji': '🔴', 'color': '#EF4444'},
+    }
+    DECISION_META = {
+        'Aplicar sí o sí':       {'emoji': '✅', 'color': '#10B981'},
+        'Aplicar si sobra tiempo': {'emoji': '⏳', 'color': '#F59E0B'},
+        'Descartar':              {'emoji': '❌', 'color': '#EF4444'},
+    }
+    ENCAJE_META = {
+        'Alineado':                {'emoji': '🎯', 'color': '#10B981'},
+        'Parcialmente alineado':   {'emoji': '↗️', 'color': '#F59E0B'},
+        'Desvía del objetivo':     {'emoji': '↙️', 'color': '#EF4444'},
+    }
+
+    afinidad       = analisis.get('afinidad_general', '—')
+    decision       = analisis.get('decision_aplicacion', '—')
+    encaje         = analisis.get('encaje_estrategico', '—')
+    score          = analisis.get('score_global') or analisis.get('score_total', 0)
+    tipo_rol       = analisis.get('tipo_real_de_rol', '—')
+    fecha          = analisis.get('fecha_analisis')
+    fecha_str      = fecha.strftime("%d/%m/%Y %H:%M") if fecha else "—"
+
+    af_meta  = AFINIDAD_META.get(afinidad,  {'emoji': '⚪', 'color': '#9CA3AF'})
+    dec_meta = DECISION_META.get(decision,  {'emoji': '⚪', 'color': '#9CA3AF'})
+    enc_meta = ENCAJE_META.get(encaje,      {'emoji': '⚪', 'color': '#9CA3AF'})
+
+    # ── Fila principal: Decisión + Afinidad + Score ────────────
     st.markdown(
-        f"<div style='display:flex;align-items:center;gap:16px;margin-bottom:8px'>"
-        f"<span style='font-size:2.2rem'>{meta['emoji']}</span>"
-        f"<div>"
-        f"<div style='font-size:1.4rem;font-weight:800;color:{meta['color']}'>"
-        f"{score:.0f} / 100</div>"
-        f"<div style='font-size:0.8rem;color:#6B7280'>{meta['label']} · "
-        f"Analizado: {fecha_str}</div>"
-        f"</div></div>",
+        f"""
+        <div style='display:flex;gap:16px;align-items:stretch;margin-bottom:12px;flex-wrap:wrap'>
+
+          <div style='flex:1;min-width:180px;background:#F9FAFB;border:1px solid #E5E7EB;
+                      border-left:4px solid {dec_meta["color"]};border-radius:8px;padding:12px 16px'>
+            <div style='font-size:0.65rem;color:#9CA3AF;text-transform:uppercase;
+                        letter-spacing:0.1em;margin-bottom:4px'>Decisión</div>
+            <div style='font-size:1.1rem;font-weight:800;color:{dec_meta["color"]}'>
+              {dec_meta["emoji"]} {decision}
+            </div>
+          </div>
+
+          <div style='flex:1;min-width:140px;background:#F9FAFB;border:1px solid #E5E7EB;
+                      border-left:4px solid {af_meta["color"]};border-radius:8px;padding:12px 16px'>
+            <div style='font-size:0.65rem;color:#9CA3AF;text-transform:uppercase;
+                        letter-spacing:0.1em;margin-bottom:4px'>Afinidad</div>
+            <div style='font-size:1.1rem;font-weight:800;color:{af_meta["color"]}'>
+              {af_meta["emoji"]} {afinidad}
+            </div>
+          </div>
+
+          <div style='flex:1;min-width:140px;background:#F9FAFB;border:1px solid #E5E7EB;
+                      border-left:4px solid {enc_meta["color"]};border-radius:8px;padding:12px 16px'>
+            <div style='font-size:0.65rem;color:#9CA3AF;text-transform:uppercase;
+                        letter-spacing:0.1em;margin-bottom:4px'>Encaje estratégico</div>
+            <div style='font-size:1.0rem;font-weight:700;color:{enc_meta["color"]}'>
+              {enc_meta["emoji"]} {encaje}
+            </div>
+          </div>
+
+          <div style='flex:1;min-width:120px;background:#F9FAFB;border:1px solid #E5E7EB;
+                      border-radius:8px;padding:12px 16px'>
+            <div style='font-size:0.65rem;color:#9CA3AF;text-transform:uppercase;
+                        letter-spacing:0.1em;margin-bottom:4px'>Score global</div>
+            <div style='font-size:1.3rem;font-weight:800;color:#111'>
+              {score:.0f}<span style='font-size:0.8rem;color:#9CA3AF'>/100</span>
+            </div>
+            <div style='font-size:0.62rem;color:#9CA3AF'>{fecha_str}</div>
+          </div>
+
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
-    # Breakdown por dimensión
-    dimensiones = [
-        ("🛠️ Skills técnicas",  analisis['score_skills_tecnicas'], 40),
-        ("📊 Seniority",         analisis['score_seniority'],       20),
-        ("📍 Modalidad",         analisis['score_modalidad'],       15),
-        ("🌐 Idiomas",           analisis['score_idiomas'],         10),
-        ("🤝 Skills blandas",    analisis['score_skills_blandas'],  15),
-    ]
+    # ── Tipo de rol + seniority ────────────────────────────────
+    seniority = analisis.get('seniority_inferido', '—')
+    st.markdown(
+        f"<div style='font-size:0.8rem;color:#555;margin-bottom:12px'>"
+        f"🎭 <b>Tipo de rol:</b> {tipo_rol} &nbsp;·&nbsp; "
+        f"📊 <b>Seniority inferido:</b> {seniority}</div>",
+        unsafe_allow_html=True
+    )
 
+    # ── Justificación de la decisión ──────────────────────────
+    if analisis.get('justificacion_decision'):
+        st.info(f"💬 {analisis['justificacion_decision']}")
+
+    # ── Breakdown de scores ───────────────────────────────────
+    dimensiones = [
+        ("🛠️ Skills",    analisis.get('score_skills_tecnicas', 0), "35%"),
+        ("📊 Seniority", analisis.get('score_seniority', 0),       "25%"),
+        ("🎯 Encaje",    analisis.get('score_skills_blandas', 0),  "20%"),
+        ("🌐 Idiomas",   analisis.get('score_idiomas', 0),         "10%"),
+        ("📍 Modalidad", analisis.get('score_modalidad', 0),       "10%"),
+    ]
     cols = st.columns(len(dimensiones))
-    for i, (label, score_dim, peso) in enumerate(dimensiones):
+    for i, (label, val, peso) in enumerate(dimensiones):
         with cols[i]:
-            color = '#10B981' if score_dim >= 70 else '#F59E0B' if score_dim >= 40 else '#EF4444'
+            color = '#10B981' if val >= 70 else '#F59E0B' if val >= 40 else '#EF4444'
             st.markdown(
                 f"<div style='text-align:center'>"
-                f"<div style='font-size:1.1rem;font-weight:700;color:{color}'>"
-                f"{score_dim:.0f}</div>"
-                f"<div style='font-size:0.65rem;color:#6B7280;line-height:1.3'>"
-                f"{label}<br>peso {peso}%</div>"
+                f"<div style='font-size:1.1rem;font-weight:700;color:{color}'>{val:.0f}</div>"
+                f"<div style='font-size:0.62rem;color:#6B7280;line-height:1.4'>"
+                f"{label}<br>peso {peso}</div>"
                 f"</div>",
                 unsafe_allow_html=True
             )
 
-    # Skills match y gap
-    if analisis.get('skills_match') or analisis.get('skills_gap'):
-        st.markdown("")
-        col_match, col_gap = st.columns(2)
-        with col_match:
-            if analisis.get('skills_match'):
-                st.markdown("**✅ Skills que tienes:**")
-                st.markdown(
-                    ' '.join([f"`{s}`" for s in analisis['skills_match']])
-                )
-        with col_gap:
-            if analisis.get('skills_gap'):
-                st.markdown("**❌ Skills que te faltan:**")
-                st.markdown(
-                    ' '.join([f"`{s}`" for s in analisis['skills_gap']])
-                )
+    st.markdown("")
 
-    # Resumen narrativo
-    if analisis.get('resumen_analisis'):
-        with st.expander("📄 Ver resumen del análisis"):
+    # ── Fortalezas y Riesgos ──────────────────────────────────
+    col_fort, col_riesgo = st.columns(2)
+    with col_fort:
+        fortalezas = analisis.get('fortalezas_principales', [])
+        if fortalezas:
+            st.markdown("**✅ Fortalezas**")
+            for f in fortalezas:
+                st.markdown(f"- {f}")
+
+    with col_riesgo:
+        riesgos = analisis.get('riesgos_principales', [])
+        if riesgos:
+            st.markdown("**⚠️ Riesgos**")
+            for r in riesgos:
+                st.markdown(f"- {r}")
+
+    # ── Skills Match y Gap ────────────────────────────────────
+    col_match, col_gap = st.columns(2)
+    with col_match:
+        match = analisis.get('skills_match', [])
+        if match:
+            st.markdown("**🟢 Skills que tienes**")
+            st.markdown(' '.join([f"`{s}`" for s in match]))
+
+    with col_gap:
+        gap = analisis.get('skills_gap', [])
+        if gap:
+            st.markdown("**🔴 Skills que te faltan**")
+            st.markdown(' '.join([f"`{s}`" for s in gap]))
+
+    # ── Ajustes de CV ─────────────────────────────────────────
+    ajustes = analisis.get('ajustes_cv_recomendados', [])
+    if ajustes:
+        st.markdown("**📝 Ajustes recomendados para el CV**")
+        for a in ajustes:
+            st.markdown(f"- {a}")
+
+    # ── Resumen narrativo y detalles ──────────────────────────
+    with st.expander("📄 Ver análisis completo"):
+        if analisis.get('resumen_analisis'):
+            st.markdown("**Análisis del reclutador:**")
             st.write(analisis['resumen_analisis'])
-            c1, c2 = st.columns(2)
-            with c1:
-                if analisis.get('seniority_inferido'):
-                    st.markdown(
-                        f"**Seniority inferido:** {analisis['seniority_inferido']}"
-                    )
-                if analisis.get('salario_detectado'):
-                    st.markdown(
-                        f"**Salario en vacante:** {analisis['salario_detectado']}"
-                    )
-            with c2:
-                if analisis.get('aspiracion_salarial_sugerida'):
-                    st.markdown(
-                        f"**Aspiración sugerida:** "
-                        f"{analisis['aspiracion_salarial_sugerida']}"
-                    )
-                if analisis.get('modalidad_detectada'):
-                    st.markdown(
-                        f"**Modalidad detectada:** {analisis['modalidad_detectada']}"
-                    )
 
+        st.divider()
+
+        c1, c2 = st.columns(2)
+        with c1:
+            if analisis.get('justificacion_seniority'):
+                st.markdown(f"**Justificación seniority:** {analisis['justificacion_seniority']}")
+            if analisis.get('justificacion_afinidad'):
+                st.markdown(f"**Justificación afinidad:** {analisis['justificacion_afinidad']}")
+            if analisis.get('salario_detectado'):
+                st.markdown(f"**Salario en vacante:** {analisis['salario_detectado']}")
+        with c2:
+            if analisis.get('aspiracion_salarial_sugerida'):
+                st.markdown(f"**Aspiración sugerida:** {analisis['aspiracion_salarial_sugerida']}")
+            if analisis.get('modalidad_detectada'):
+                st.markdown(f"**Modalidad detectada:** {analisis['modalidad_detectada']}")
+            if analisis.get('encaje_estrategico'):
+                st.markdown(f"**Encaje estratégico:** {analisis['encaje_estrategico']}")
 
 # ─────────────────────────────────────────────────────────────
 # BOTONES DE ACCIÓN

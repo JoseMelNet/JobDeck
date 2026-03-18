@@ -1803,8 +1803,8 @@ def obtener_perfil_completo_para_analisis(perfil_id: int) -> Optional[Dict]:
 
 def guardar_analisis_vacante(vacante_id: int, perfil_id: int, analisis: Dict) -> Dict:
     """
-    Inserta o actualiza el análisis de una vacante en vacantes_analisis.
-    Si ya existe un análisis para esa vacante lo reemplaza (upsert).
+    Inserta o actualiza el análisis completo de una vacante (v2).
+    Incluye campos de evaluación cualitativa y score_global.
     """
     conn = get_connection()
     if not conn:
@@ -1817,11 +1817,14 @@ def guardar_analisis_vacante(vacante_id: int, perfil_id: int, analisis: Dict) ->
 
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM vacantes_analisis WHERE vacante_id = ?", (vacante_id,))
+        cursor.execute(
+            "SELECT id FROM vacantes_analisis WHERE vacante_id = ?", (vacante_id,)
+        )
         existing = cursor.fetchone()
 
         params = (
             perfil_id,
+            # Extracción
             jdump(analisis.get('skills_requeridas', [])),
             jdump(analisis.get('skills_blandas_detectadas', [])),
             analisis.get('seniority_inferido', 'No especificado'),
@@ -1829,13 +1832,26 @@ def guardar_analisis_vacante(vacante_id: int, perfil_id: int, analisis: Dict) ->
             analisis.get('modalidad_detectada'),
             analisis.get('salario_detectado'),
             jdump(analisis.get('idiomas_requeridos', [])),
+            analisis.get('tipo_real_de_rol'),
+            # Evaluación
+            analisis.get('afinidad_general'),
+            analisis.get('justificacion_afinidad'),
+            jdump(analisis.get('fortalezas_principales', [])),
+            jdump(analisis.get('riesgos_principales', [])),
+            analisis.get('encaje_estrategico'),
+            analisis.get('justificacion_decision'),
+            analisis.get('decision_aplicacion'),
+            jdump(analisis.get('ajustes_cv_recomendados', [])),
+            # Scores
             analisis.get('score_total', 0),
             analisis.get('score_skills_tecnicas', 0),
             analisis.get('score_seniority', 0),
             analisis.get('score_modalidad', 0),
             analisis.get('score_idiomas', 0),
             analisis.get('score_skills_blandas', 0),
+            analisis.get('score_global', 0),
             analisis.get('semaforo', 'gris'),
+            # Narrativo
             analisis.get('resumen_analisis'),
             jdump(analisis.get('skills_match', [])),
             jdump(analisis.get('skills_gap', [])),
@@ -1845,30 +1861,61 @@ def guardar_analisis_vacante(vacante_id: int, perfil_id: int, analisis: Dict) ->
         if existing:
             cursor.execute("""
                 UPDATE vacantes_analisis SET
-                    perfil_id=?, skills_requeridas=?, skills_blandas_detectadas=?,
-                    seniority_inferido=?, justificacion_seniority=?,
-                    modalidad_detectada=?, salario_detectado=?, idiomas_requeridos=?,
-                    score_total=?, score_skills_tecnicas=?, score_seniority=?,
-                    score_modalidad=?, score_idiomas=?, score_skills_blandas=?,
-                    semaforo=?, resumen_analisis=?, skills_match=?, skills_gap=?,
-                    aspiracion_salarial_sugerida=?, fecha_analisis=GETDATE()
-                WHERE vacante_id=?
+                    perfil_id                   = ?,
+                    skills_requeridas           = ?,
+                    skills_blandas_detectadas   = ?,
+                    seniority_inferido          = ?,
+                    justificacion_seniority     = ?,
+                    modalidad_detectada         = ?,
+                    salario_detectado           = ?,
+                    idiomas_requeridos          = ?,
+                    tipo_real_de_rol            = ?,
+                    afinidad_general            = ?,
+                    justificacion_afinidad      = ?,
+                    fortalezas_principales      = ?,
+                    riesgos_principales         = ?,
+                    encaje_estrategico          = ?,
+                    justificacion_decision      = ?,
+                    decision_aplicacion         = ?,
+                    ajustes_cv_recomendados     = ?,
+                    score_total                 = ?,
+                    score_skills_tecnicas       = ?,
+                    score_seniority             = ?,
+                    score_modalidad             = ?,
+                    score_idiomas               = ?,
+                    score_skills_blandas        = ?,
+                    score_global                = ?,
+                    semaforo                    = ?,
+                    resumen_analisis            = ?,
+                    skills_match                = ?,
+                    skills_gap                  = ?,
+                    aspiracion_salarial_sugerida = ?,
+                    fecha_analisis              = GETDATE()
+                WHERE vacante_id = ?
             """, (*params, vacante_id))
         else:
             cursor.execute("""
                 INSERT INTO vacantes_analisis (
-                    perfil_id, skills_requeridas, skills_blandas_detectadas,
+                    perfil_id,
+                    skills_requeridas, skills_blandas_detectadas,
                     seniority_inferido, justificacion_seniority,
                     modalidad_detectada, salario_detectado, idiomas_requeridos,
+                    tipo_real_de_rol,
+                    afinidad_general, justificacion_afinidad,
+                    fortalezas_principales, riesgos_principales,
+                    encaje_estrategico, justificacion_decision,
+                    decision_aplicacion, ajustes_cv_recomendados,
                     score_total, score_skills_tecnicas, score_seniority,
                     score_modalidad, score_idiomas, score_skills_blandas,
-                    semaforo, resumen_analisis, skills_match, skills_gap,
-                    aspiracion_salarial_sugerida, vacante_id
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    score_global, semaforo,
+                    resumen_analisis, skills_match, skills_gap,
+                    aspiracion_salarial_sugerida,
+                    vacante_id
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (*params, vacante_id))
 
         conn.commit()
-        return {'success': True, 'message': '✓ Análisis guardado'}
+        return {'success': True, 'message': '✓ Análisis guardado correctamente'}
 
     except Exception as e:
         try: conn.rollback()
@@ -1883,54 +1930,77 @@ def guardar_analisis_vacante(vacante_id: int, perfil_id: int, analisis: Dict) ->
 
 
 def obtener_analisis_vacante(vacante_id: int) -> Optional[Dict]:
-    """Obtiene el análisis guardado de una vacante. Retorna None si no existe."""
+    """Obtiene el análisis completo (v2) de una vacante. Retorna None si no existe."""
     conn = get_connection()
     if not conn:
         return None
+
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id, vacante_id, perfil_id,
-                   skills_requeridas, skills_blandas_detectadas,
-                   seniority_inferido, justificacion_seniority,
-                   modalidad_detectada, salario_detectado, idiomas_requeridos,
-                   score_total, score_skills_tecnicas, score_seniority,
-                   score_modalidad, score_idiomas, score_skills_blandas,
-                   semaforo, resumen_analisis, skills_match, skills_gap,
-                   aspiracion_salarial_sugerida, fecha_analisis
-            FROM vacantes_analisis WHERE vacante_id = ?
+            SELECT
+                score_total, score_global, semaforo,
+                seniority_inferido, justificacion_seniority,
+                modalidad_detectada, salario_detectado,
+                resumen_analisis,
+                skills_match, skills_gap,
+                skills_requeridas, skills_blandas_detectadas,
+                idiomas_requeridos,
+                aspiracion_salarial_sugerida,
+                score_skills_tecnicas, score_seniority,
+                score_modalidad, score_idiomas, score_skills_blandas,
+                -- Campos v2
+                tipo_real_de_rol,
+                afinidad_general, justificacion_afinidad,
+                fortalezas_principales, riesgos_principales,
+                encaje_estrategico, justificacion_decision,
+                decision_aplicacion, ajustes_cv_recomendados,
+                fecha_analisis
+            FROM vacantes_analisis
+            WHERE vacante_id = ?
         """, (vacante_id,))
         row = cursor.fetchone()
         if not row:
             return None
 
-        def sjson(val):
+        def sj(val):
             if not val: return []
             try: return json.loads(val)
             except: return val
 
         return {
-            'id': row[0], 'vacante_id': row[1], 'perfil_id': row[2],
-            'skills_requeridas':         sjson(row[3]),
-            'skills_blandas_detectadas': sjson(row[4]),
-            'seniority_inferido':        row[5],
-            'justificacion_seniority':   row[6],
-            'modalidad_detectada':       row[7],
-            'salario_detectado':         row[8],
-            'idiomas_requeridos':        sjson(row[9]),
-            'score_total':               float(row[10]) if row[10] else 0,
-            'score_skills_tecnicas':     float(row[11]) if row[11] else 0,
-            'score_seniority':           float(row[12]) if row[12] else 0,
-            'score_modalidad':           float(row[13]) if row[13] else 0,
-            'score_idiomas':             float(row[14]) if row[14] else 0,
-            'score_skills_blandas':      float(row[15]) if row[15] else 0,
-            'semaforo':                  row[16],
-            'resumen_analisis':          row[17],
-            'skills_match':              sjson(row[18]),
-            'skills_gap':                sjson(row[19]),
-            'aspiracion_salarial_sugerida': row[20],
-            'fecha_analisis':            row[21],
+            'score_total':               float(row[0]) if row[0] else 0,
+            'score_global':              float(row[1]) if row[1] else 0,
+            'semaforo':                  row[2] or 'gris',
+            'seniority_inferido':        row[3],
+            'justificacion_seniority':   row[4],
+            'modalidad_detectada':       row[5],
+            'salario_detectado':         row[6],
+            'resumen_analisis':          row[7],
+            'skills_match':              sj(row[8]),
+            'skills_gap':                sj(row[9]),
+            'skills_requeridas':         sj(row[10]),
+            'skills_blandas_detectadas': sj(row[11]),
+            'idiomas_requeridos':        sj(row[12]),
+            'aspiracion_salarial_sugerida': row[13],
+            'score_skills_tecnicas':     float(row[14]) if row[14] else 0,
+            'score_seniority':           float(row[15]) if row[15] else 0,
+            'score_modalidad':           float(row[16]) if row[16] else 0,
+            'score_idiomas':             float(row[17]) if row[17] else 0,
+            'score_skills_blandas':      float(row[18]) if row[18] else 0,
+            # v2
+            'tipo_real_de_rol':          row[19],
+            'afinidad_general':          row[20],
+            'justificacion_afinidad':    row[21],
+            'fortalezas_principales':    sj(row[22]),
+            'riesgos_principales':       sj(row[23]),
+            'encaje_estrategico':        row[24],
+            'justificacion_decision':    row[25],
+            'decision_aplicacion':       row[26],
+            'ajustes_cv_recomendados':   sj(row[27]),
+            'fecha_analisis':            row[28],
         }
+
     except Exception as e:
         print(f"[ERROR] obtener_analisis_vacante: {e}")
         return None
