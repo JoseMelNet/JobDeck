@@ -5,8 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9a027a28-f8d8-4ccb-aed6-a6be7d70df04" name="Changes" comment="MPV Funcional con Recomendaciones sobre vacantes vs Experiencia">
+      <change afterPath="$PROJECT_DIR$/api.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/mi_perfil.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/mi_perfil.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -193,7 +193,15 @@
       <option name="project" value="LOCAL" />
       <updated>1773804102585</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="MPV Funcional con Recomendaciones sobre vacantes vs Experiencia">
+      <option name="closed" value="true" />
+      <created>1773804612337</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1773804612337</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -220,7 +228,8 @@
     <MESSAGE value="Consultas SQL agregadas a Git" />
     <MESSAGE value="Ajuste en Formularios Modulo Perfil del usuario para mantenerlos en la parte superior" />
     <MESSAGE value="Integracion OpenAI Analyser Corriendo" />
-    <MESSAGE value="MPV Funcional con Recomendaciones sobre vacantes vs Experiencia" />
-    <option name="LAST_COMMIT_MESSAGE" value="MPV Funcional con Recomendaciones sobre vacantes vs Experiencia" />
+    <MESSAGE value="MPV Funcional con Render CV Base Funcionando" />
+    <MESSAGE value="MPV Funcional con Render CV Base Funcionando" />
+    <option name="LAST_COMMIT_MESSAGE" value="MPV Funcional con Render CV Base Funcionando" />
   </component>
 </project>
