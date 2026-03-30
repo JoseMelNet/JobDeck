@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/CVs-Optimizator.iml" filepath="$PROJECT_DIR$/.idea/CVs-Optimizator.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/JobDeck.iml" filepath="$PROJECT_DIR$/.idea/JobDeck.iml" />
     </modules>
   </component>
 </project>
