@@ -14,7 +14,7 @@ import streamlit as st
 import database
 import pandas as pd
 import time
-from modules.analizar_vacante import analizar_vacante
+from services import ejecutar_analisis_vacante
 
 
 # ─────────────────────────────────────────────────────────────
@@ -500,36 +500,11 @@ def _panel_archivar(vacante_id: int):
 # ─────────────────────────────────────────────────────────────
 
 def _ejecutar_analisis(vacante: dict):
-    """Llama al motor de análisis y guarda el resultado."""
-    perfil = database.obtener_perfil()
-    if not perfil:
-        st.error("⚠️ No tienes un perfil creado. Ve a la pestaña **Mi Perfil**.")
-        return
-
-    perfil_completo = database.obtener_perfil_completo_para_analisis(perfil['id'])
-    if not perfil_completo:
-        st.error("⚠️ No se pudo cargar tu perfil completo.")
-        return
-
-    with st.spinner("🤖 Analizando vacante con IA... esto puede tomar unos segundos"):
-        resultado = analizar_vacante(vacante, perfil_completo)
-
-    if not resultado['success']:
-        st.error(f"❌ {resultado['message']}")
-        return
-
-    res_db = database.guardar_analisis_vacante(
-        vacante_id=vacante['id'],
-        perfil_id=perfil['id'],
-        analisis=resultado
-    )
-
-    if res_db['success']:
-        st.success("✅ Análisis completado")
+    """Ejecuta el analisis reutilizando el servicio compartido."""
+    resultado = ejecutar_analisis_vacante(vacante['id'], mostrar_ui=True)
+    if resultado['success'] and resultado['analizado']:
         time.sleep(0.5)
         st.rerun()
-    else:
-        st.error(f"❌ Error al guardar: {res_db['message']}")
 
 
 def _procesar_aplicar(vacante_id: int):

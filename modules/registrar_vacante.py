@@ -12,6 +12,7 @@ import streamlit as st
 import database
 from config import MODALIDADES
 import time
+from services import ejecutar_analisis_vacante
 
 
 def mostrar_registrar_vacante():
@@ -103,6 +104,10 @@ def _procesar_guardado(empresa: str, cargo: str, modalidad: str, link: str, desc
     )
 
     if resultado['success']:
+        vacante_id = resultado.get('id')
+        if vacante_id:
+            ejecutar_analisis_vacante(vacante_id, mostrar_ui=False)
+
         st.success(resultado['message'])
         st.balloons()
 

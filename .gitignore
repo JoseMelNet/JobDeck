@@ -1,0 +1,10 @@
+.claude/
+.env
+.venv/
+.idea/workspace.xml
+.idea/.name
+__pycache__/
+modules/__pycache__/
+*.pyc
+*.pyo
+*.pyd

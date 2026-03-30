@@ -13,12 +13,17 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
+import logging
 import sys
 import os
 
 # Asegurar que database.py sea importable desde este archivo
 sys.path.insert(0, os.path.dirname(__file__))
 import database
+from services import ejecutar_analisis_vacante
+
+
+logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────
 # APP
@@ -108,6 +113,16 @@ def crear_vacante(payload: VacantePayload):
 
     if not resultado["success"]:
         raise HTTPException(status_code=500, detail=resultado["message"])
+
+    vacante_id = resultado.get("id")
+    if vacante_id:
+        analisis_resultado = ejecutar_analisis_vacante(vacante_id, mostrar_ui=False)
+        if not analisis_resultado["success"] and not analisis_resultado["omitido"]:
+            logger.warning(
+                "La vacante %s se guardo, pero el analisis automatico fallo: %s",
+                vacante_id,
+                analisis_resultado["message"],
+            )
 
     return VacanteResponse(
         success=True,
