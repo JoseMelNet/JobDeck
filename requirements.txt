@@ -2,3 +2,6 @@ streamlit==1.43.0
 pyodbc==5.1.0
 pandas==2.1.1
 python-dotenv==1.0.0
+fastapi==0.115.12
+openai==1.72.0
+uvicorn==0.34.0
