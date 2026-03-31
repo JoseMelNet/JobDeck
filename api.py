@@ -1,127 +1,115 @@
-"""
-api.py — FastAPI endpoint para la extensión de Chrome
-Corre en paralelo a Streamlit en el puerto 8001.
+"""FastAPI endpoint for the Chrome extension."""
 
-Arrancar con:
-    uvicorn api:app --port 8001 --reload
+from __future__ import annotations
 
-Requiere instalar:
-    pip install fastapi uvicorn
-"""
+import logging
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
-import logging
-import sys
-import os
 
-# Asegurar que database.py sea importable desde este archivo
-sys.path.insert(0, os.path.dirname(__file__))
-import database
-from services import ejecutar_analisis_vacante
+from app.application.use_cases.analyze_vacancy import AnalyzeVacancyUseCase
+from app.application.use_cases.create_vacancy import CreateVacancyUseCase
+from app.domain.exceptions import AnalysisError, ValidationError
+from app.infrastructure.persistence.connection import test_connection
+from app.infrastructure.persistence.repositories.analysis_repository import AnalysisRepository
+from app.infrastructure.persistence.repositories.profile_repository import ProfileRepository
+from app.infrastructure.persistence.repositories.vacancy_repository import VacancyRepository
 
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────
-# APP
-# ─────────────────────────────────────────────────────────────
+vacancy_repository = VacancyRepository()
+profile_repository = ProfileRepository()
+analysis_repository = AnalysisRepository()
+create_vacancy_use_case = CreateVacancyUseCase(vacancy_repository)
+analyze_vacancy_use_case = AnalyzeVacancyUseCase(
+    vacancy_repository=vacancy_repository,
+    profile_repository=profile_repository,
+    analysis_repository=analysis_repository,
+)
+
 
 app = FastAPI(
     title="CVs-Optimizador API",
-    description="Endpoint local para la extensión de Chrome",
+    description="Endpoint local para la extension de Chrome",
     version="1.0.0",
 )
 
-# CORS: permite que la extensión de Chrome (origen chrome-extension://)
-# haga requests a este servidor local
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],        # En local está bien; en producción restringir
+    allow_origins=["*"],
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
 
-# ─────────────────────────────────────────────────────────────
-# SCHEMAS
-# ─────────────────────────────────────────────────────────────
-
 class VacantePayload(BaseModel):
-    empresa:     str
-    cargo:       str
-    modalidad:   str                  # "Remoto" | "Presencial" | "Híbrido"
-    link:        Optional[str] = None
+    empresa: str
+    cargo: str
+    modalidad: str
+    link: Optional[str] = None
     descripcion: str
 
 
 class VacanteResponse(BaseModel):
     success: bool
     message: str
-    id:      Optional[int] = None
+    id: Optional[int] = None
 
-
-# ─────────────────────────────────────────────────────────────
-# ENDPOINTS
-# ─────────────────────────────────────────────────────────────
 
 @app.get("/health")
 def health_check():
-    """
-    Health check — la extensión lo usa para saber si la API está activa
-    antes de intentar guardar.
-    """
-    db_ok = database.test_connection()
+    """Used by the extension to verify that the local API is available."""
+    db_ok = test_connection()
     return {
         "status": "ok" if db_ok else "db_error",
         "db_connected": db_ok,
-        "message": "API activa" if db_ok else "API activa pero sin conexión a BD",
+        "message": "API activa" if db_ok else "API activa pero sin conexion a BD",
     }
 
 
 @app.post("/vacantes", response_model=VacanteResponse)
 def crear_vacante(payload: VacantePayload):
-    """
-    Recibe los datos de una vacante desde la extensión de Chrome
-    y los inserta en la base de datos usando database.py existente.
-    """
-    # Normalizar modalidad — LinkedIn puede devolver variaciones
+    """Create a vacancy and trigger the automatic analysis workflow."""
     modalidad_map = {
-        "remote":     "Remoto",
-        "remoto":     "Remoto",
-        "on-site":    "Presencial",
+        "remote": "Remoto",
+        "remoto": "Remoto",
+        "on-site": "Presencial",
         "presencial": "Presencial",
-        "on site":    "Presencial",
-        "hybrid":     "Híbrido",
-        "híbrido":    "Híbrido",
-        "hibrido":    "Híbrido",
+        "on site": "Presencial",
+        "hybrid": "Hibrido",
+        "hibrido": "Hibrido",
+        "hibrido ": "Hibrido",
     }
-    modalidad_norm = modalidad_map.get(
-        payload.modalidad.lower().strip(),
-        "Remoto"          # fallback si LinkedIn devuelve algo inesperado
-    )
+    modalidad_norm = modalidad_map.get(payload.modalidad.lower().strip(), "Remoto")
+    if modalidad_norm == "Hibrido":
+        modalidad_norm = "Híbrido"
 
-    resultado = database.insertar_vacante(
-        empresa=payload.empresa.strip(),
-        cargo=payload.cargo.strip(),
-        modalidad=modalidad_norm,
-        link=payload.link,
-        descripcion=payload.descripcion.strip(),
-    )
+    try:
+        resultado = create_vacancy_use_case.execute(
+            empresa=payload.empresa,
+            cargo=payload.cargo,
+            modalidad=modalidad_norm,
+            link=payload.link,
+            descripcion=payload.descripcion,
+        )
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     if not resultado["success"]:
         raise HTTPException(status_code=500, detail=resultado["message"])
 
     vacante_id = resultado.get("id")
     if vacante_id:
-        analisis_resultado = ejecutar_analisis_vacante(vacante_id, mostrar_ui=False)
-        if not analisis_resultado["success"] and not analisis_resultado["omitido"]:
+        try:
+            analyze_vacancy_use_case.execute(vacante_id)
+        except AnalysisError as exc:
             logger.warning(
                 "La vacante %s se guardo, pero el analisis automatico fallo: %s",
                 vacante_id,
-                analisis_resultado["message"],
+                exc,
             )
 
     return VacanteResponse(

@@ -135,9 +135,11 @@ def _calcular_score_global(scores: dict) -> float:
 
 
 def _calcular_semaforo(score: float) -> str:
-    if score >= 70:   return 'verde'
-    elif score >= 40: return 'amarillo'
-    else:             return 'rojo'
+    if score >= 70:
+        return 'verde'
+    if score >= 40:
+        return 'amarillo'
+    return 'rojo'
 
 
 # ─────────────────────────────────────────────────────────────

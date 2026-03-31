@@ -1,212 +1,162 @@
-# 📋 MVP: Sistema de Almacenamiento de Vacantes
+# CVs-Optimizator
 
-Sistema simple y funcional para registrar y almacenar vacantes en SQL Server.
+Aplicacion para registrar vacantes, analizarlas contra un perfil profesional y gestionar aplicaciones laborales.
 
-## 🎯 Características
+## Estado actual
 
-✅ Formulario para capturar vacantes (Empresa, Cargo, Modalidad, Descripción)  
-✅ Preview antes de guardar + confirmación  
-✅ Visualización de todas las vacantes registradas  
-✅ Opción de eliminar vacantes  
-✅ Almacenamiento en SQL Server local  
-✅ Interfaz en Streamlit (bonita y funcional)
+- Streamlit como interfaz principal en `app.py`
+- FastAPI para integraciones locales en `api.py`
+- arquitectura por capas en `app/`
+- persistencia SQL Server via `pyodbc`
+- suite automatizada con `unittest`
+- CI en GitHub Actions con sintaxis, lint y tests
 
----
+## Funcionalidades
 
-## ⚙️ Requisitos Previos
+- registrar vacantes
+- listar, archivar, reactivar y eliminar vacantes
+- analizar vacantes contra el perfil activo
+- registrar y gestionar aplicaciones
+- tablero de aplicaciones por estado
+- gestionar perfil profesional, skills, experiencia, proyectos, educacion, cursos y certificaciones
 
-- **Windows** (SQL Server)
-- **Python 3.8+** instalado
-- **SQL Server Developer Edition** instalado (gratuito)
-- **SSMS** (SQL Server Management Studio) instalado
+## Estructura
 
-> Si no tienes SQL Server, descárgalo desde:  
-> https://www.microsoft.com/sql-server/sql-server-downloads
+```text
+CVs-Optimizator/
+├── app.py
+├── api.py
+├── app/
+│   ├── application/
+│   ├── config/
+│   ├── domain/
+│   └── infrastructure/
+├── modules/
+│   ├── components/
+│   ├── registrar_vacante.py
+│   ├── mis_vacantes.py
+│   ├── registrar_aplicacion.py
+│   ├── mis_aplicaciones.py
+│   └── mi_perfil.py
+├── tests/
+├── sql_queries/
+├── run_tests.py
+└── .github/workflows/ci.yml
+```
 
----
+## Requisitos
 
-## 🚀 Instalación (15 minutos)
+- Windows
+- Python 3.11 recomendado
+- SQL Server accesible desde `pyodbc`
+- variables de entorno para BD
 
-### Paso 1: Crear la Base de Datos
+## Configuracion
 
-1. Abre **SQL Server Management Studio (SSMS)**
-2. Conéctate a tu instancia local (ej: `localhost\SQLEXPRESS`)
-3. Abre un **New Query**
-4. **Copia y pega** todo el contenido de `job_postings_mvp.sql`
-5. Presiona **Execute** (F5)
+1. Crea `.env` a partir de `.env.example`.
+2. Ajusta credenciales de SQL Server.
 
-✅ Deberías ver un mensaje de éxito. La BD `job_postings_mvp` está creada.
+Variables usadas:
 
-### Paso 2: Configurar Variables de Entorno
+```env
+DB_SERVER=localhost\MSSQLSERVER2025
+DB_DATABASE=job_postings_mvp
+DB_USER=sa
+DB_PASSWORD=tu_password
+```
 
-1. En la carpeta del proyecto, **copia** `.env.example` a `.env`
-   ```bash
-   copy .env.example .env
-   ```
-
-2. **Abre `.env`** con un editor de texto y completa tus credenciales:
-   ```
-   DB_SERVER=localhost\SQLEXPRESS
-   DB_DATABASE=job_postings_mvp
-   DB_USER=sa
-   DB_PASSWORD=tu_contraseña_sql_server
-   ```
-
-### Paso 3: Instalar Dependencias Python
+## Instalacion
 
 ```bash
-# Abre PowerShell o CMD en la carpeta del proyecto
-
-# Crear entorno virtual
-python -m venv venv
-
-# Activar (Windows - PowerShell)
-venv\Scripts\Activate.ps1
-
-# O en CMD:
-venv\Scripts\activate
-
-# Instalar dependencias
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Paso 4: Ejecutar la Aplicación
+## Ejecucion
+
+Streamlit:
 
 ```bash
-# Con venv activado
 streamlit run app.py
 ```
 
-✅ Se abrirá automáticamente en tu navegador (http://localhost:8501)
+API local:
 
----
-
-## 💡 Cómo Usar
-
-### Pestaña 1: Registrar Vacante
-
-1. **Completa el formulario:**
-   - Empresa: nombre de la empresa
-   - Cargo: posición ofrecida
-   - Modalidad: Remoto / Presencial / Híbrido
-   - Descripción: pega toda la descripción de la vacante
-
-2. **Click en "Ver Preview"**
-   - Se mostrará una vista previa de lo que vas a guardar
-
-3. **Click en "Confirmar y Guardar"**
-   - Se guardará en la BD
-   - Verás un mensaje de éxito
-   - El contador de vacantes se actualiza automáticamente
-
-### Pestaña 2: Mis Vacantes
-
-- Ves **todas las vacantes registradas**
-- Cada una muestra: empresa, cargo, modalidad, descripción resumida
-- **Puedes eliminar** una vacante con el botón 🗑️
-
----
-
-## 🛠️ Estructura del Proyecto
-
-```
-job_postings_mvp/
-├── app.py                      # Aplicación Streamlit (MAIN)
-├── database.py                 # CRUD: funciones de BD
-├── config.py                   # Configuración y credenciales
-├── requirements.txt            # Dependencias Python
-├── job_postings_mvp.sql        # Script para crear BD
-├── .env.example                # Template de variables de entorno
-├── .env                        # Variables de entorno (NO comitear)
-└── README.md                   # Este archivo
-```
-
----
-
-## 🔧 Solución de Problemas
-
-### ❌ "Error: No hay conexión a SQL Server"
-
-**Causa:** Credenciales incorrectas o SQL Server no está corriendo.
-
-**Solución:**
-1. Verifica que SQL Server esté ejecutándose (Services en Windows)
-2. Abre SSMS y prueba conectar manualmente
-3. Verifica credenciales en `.env`
-4. Recarga la app (F5 en el navegador)
-
-### ❌ "ODBC Driver 17 for SQL Server not found"
-
-**Causa:** Driver ODBC no instalado.
-
-**Solución:**
 ```bash
-# Instala el driver ODBC
-pip install pyodbc --upgrade
+uvicorn api:app --reload
 ```
 
-O descárgalo manualmente:  
-https://www.microsoft.com/download/details.aspx?id=56567
+Prueba rapida de BD:
 
-### ❌ "Table vacantes doesn't exist"
-
-**Causa:** No ejecutaste el script SQL.
-
-**Solución:**
-1. Abre SSMS
-2. Ejecuta el script `job_postings_mvp.sql` nuevamente
-3. Verifica que la tabla existe: `SELECT * FROM vacantes`
-
----
-
-## 📝 Ejemplos de Uso
-
-### Ejemplo 1: Registrar una vacante de LinkedIn
-
-```
-Empresa: Google
-Cargo: Data Analyst
-Modalidad: Remoto
-Descripción: [pega todo el texto de la vacante aquí]
+```bash
+python test_connection.py
 ```
 
-### Ejemplo 2: Vacante de Indeed
+## Tests
 
+Entrada unica recomendada:
+
+```bash
+python run_tests.py
 ```
-Empresa: Microsoft
-Cargo: BI Analyst
-Modalidad: Híbrido
-Descripción: [copia y pega la descripción completa]
-```
 
----
+Estado actual de la suite:
 
-## 🚀 Próximas Mejoras
+- tests de UI compartida
+- tests de casos de uso
+- tests de repositorios
+- tests de API
+- tests de flujos integrados con mocks
 
-- [ ] Agregar búsqueda/filtro en "Mis Vacantes"
-- [ ] Exportar a CSV/Excel
-- [ ] Agregar más campos (salario, link, seniority)
-- [ ] Análisis con IA (validar skills requeridos)
-- [ ] Scoring automático de afinidad
-- [ ] Generación de CV adaptado por vacante
+## CI
 
----
+Workflow disponible en `.github/workflows/ci.yml`.
 
-## 📧 Soporte
+Ejecuta:
 
-Si tienes problemas:
+- `compileall`
+- `ruff check`
+- `python run_tests.py`
 
-1. Verifica la consola de errores (PowerShell/CMD)
-2. Revisa que SQL Server esté corriendo
-3. Intenta conectar a SSMS manualmente
-4. Recarga la app (`Ctrl+C` y vuelve a ejecutar)
+## Arquitectura
 
----
+Resumen corto:
 
-## 📄 Licencia
+- `app/domain`: enums y excepciones
+- `app/application`: casos de uso y servicios
+- `app/infrastructure`: conexion y repositorios
+- `modules`: interfaces Streamlit y componentes visuales
 
-Proyecto personal. Uso libre.
+Detalle adicional en [docs/ARCHITECTURE.md](/C:/Users/josem/PycharmProjects/CVs-Optimizator/docs/ARCHITECTURE.md).
 
----
+## UI actual
 
-**¡Listo para usar! Ejecuta `streamlit run app.py` y comienza a registrar vacantes.** 🎉
+La interfaz principal esta montada en `app.py` con `st.tabs(...)` como mecanismo de navegacion horizontal.
+
+Pestanas principales:
+
+- `Registrar Vacante`: formulario de alta de vacantes
+- `Mis Vacantes`: tabla filtrable, detalle y acciones sobre vacantes
+- `Registrar Aplicacion`: formulario de registro de aplicaciones
+- `Mis Aplicaciones`: tablero kanban por estado y dialogo de detalle
+- `Mi Perfil`: gestion completa del perfil profesional
+
+La pestana `Mi Perfil` tiene una segunda capa de navegacion interna:
+
+- `Datos Personales`
+- `Skills`
+- `Experiencia`
+- `Proyectos`
+- `Educacion`
+- `Cursos`
+- `Certificaciones`
+- `Vista CV`
+
+Ademas, la UI comparte componentes visuales en `modules/components/` para evitar duplicacion entre pantallas. Ahi viven estilos comunes, labels centralizados y componentes especificos para vacantes, aplicaciones y secciones de perfil.
+
+## Notas
+
+- el proyecto fue migrado desde una estructura mas monolitica a una arquitectura por capas
+- la suite actual corre localmente con `43` tests
+- el pipeline de CI ya esta preparado para validar cambios automaticamente

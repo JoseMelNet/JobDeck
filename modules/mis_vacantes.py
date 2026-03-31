@@ -1,537 +1,226 @@
-"""
-modules/mis_vacantes.py — v2
-Pestaña: Mis Vacantes
+"""Streamlit page for managing vacancies."""
 
-Novedades v2:
-  - Columna Semáforo en la tabla (verde/amarillo/rojo/gris)
-  - Filtro por estado: Activas | Archivadas | Todas
-  - Botón "🔍 Analizar" en el detalle de cada vacante
-  - Botones de decisión: ✅ Aplicar | 📦 Archivar
-  - Spinner mientras OpenAI procesa
-"""
+from __future__ import annotations
 
-import streamlit as st
-import database
-import pandas as pd
 import time
-from services import ejecutar_analisis_vacante
 
+import pandas as pd
+import streamlit as st
 
-# ─────────────────────────────────────────────────────────────
-# CONSTANTES
-# ─────────────────────────────────────────────────────────────
+from app.application.use_cases.analyze_vacancy import AnalyzeVacancyUseCase
+from app.domain.enums.archive_reason import ARCHIVE_REASONS
+from app.infrastructure.persistence.repositories.analysis_repository import AnalysisRepository
+from app.infrastructure.persistence.repositories.application_repository import (
+    ApplicationRepository,
+)
+from app.infrastructure.persistence.repositories.profile_repository import ProfileRepository
+from app.infrastructure.persistence.repositories.vacancy_repository import VacancyRepository
+from modules.components.ui_labels import (
+    VACANCY_FILTER_STATES,
+    VACANCY_MODALITY_OPTIONS,
+    VACANCY_SEMAPHORE_META,
+    normalize_modality_label,
+)
+from modules.components.profile_components import render_empty_state
+from modules.components.ui_styles import inject_management_styles
+from modules.components.vacancy_components import (
+    render_vacancy_action_row,
+    render_vacancy_analysis_panel,
+    render_vacancy_detail_summary,
+)
 
-MOTIVOS_ARCHIVO = [
-    'No calificado',
-    'Sobre calificado',
-    'Empresa no interesa',
-    'Salario no acorde',
-    'Otro',
-]
-
-SEMAFORO_META = {
-    'verde':    {'emoji': '🟢', 'label': 'Alta afinidad',   'color': '#10B981'},
-    'amarillo': {'emoji': '🟡', 'label': 'Afinidad media',  'color': '#F59E0B'},
-    'rojo':     {'emoji': '🔴', 'label': 'Baja afinidad',   'color': '#EF4444'},
-    'gris':     {'emoji': '⚪', 'label': 'Sin analizar',    'color': '#9CA3AF'},
-}
-
-MODALIDADES_EMOJI = {
-    'Remoto':     '🌐 Remoto',
-    'Presencial': '🏢 Presencial',
-    'Híbrido':    '🔄 Híbrido',
-}
-
-
-# ─────────────────────────────────────────────────────────────
-# FUNCIÓN PRINCIPAL
-# ─────────────────────────────────────────────────────────────
+vacancy_repository = VacancyRepository()
+application_repository = ApplicationRepository()
+profile_repository = ProfileRepository()
+analysis_repository = AnalysisRepository()
+analyze_vacancy_use_case = AnalyzeVacancyUseCase(
+    vacancy_repository=vacancy_repository,
+    profile_repository=profile_repository,
+    analysis_repository=analysis_repository,
+)
 
 def mostrar_mis_vacantes():
+    inject_management_styles()
     st.subheader("Todas mis Vacantes")
 
-    vacantes_raw = database.obtener_todas_vacantes()
-
+    vacantes_raw = vacancy_repository.list_all()
     if not vacantes_raw:
-        st.info("📭 No hay vacantes registradas aún. ¡Comienza agregando una!")
+        render_empty_state("No hay vacantes registradas aun. Comienza agregando una.")
         return
 
-    # Cargar análisis existentes para mostrar semáforos en tabla
     analisis_por_vacante = {}
-    for v in vacantes_raw:
-        a = database.obtener_analisis_vacante(v['id'])
-        if a:
-            analisis_por_vacante[v['id']] = a
+    for vacante in vacantes_raw:
+        analisis = analysis_repository.get_by_vacancy_id(vacante["id"])
+        if analisis:
+            analisis_por_vacante[vacante["id"]] = analisis
 
-    # ── Filtro: activas / archivadas / todas ──────────────────
     col_buscar, col_modal, col_estado = st.columns([2, 1, 1])
-
     with col_buscar:
-        buscar = st.text_input(
-            "🔍 Buscar", placeholder="Empresa o cargo...",
-            key="buscar_vacantes", label_visibility="collapsed"
-        )
+        buscar = st.text_input("Buscar", placeholder="Empresa o cargo...", key="buscar_vacantes", label_visibility="collapsed")
     with col_modal:
         modalidad_filter = st.multiselect(
-            "Modalidad", options=['Remoto', 'Presencial', 'Híbrido'],
-            default=['Remoto', 'Presencial', 'Híbrido'],
-            label_visibility="collapsed"
+            "Modalidad",
+            options=VACANCY_MODALITY_OPTIONS,
+            default=VACANCY_MODALITY_OPTIONS,
+            label_visibility="collapsed",
         )
     with col_estado:
-        estado_filter = st.selectbox(
-            "Estado", options=['Activas', 'Archivadas', 'Todas'],
-            label_visibility="collapsed"
+        estado_filter = st.selectbox("Estado", options=VACANCY_FILTER_STATES, label_visibility="collapsed")
+
+    datos_tabla = []
+    for vacante in vacantes_raw:
+        archivada = bool(vacante.get("motivo_archivo"))
+        analisis = analisis_por_vacante.get(vacante["id"])
+        semaforo = analisis["semaforo"] if analisis else "gris"
+        score = f"{analisis['score_total']:.0f}" if analisis else "-"
+        sem_meta = VACANCY_SEMAPHORE_META[semaforo]
+
+        datos_tabla.append(
+            {
+                "ID": vacante["id"],
+                "Semaforo": f"{sem_meta['emoji']} {score}",
+                "Fecha": vacante["fecha_registro"].strftime("%d/%m/%Y") if vacante["fecha_registro"] else "N/A",
+                "Cargo": vacante["cargo"],
+                "Empresa": vacante["empresa"],
+                "Modalidad": normalize_modality_label(vacante["modalidad"]),
+                "Estado": "Archivada" if archivada else "Activa",
+                "_id": vacante["id"],
+                "_archivada": archivada,
+            }
         )
 
-    # ── Construir DataFrame ───────────────────────────────────
-    datos_tabla = []
-    for v in vacantes_raw:
-        archivada   = bool(v.get('motivo_archivo'))
-        analisis    = analisis_por_vacante.get(v['id'])
-        semaforo    = analisis['semaforo'] if analisis else 'gris'
-        score       = f"{analisis['score_total']:.0f}" if analisis else '—'
-        sem_meta    = SEMAFORO_META[semaforo]
-
-        datos_tabla.append({
-            'ID':           v['id'],
-            'Semáforo':     f"{sem_meta['emoji']} {score}",
-            'Fecha':        v['fecha_registro'].strftime("%d/%m/%Y") if v['fecha_registro'] else "N/A",
-            'Cargo':        v['cargo'],
-            'Empresa':      v['empresa'],
-            'Modalidad':    v['modalidad'],
-            'Estado':       '📦 Archivada' if archivada else '✅ Activa',
-            '_id':          v['id'],
-            '_archivada':   archivada,
-            '_semaforo':    semaforo,
-        })
-
     df = pd.DataFrame(datos_tabla)
-
-    # Aplicar filtros
     if buscar:
         q = buscar.lower()
-        df = df[df['Empresa'].str.lower().str.contains(q, na=False) |
-                df['Cargo'].str.lower().str.contains(q, na=False)]
+        df = df[df["Empresa"].str.lower().str.contains(q, na=False) | df["Cargo"].str.lower().str.contains(q, na=False)]
 
-    df = df[df['Modalidad'].isin(modalidad_filter)]
+    df = df[df["Modalidad"].isin(modalidad_filter)]
+    if estado_filter == "Activas":
+        df = df[~df["_archivada"]]
+    elif estado_filter == "Archivadas":
+        df = df[df["_archivada"]]
 
-    if estado_filter == 'Activas':
-        df = df[~df['_archivada']]
-    elif estado_filter == 'Archivadas':
-        df = df[df['_archivada']]
-
-    st.write(f"📊 Mostrando **{len(df)}** vacante(s)")
-
-    # ── Tabla ─────────────────────────────────────────────────
-    cols_mostrar = ['ID', 'Semáforo', 'Fecha', 'Cargo', 'Empresa', 'Modalidad', 'Estado']
+    st.write(f"Mostrando **{len(df)}** vacante(s)")
+    cols_mostrar = ["ID", "Semaforo", "Fecha", "Cargo", "Empresa", "Modalidad", "Estado"]
     st.dataframe(df[cols_mostrar], use_container_width=True, hide_index=True, height=380)
 
     st.divider()
-
-    # ── Selector de vacante ───────────────────────────────────
     if df.empty:
-        st.info("No hay vacantes que coincidan con los filtros.")
+        render_empty_state("No hay vacantes que coincidan con los filtros.")
         return
 
     vacante_id_sel = st.selectbox(
         "Selecciona una vacante para ver detalles:",
-        options=df['_id'].values,
+        options=df["_id"].values,
         format_func=lambda x: next(
-            (f"#{v['id']} — {v['empresa']} | {v['cargo']}"
-             for v in vacantes_raw if v['id'] == x), str(x)
+            (f"#{vacante['id']} - {vacante['empresa']} | {vacante['cargo']}" for vacante in vacantes_raw if vacante["id"] == x),
+            str(x),
         ),
-        label_visibility="collapsed"
+        label_visibility="collapsed",
     )
 
     if vacante_id_sel:
-        vacante = next((v for v in vacantes_raw if v['id'] == vacante_id_sel), None)
+        vacante = next((item for item in vacantes_raw if item["id"] == vacante_id_sel), None)
         if vacante:
-            _mostrar_detalle_vacante(
-                vacante,
-                analisis_por_vacante.get(vacante_id_sel)
-            )
+            _mostrar_detalle_vacante(vacante, analisis_por_vacante.get(vacante_id_sel))
 
 
-# ─────────────────────────────────────────────────────────────
-# DETALLE DE VACANTE
-# ─────────────────────────────────────────────────────────────
+def _mostrar_detalle_vacante(vacante: dict, analisis: dict | None):
+    archivada = bool(vacante.get("motivo_archivo"))
+    vacante_normalizada = {**vacante, "modalidad": normalize_modality_label(vacante.get("modalidad"))}
 
-def _mostrar_detalle_vacante(vacante: dict, analisis: dict):
-    archivada = bool(vacante.get('motivo_archivo'))
-
-    # ── Encabezado ────────────────────────────────────────────
-    st.subheader(f"📋 {vacante['empresa']} — {vacante['cargo']}")
-
-    # Fila 1: metadatos
-    c1, c2, c3, c4 = st.columns([1, 1.5, 1.5, 1])
-    with c1:
-        st.write("**🆔 ID**");    st.write(f"`{vacante['id']}`")
-    with c2:
-        st.write("**🏢 Empresa**"); st.write(vacante['empresa'])
-    with c3:
-        st.write("**💼 Cargo**");   st.write(vacante['cargo'])
-    with c4:
-        st.write("**📍 Modalidad**")
-        st.write(MODALIDADES_EMOJI.get(vacante['modalidad'], vacante['modalidad']))
-
-    # Fila 2: fecha, link, estado
-    c1, c2, c3 = st.columns([1.5, 1.5, 2])
-    with c1:
-        st.write("**📅 Registrada**")
-        fecha = vacante['fecha_registro'].strftime("%d/%m/%Y") if vacante['fecha_registro'] else "N/A"
-        st.write(fecha)
-    with c2:
-        st.write("**🔗 Link**")
-        if vacante.get('link'):
-            st.markdown(f"[Abrir ↗]({vacante['link']})")
-        else:
-            st.write("—")
-    with c3:
-        st.write("**📦 Estado**")
-        if archivada:
-            st.write(f"Archivada: *{vacante['motivo_archivo']}*")
-        else:
-            st.write("Activa")
+    st.subheader(f"{vacante_normalizada['empresa']} - {vacante_normalizada['cargo']}")
+    render_vacancy_detail_summary(
+        vacante_normalizada,
+        archivada=archivada,
+        modalidades_emoji={key: key for key in VACANCY_MODALITY_OPTIONS},
+    )
 
     st.divider()
-
-    # ── Panel de análisis (si existe) ─────────────────────────
     if analisis:
-        _mostrar_panel_analisis(analisis)
+        render_vacancy_analysis_panel(analisis)
         st.divider()
 
-    # ── Descripción ───────────────────────────────────────────
-    with st.expander("📝 Ver descripción completa"):
-        st.write(vacante['descripcion'])
+    with st.expander("Ver descripcion completa"):
+        st.write(vacante_normalizada["descripcion"])
 
     st.divider()
-
-    # ── Botones de acción ─────────────────────────────────────
     _mostrar_botones_accion(vacante, analisis, archivada)
 
 
-# ─────────────────────────────────────────────────────────────
-# PANEL DE ANÁLISIS
-# ─────────────────────────────────────────────────────────────
+def _mostrar_botones_accion(vacante: dict, analisis: dict | None, archivada: bool):
+    vacante_id = vacante["id"]
+    acciones = render_vacancy_action_row(vacante_id, analizada=bool(analisis), archivada=archivada)
 
-def _mostrar_panel_analisis(analisis: dict):
-    """
-    Panel de resultados del análisis v2.
-    Muestra: decisión, afinidad, score, breakdown, fortalezas,
-    riesgos, skills match/gap, encaje estratégico y ajustes CV.
-    """
+    if acciones.get("analizar") or acciones.get("reanalizar"):
+        _ejecutar_analisis(vacante)
+    if acciones.get("aplicar"):
+        _procesar_aplicar(vacante_id)
+    if acciones.get("archivar"):
+        st.session_state[f"show_archivar_{vacante_id}"] = True
+    if acciones.get("reactivar"):
+        res = vacancy_repository.unarchive(vacante_id)
+        if res["success"]:
+            st.success(res["message"])
+            time.sleep(0.5)
+            st.rerun()
+        else:
+            st.error(res["message"])
+    if acciones.get("eliminar"):
+        _procesar_eliminacion(vacante_id)
 
-    # ── Metadatos del análisis ─────────────────────────────────
-    AFINIDAD_META = {
-        'Alta':  {'emoji': '🟢', 'color': '#10B981'},
-        'Media': {'emoji': '🟡', 'color': '#F59E0B'},
-        'Baja':  {'emoji': '🔴', 'color': '#EF4444'},
-    }
-    DECISION_META = {
-        'Aplicar sí o sí':       {'emoji': '✅', 'color': '#10B981'},
-        'Aplicar si sobra tiempo': {'emoji': '⏳', 'color': '#F59E0B'},
-        'Descartar':              {'emoji': '❌', 'color': '#EF4444'},
-    }
-    ENCAJE_META = {
-        'Alineado':                {'emoji': '🎯', 'color': '#10B981'},
-        'Parcialmente alineado':   {'emoji': '↗️', 'color': '#F59E0B'},
-        'Desvía del objetivo':     {'emoji': '↙️', 'color': '#EF4444'},
-    }
-
-    afinidad       = analisis.get('afinidad_general', '—')
-    decision       = analisis.get('decision_aplicacion', '—')
-    encaje         = analisis.get('encaje_estrategico', '—')
-    score          = analisis.get('score_global') or analisis.get('score_total', 0)
-    tipo_rol       = analisis.get('tipo_real_de_rol', '—')
-    fecha          = analisis.get('fecha_analisis')
-    fecha_str      = fecha.strftime("%d/%m/%Y %H:%M") if fecha else "—"
-
-    af_meta  = AFINIDAD_META.get(afinidad,  {'emoji': '⚪', 'color': '#9CA3AF'})
-    dec_meta = DECISION_META.get(decision,  {'emoji': '⚪', 'color': '#9CA3AF'})
-    enc_meta = ENCAJE_META.get(encaje,      {'emoji': '⚪', 'color': '#9CA3AF'})
-
-    # ── Fila principal: Decisión + Afinidad + Score ────────────
-    st.markdown(
-        f"""
-        <div style='display:flex;gap:16px;align-items:stretch;margin-bottom:12px;flex-wrap:wrap'>
-
-          <div style='flex:1;min-width:180px;background:#F9FAFB;border:1px solid #E5E7EB;
-                      border-left:4px solid {dec_meta["color"]};border-radius:8px;padding:12px 16px'>
-            <div style='font-size:0.65rem;color:#9CA3AF;text-transform:uppercase;
-                        letter-spacing:0.1em;margin-bottom:4px'>Decisión</div>
-            <div style='font-size:1.1rem;font-weight:800;color:{dec_meta["color"]}'>
-              {dec_meta["emoji"]} {decision}
-            </div>
-          </div>
-
-          <div style='flex:1;min-width:140px;background:#F9FAFB;border:1px solid #E5E7EB;
-                      border-left:4px solid {af_meta["color"]};border-radius:8px;padding:12px 16px'>
-            <div style='font-size:0.65rem;color:#9CA3AF;text-transform:uppercase;
-                        letter-spacing:0.1em;margin-bottom:4px'>Afinidad</div>
-            <div style='font-size:1.1rem;font-weight:800;color:{af_meta["color"]}'>
-              {af_meta["emoji"]} {afinidad}
-            </div>
-          </div>
-
-          <div style='flex:1;min-width:140px;background:#F9FAFB;border:1px solid #E5E7EB;
-                      border-left:4px solid {enc_meta["color"]};border-radius:8px;padding:12px 16px'>
-            <div style='font-size:0.65rem;color:#9CA3AF;text-transform:uppercase;
-                        letter-spacing:0.1em;margin-bottom:4px'>Encaje estratégico</div>
-            <div style='font-size:1.0rem;font-weight:700;color:{enc_meta["color"]}'>
-              {enc_meta["emoji"]} {encaje}
-            </div>
-          </div>
-
-          <div style='flex:1;min-width:120px;background:#F9FAFB;border:1px solid #E5E7EB;
-                      border-radius:8px;padding:12px 16px'>
-            <div style='font-size:0.65rem;color:#9CA3AF;text-transform:uppercase;
-                        letter-spacing:0.1em;margin-bottom:4px'>Score global</div>
-            <div style='font-size:1.3rem;font-weight:800;color:#111'>
-              {score:.0f}<span style='font-size:0.8rem;color:#9CA3AF'>/100</span>
-            </div>
-            <div style='font-size:0.62rem;color:#9CA3AF'>{fecha_str}</div>
-          </div>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # ── Tipo de rol + seniority ────────────────────────────────
-    seniority = analisis.get('seniority_inferido', '—')
-    st.markdown(
-        f"<div style='font-size:0.8rem;color:#555;margin-bottom:12px'>"
-        f"🎭 <b>Tipo de rol:</b> {tipo_rol} &nbsp;·&nbsp; "
-        f"📊 <b>Seniority inferido:</b> {seniority}</div>",
-        unsafe_allow_html=True
-    )
-
-    # ── Justificación de la decisión ──────────────────────────
-    if analisis.get('justificacion_decision'):
-        st.info(f"💬 {analisis['justificacion_decision']}")
-
-    # ── Breakdown de scores ───────────────────────────────────
-    dimensiones = [
-        ("🛠️ Skills",    analisis.get('score_skills_tecnicas', 0), "35%"),
-        ("📊 Seniority", analisis.get('score_seniority', 0),       "25%"),
-        ("🎯 Encaje",    analisis.get('score_skills_blandas', 0),  "20%"),
-        ("🌐 Idiomas",   analisis.get('score_idiomas', 0),         "10%"),
-        ("📍 Modalidad", analisis.get('score_modalidad', 0),       "10%"),
-    ]
-    cols = st.columns(len(dimensiones))
-    for i, (label, val, peso) in enumerate(dimensiones):
-        with cols[i]:
-            color = '#10B981' if val >= 70 else '#F59E0B' if val >= 40 else '#EF4444'
-            st.markdown(
-                f"<div style='text-align:center'>"
-                f"<div style='font-size:1.1rem;font-weight:700;color:{color}'>{val:.0f}</div>"
-                f"<div style='font-size:0.62rem;color:#6B7280;line-height:1.4'>"
-                f"{label}<br>peso {peso}</div>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
-
-    st.markdown("")
-
-    # ── Fortalezas y Riesgos ──────────────────────────────────
-    col_fort, col_riesgo = st.columns(2)
-    with col_fort:
-        fortalezas = analisis.get('fortalezas_principales', [])
-        if fortalezas:
-            st.markdown("**✅ Fortalezas**")
-            for f in fortalezas:
-                st.markdown(f"- {f}")
-
-    with col_riesgo:
-        riesgos = analisis.get('riesgos_principales', [])
-        if riesgos:
-            st.markdown("**⚠️ Riesgos**")
-            for r in riesgos:
-                st.markdown(f"- {r}")
-
-    # ── Skills Match y Gap ────────────────────────────────────
-    col_match, col_gap = st.columns(2)
-    with col_match:
-        match = analisis.get('skills_match', [])
-        if match:
-            st.markdown("**🟢 Skills que tienes**")
-            st.markdown(' '.join([f"`{s}`" for s in match]))
-
-    with col_gap:
-        gap = analisis.get('skills_gap', [])
-        if gap:
-            st.markdown("**🔴 Skills que te faltan**")
-            st.markdown(' '.join([f"`{s}`" for s in gap]))
-
-    # ── Ajustes de CV ─────────────────────────────────────────
-    ajustes = analisis.get('ajustes_cv_recomendados', [])
-    if ajustes:
-        st.markdown("**📝 Ajustes recomendados para el CV**")
-        for a in ajustes:
-            st.markdown(f"- {a}")
-
-    # ── Resumen narrativo y detalles ──────────────────────────
-    with st.expander("📄 Ver análisis completo"):
-        if analisis.get('resumen_analisis'):
-            st.markdown("**Análisis del reclutador:**")
-            st.write(analisis['resumen_analisis'])
-
-        st.divider()
-
-        c1, c2 = st.columns(2)
-        with c1:
-            if analisis.get('justificacion_seniority'):
-                st.markdown(f"**Justificación seniority:** {analisis['justificacion_seniority']}")
-            if analisis.get('justificacion_afinidad'):
-                st.markdown(f"**Justificación afinidad:** {analisis['justificacion_afinidad']}")
-            if analisis.get('salario_detectado'):
-                st.markdown(f"**Salario en vacante:** {analisis['salario_detectado']}")
-        with c2:
-            if analisis.get('aspiracion_salarial_sugerida'):
-                st.markdown(f"**Aspiración sugerida:** {analisis['aspiracion_salarial_sugerida']}")
-            if analisis.get('modalidad_detectada'):
-                st.markdown(f"**Modalidad detectada:** {analisis['modalidad_detectada']}")
-            if analisis.get('encaje_estrategico'):
-                st.markdown(f"**Encaje estratégico:** {analisis['encaje_estrategico']}")
-
-# ─────────────────────────────────────────────────────────────
-# BOTONES DE ACCIÓN
-# ─────────────────────────────────────────────────────────────
-
-def _mostrar_botones_accion(vacante: dict, analisis: dict, archivada: bool):
-    """
-    Botones de acción según el estado de la vacante:
-    - Sin analizar:  🔍 Analizar | 🗑️ Eliminar
-    - Analizada activa: 🔍 Re-analizar | ✅ Aplicar | 📦 Archivar | 🗑️ Eliminar
-    - Archivada:     🔍 Re-analizar | ♻️ Reactivar | 🗑️ Eliminar
-    """
-    vacante_id = vacante['id']
-
-    # ── Sin analizar ──────────────────────────────────────────
-    if not analisis and not archivada:
-        c1, c2 = st.columns([2, 1])
-        with c1:
-            if st.button("🔍 Analizar Afinidad", use_container_width=True, type="primary",
-                         key=f"btn_analizar_{vacante_id}"):
-                _ejecutar_analisis(vacante)
-        with c2:
-            if st.button("🗑️ Eliminar", use_container_width=True, type="secondary",
-                         key=f"btn_del_{vacante_id}"):
-                _procesar_eliminacion(vacante_id)
-        return
-
-    # ── Analizada activa ──────────────────────────────────────
-    if analisis and not archivada:
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            if st.button("🔍 Re-analizar", use_container_width=True,
-                         key=f"btn_reanalizar_{vacante_id}"):
-                _ejecutar_analisis(vacante)
-        with c2:
-            if st.button("✅ Aplicar", use_container_width=True, type="primary",
-                         key=f"btn_aplicar_{vacante_id}"):
-                _procesar_aplicar(vacante_id)
-        with c3:
-            if st.button("📦 Archivar", use_container_width=True,
-                         key=f"btn_archivar_{vacante_id}"):
-                st.session_state[f'show_archivar_{vacante_id}'] = True
-        with c4:
-            if st.button("🗑️ Eliminar", use_container_width=True, type="secondary",
-                         key=f"btn_del_{vacante_id}"):
-                _procesar_eliminacion(vacante_id)
-
-        # Sub-panel archivar
-        if st.session_state.get(f'show_archivar_{vacante_id}'):
-            _panel_archivar(vacante_id)
-        return
-
-    # ── Archivada ─────────────────────────────────────────────
-    if archivada:
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            if st.button("🔍 Re-analizar", use_container_width=True,
-                         key=f"btn_reanalizar_{vacante_id}"):
-                _ejecutar_analisis(vacante)
-        with c2:
-            if st.button("♻️ Reactivar", use_container_width=True, type="primary",
-                         key=f"btn_reactivar_{vacante_id}"):
-                res = database.desarchivar_vacante(vacante_id)
-                if res['success']:
-                    st.success(res['message'])
-                    time.sleep(0.5)
-                    st.rerun()
-                else:
-                    st.error(res['message'])
-        with c3:
-            if st.button("🗑️ Eliminar", use_container_width=True, type="secondary",
-                         key=f"btn_del_{vacante_id}"):
-                _procesar_eliminacion(vacante_id)
+    if st.session_state.get(f"show_archivar_{vacante_id}"):
+        _panel_archivar(vacante_id)
 
 
 def _panel_archivar(vacante_id: int):
-    """Sub-panel para seleccionar motivo de archivo."""
-    st.markdown("**📦 ¿Por qué archivas esta vacante?**")
-    motivo = st.selectbox(
-        "Motivo", options=MOTIVOS_ARCHIVO,
-        key=f"motivo_archivo_{vacante_id}",
-        label_visibility="collapsed"
-    )
+    st.markdown("**Por que archivas esta vacante?**")
+    motivo = st.selectbox("Motivo", options=ARCHIVE_REASONS, key=f"motivo_archivo_{vacante_id}", label_visibility="collapsed")
     col_ok, col_cancel = st.columns(2)
     with col_ok:
-        if st.button("Confirmar", use_container_width=True, type="primary",
-                     key=f"confirm_archivo_{vacante_id}"):
-            res = database.archivar_vacante(vacante_id, motivo)
-            if res['success']:
-                st.success(res['message'])
-                st.session_state.pop(f'show_archivar_{vacante_id}', None)
+        if st.button("Confirmar", use_container_width=True, type="primary", key=f"confirm_archivo_{vacante_id}"):
+            res = vacancy_repository.archive(vacante_id, motivo)
+            if res["success"]:
+                st.success(res["message"])
+                st.session_state.pop(f"show_archivar_{vacante_id}", None)
                 time.sleep(0.5)
                 st.rerun()
             else:
-                st.error(res['message'])
+                st.error(res["message"])
     with col_cancel:
-        if st.button("Cancelar", use_container_width=True,
-                     key=f"cancel_archivo_{vacante_id}"):
-            st.session_state.pop(f'show_archivar_{vacante_id}', None)
+        if st.button("Cancelar", use_container_width=True, key=f"cancel_archivo_{vacante_id}"):
+            st.session_state.pop(f"show_archivar_{vacante_id}", None)
             st.rerun()
 
 
-# ─────────────────────────────────────────────────────────────
-# ACCIONES
-# ─────────────────────────────────────────────────────────────
-
 def _ejecutar_analisis(vacante: dict):
-    """Ejecuta el analisis reutilizando el servicio compartido."""
-    resultado = ejecutar_analisis_vacante(vacante['id'], mostrar_ui=True)
-    if resultado['success'] and resultado['analizado']:
+    try:
+        resultado = analyze_vacancy_use_case.execute(vacante["id"])
+    except Exception as exc:
+        st.error(str(exc))
+        return
+
+    if resultado["success"] and resultado["analizado"]:
+        st.success("Analisis completado")
         time.sleep(0.5)
         st.rerun()
 
 
 def _procesar_aplicar(vacante_id: int):
-    """
-    Registra la aplicación a la vacante.
-    Redirige al flujo de registrar_aplicacion con la vacante preseleccionada.
-    """
-    # Verificar que no exista ya una aplicación
-    existente = database.obtener_aplicaciones_por_vacante(vacante_id)
+    existente = application_repository.list_by_vacancy(vacante_id)
     if existente:
-        st.warning("⚠️ Ya tienes una aplicación registrada para esta vacante.")
+        st.warning("Ya tienes una aplicacion registrada para esta vacante.")
         return
 
-    # Guardar en session state para que registrar_aplicacion la preseleccione
-    st.session_state['aplicar_vacante_id'] = vacante_id
-    st.success(
-        "✅ Ve a la pestaña **✉️ Registrar Aplicación** "
-        "para completar los datos de tu aplicación. "
-        "La vacante ya estará preseleccionada."
-    )
+    st.session_state["aplicar_vacante_id"] = vacante_id
+    st.success("Ve a la pestana **Registrar Aplicacion** para completar los datos de tu aplicacion.")
 
 
 def _procesar_eliminacion(vacante_id: int):
-    resultado = database.eliminar_vacante(vacante_id)
-    if resultado['success']:
-        st.success(resultado['message'])
+    resultado = vacancy_repository.delete(vacante_id)
+    if resultado["success"]:
+        st.success(resultado["message"])
         time.sleep(1)
         st.rerun()
     else:
-        st.error(resultado['message'])
+        st.error(resultado["message"])

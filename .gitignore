@@ -8,3 +8,5 @@ modules/__pycache__/
 *.pyc
 *.pyo
 *.pyd
+streamlit_stdout.log
+streamlit_stderr.log
