@@ -20,7 +20,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 MODELO = "gpt-4o-mini"
 
 
@@ -135,9 +134,11 @@ def _calcular_score_global(scores: dict) -> float:
 
 
 def _calcular_semaforo(score: float) -> str:
-    if score >= 70:   return 'verde'
-    elif score >= 40: return 'amarillo'
-    else:             return 'rojo'
+    if score >= 70:
+        return 'verde'
+    if score >= 40:
+        return 'amarillo'
+    return 'rojo'
 
 
 # ─────────────────────────────────────────────────────────────
@@ -146,6 +147,11 @@ def _calcular_semaforo(score: float) -> str:
 
 def _llamar_openai(system: str, user: str) -> dict:
     """Llamada genérica a OpenAI. Retorna dict parseado o lanza excepción."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY no esta configurada.")
+
+    client = OpenAI(api_key=api_key)
     response = client.chat.completions.create(
         model=MODELO,
         messages=[

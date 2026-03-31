@@ -1,76 +1,72 @@
-"""
-test_connection.py - Testing rápido de conexión a SQL Server
-Ejecutar antes de iniciar la app para validar que todo funciona
-"""
+"""Quick SQL Server connectivity smoke test."""
+
+from __future__ import annotations
 
 import sys
-from config import CONNECTION_STRING
-from database import test_connection, contar_vacantes, obtener_todas_vacantes
+
+import pyodbc
+
+from app.infrastructure.persistence.connection import build_connection_string, test_connection
+from app.infrastructure.persistence.repositories.vacancy_repository import VacancyRepository
+
+vacancy_repository = VacancyRepository()
+connection_string = build_connection_string()
 
 print("=" * 60)
-print("🧪 TEST DE CONEXIÓN A SQL SERVER")
+print("TEST DE CONEXION A SQL SERVER")
 print("=" * 60)
 
-# Test 1: Conexión básica
-print("\n[1/4] Probando conexión a SQL Server...")
+print("\n[1/4] Probando conexion a SQL Server...")
 if test_connection():
-    print("✅ Conexión exitosa")
+    print("Conexion exitosa")
 else:
-    print("❌ Error de conexión")
-    print(f"\nString de conexión: {CONNECTION_STRING}")
+    print("Error de conexion")
+    print(f"\nString de conexion: {connection_string}")
     sys.exit(1)
 
-# Test 2: Contar vacantes
 print("\n[2/4] Contando vacantes...")
 try:
-    total = contar_vacantes()
-    print(f"✅ Total de vacantes: {total}")
-except Exception as e:
-    print(f"❌ Error: {e}")
+    total = vacancy_repository.count()
+    print(f"Total de vacantes: {total}")
+except Exception as exc:
+    print(f"Error: {exc}")
     sys.exit(1)
 
-# Test 3: Obtener todas las vacantes
 print("\n[3/4] Obteniendo todas las vacantes...")
 try:
-    vacantes = obtener_todas_vacantes()
+    vacantes = vacancy_repository.list_all()
     if vacantes:
-        print(f"✅ Se obtuvieron {len(vacantes)} vacante(s)")
-        for v in vacantes[:2]:
-            print(f"   - {v['empresa']} | {v['cargo']}")
+        print(f"Se obtuvieron {len(vacantes)} vacante(s)")
+        for vacante in vacantes[:2]:
+            print(f"   - {vacante['empresa']} | {vacante['cargo']}")
     else:
-        print("✅ Base de datos vacía (normal si es primera vez)")
-except Exception as e:
-    print(f"❌ Error: {e}")
+        print("Base de datos vacia (normal si es primera vez)")
+except Exception as exc:
+    print(f"Error: {exc}")
     sys.exit(1)
 
-# Test 4: Estructura de BD
 print("\n[4/4] Validando estructura de BD...")
 try:
-    import pyodbc
-
-    conn = pyodbc.connect(CONNECTION_STRING)
+    conn = pyodbc.connect(connection_string)
     cursor = conn.cursor()
-
-    # Verificar que la tabla existe
-    cursor.execute("""
-        SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES 
+    cursor.execute(
+        """
+        SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
         WHERE TABLE_NAME = 'vacantes'
-    """)
-
+        """
+    )
     if cursor.fetchone():
-        print("✅ Tabla 'vacantes' existe y es accesible")
+        print("Tabla 'vacantes' existe y es accesible")
     else:
-        print("❌ Tabla 'vacantes' no encontrada")
-        print("   Ejecuta el script job_postings_mvp.sql en SSMS")
+        print("Tabla 'vacantes' no encontrada")
         sys.exit(1)
-
     cursor.close()
     conn.close()
-except Exception as e:
-    print(f"❌ Error: {e}")
+except Exception as exc:
+    print(f"Error: {exc}")
     sys.exit(1)
 
 print("\n" + "=" * 60)
-print("✅ TODOS LOS TESTS PASARON")
+print("TODOS LOS TESTS PASARON")
 print("=" * 60)
-print("\n🚀 Ya puedes ejecutar: streamlit run app.py\n")
+print("\nYa puedes ejecutar: streamlit run app.py\n")
