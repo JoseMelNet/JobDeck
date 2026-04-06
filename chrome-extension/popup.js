@@ -8,6 +8,9 @@
  */
 
 const API_BASE = "http://localhost:8001";
+const ACTIVE_JOB_KEY = "activeAnalysisJob";
+const LAST_ANALYSIS_KEY = "lastAnalysisResult";
+let pollingTimer = null;
 
 const MODALIDADES = ["Remoto", "Presencial", "Híbrido"];
 
@@ -34,6 +37,160 @@ function mostrarToast(tipo, mensaje) {
   toast.style.display = "block";
   toast.textContent = mensaje;
   $("mainContent").appendChild(toast);
+}
+
+function setGuardarEstado(texto, disabled = true) {
+  const btn = $("btnGuardar");
+  if (!btn) return;
+  btn.disabled = disabled;
+  btn.textContent = texto;
+}
+
+function runtimeSendMessage(message) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(message, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      resolve(response);
+    });
+  });
+}
+
+async function storageGet(key) {
+  const result = await chrome.storage.local.get(key);
+  return result[key];
+}
+
+async function storageRemove(key) {
+  await chrome.storage.local.remove(key);
+}
+
+async function storageSet(values) {
+  await chrome.storage.local.set(values);
+}
+
+function describirJob(job) {
+  if (job.status === "queued") {
+    return { status: "checking", text: "Vacante guardada · analisis en cola" };
+  }
+  if (job.status === "running") {
+    return { status: "checking", text: "Analizando vacante en segundo plano..." };
+  }
+  if (job.status === "completed") {
+    return { status: "ok", text: "Vacante guardada y analizada" };
+  }
+  return { status: "error", text: "Vacante guardada, pero el analisis fallo" };
+}
+
+async function consultarEstadoJob(jobId) {
+  const res = await fetch(`${API_BASE}/vacantes/jobs/${jobId}`, { signal: AbortSignal.timeout(3000) });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || "No se pudo consultar el estado del analisis");
+  }
+  return data;
+}
+
+async function consultarAnalisisVacante(vacancyId) {
+  const res = await fetch(`${API_BASE}/vacantes/${vacancyId}/analysis`, { signal: AbortSignal.timeout(3000) });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || "No se pudo cargar el analisis");
+  }
+  return data.analysis;
+}
+
+function renderAnalisis(analysis) {
+  const resumenPrevio = document.getElementById("analysisPanel");
+  if (resumenPrevio) resumenPrevio.remove();
+
+  const root = document.createElement("section");
+  root.className = "analysis-panel";
+  root.id = "analysisPanel";
+
+  const fortalezas = (analysis.fortalezas_principales || []).slice(0, 3);
+  const gaps = (analysis.skills_gap || []).slice(0, 4);
+
+  root.innerHTML = `
+    <h3>Analisis de la vacante</h3>
+    <div class="analysis-grid">
+      <article class="analysis-card">
+        <div class="analysis-card-label">Score</div>
+        <div class="analysis-card-value">${Math.round(analysis.score_total || 0)}</div>
+      </article>
+      <article class="analysis-card">
+        <div class="analysis-card-label">Afinidad</div>
+        <div class="analysis-card-value">${analysis.afinidad_general || "-"}</div>
+      </article>
+      <article class="analysis-card">
+        <div class="analysis-card-label">Decision</div>
+        <div class="analysis-card-value">${analysis.decision_aplicacion || "-"}</div>
+      </article>
+    </div>
+    <div class="analysis-copy">${escHtml(analysis.resumen_analisis || analysis.justificacion_decision || "Sin resumen disponible.")}</div>
+    ${fortalezas.length ? `<div class="analysis-tags">${fortalezas.map((item) => `<span class="analysis-tag">${escHtml(item)}</span>`).join("")}</div>` : ""}
+    ${gaps.length ? `<div class="analysis-copy"><strong>Gaps:</strong> ${escHtml(gaps.join(", "))}</div>` : ""}
+  `;
+
+  $("mainContent").appendChild(root);
+}
+
+async function iniciarSeguimientoJob(jobId) {
+  if (pollingTimer) clearInterval(pollingTimer);
+
+  const actualizar = async () => {
+    try {
+      const job = await consultarEstadoJob(jobId);
+      const status = describirJob(job);
+      setStatus(status.status, status.text);
+
+      if (job.status === "queued" || job.status === "running") {
+        setGuardarEstado(job.status === "queued" ? "⏳ Analisis en cola..." : "🤖 Analizando...", true);
+        return;
+      }
+
+      if (job.status === "completed") {
+        try {
+          const analysis = await consultarAnalisisVacante(job.vacancy_id);
+          await storageSet({ [LAST_ANALYSIS_KEY]: { vacancyId: job.vacancy_id, analysis } });
+          renderAnalisis(analysis);
+        } catch (_) {
+          // Si el analisis todavia no esta visible por API, mantenemos solo el estado.
+        }
+        mostrarToast("success", `✅ ${job.message}`);
+        setGuardarEstado("✅ Guardada y analizada", true);
+      } else {
+        const detalle = job.error ? `${job.message} ${job.error}` : job.message;
+        mostrarToast("error", `❌ ${detalle}`);
+        setGuardarEstado("💾 Guardar en CVs-Optimizador", false);
+      }
+
+      clearInterval(pollingTimer);
+      pollingTimer = null;
+      await storageRemove(ACTIVE_JOB_KEY);
+      await runtimeSendMessage({ action: "clearActiveJob" });
+    } catch (_) {
+      setStatus("checking", "Analisis en segundo plano. Reabre el popup para refrescar.");
+    }
+  };
+
+  await actualizar();
+  pollingTimer = setInterval(actualizar, 2000);
+}
+
+async function restaurarJobActivo() {
+  const activeJob = await storageGet(ACTIVE_JOB_KEY);
+  if (!activeJob?.jobId) return;
+  mostrarToast("info", "ℹ️ Hay una vacante procesandose en segundo plano.");
+  await iniciarSeguimientoJob(activeJob.jobId);
+}
+
+async function restaurarUltimoAnalisis() {
+  const lastAnalysis = await storageGet(LAST_ANALYSIS_KEY);
+  if (!lastAnalysis?.analysis) return;
+  renderAnalisis(lastAnalysis.analysis);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -196,9 +353,7 @@ function escHtml(str) {
 // ─────────────────────────────────────────────────────────────
 
 async function guardarVacante() {
-  const btn = $("btnGuardar");
-  btn.disabled = true;
-  btn.textContent = "Guardando...";
+  setGuardarEstado("💾 Guardando vacante...", true);
 
   // Eliminar toast previo
   document.querySelectorAll(".toast").forEach((t) => t.remove());
@@ -214,33 +369,44 @@ async function guardarVacante() {
   // Validación básica
   if (!payload.cargo || !payload.empresa || !payload.descripcion) {
     mostrarToast("error", "⚠️ Cargo, empresa y descripción son obligatorios.");
-    btn.disabled = false;
-    btn.textContent = "💾 Guardar en CVs-Optimizador";
+    setGuardarEstado("💾 Guardar en CVs-Optimizador", false);
     return;
   }
 
   try {
-    const res = await fetch(`${API_BASE}/vacantes`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(payload),
+    setStatus("checking", "Guardando vacante...");
+    const response = await runtimeSendMessage({
+      action: "guardarVacanteBackground",
+      payload,
     });
 
-    const data = await res.json();
+    if (response?.success) {
+      if (response.legacyMode || !response.jobId) {
+        setStatus("ok", "Vacante guardada");
+        try {
+          const analysis = await consultarAnalisisVacante(response.vacancyId);
+          await storageSet({ [LAST_ANALYSIS_KEY]: { vacancyId: response.vacancyId, analysis } });
+          renderAnalisis(analysis);
+          mostrarToast("success", `✅ Vacante guardada (ID: ${response.vacancyId}) y analisis cargado.`);
+        } catch (_) {
+          mostrarToast("success", `✅ Vacante guardada (ID: ${response.vacancyId}). Reinicia la API local si quieres usar el analisis en segundo plano.`);
+        }
+        setGuardarEstado("✅ Guardada", true);
+        return;
+      }
 
-    if (res.ok && data.success) {
-      mostrarToast("success", `✅ Vacante guardada correctamente (ID: ${data.id})`);
-      btn.textContent = "✅ Guardada";
+      mostrarToast("info", `ℹ️ Vacante guardada (ID: ${response.vacancyId}). Analisis en segundo plano iniciado.`);
+      await iniciarSeguimientoJob(response.jobId);
     } else {
-      const detalle = data.detail || data.message || "Error desconocido";
+      const detalle = response?.error || "Error desconocido";
       mostrarToast("error", `❌ ${detalle}`);
-      btn.disabled = false;
-      btn.textContent = "💾 Guardar en CVs-Optimizador";
+      setStatus("error", "No se pudo guardar la vacante");
+      setGuardarEstado("💾 Guardar en CVs-Optimizador", false);
     }
   } catch (err) {
     mostrarToast("error", "❌ No se pudo conectar con la API. ¿Está corriendo uvicorn?");
-    btn.disabled = false;
-    btn.textContent = "💾 Guardar en CVs-Optimizador";
+    setStatus("error", "API no disponible");
+    setGuardarEstado("💾 Guardar en CVs-Optimizador", false);
   }
 }
 
@@ -254,6 +420,7 @@ async function init() {
 
   // 2. Obtener tab actual
   const tab = await obtenerTab();
+  await restaurarJobActivo();
 
   // 3. Verificar que sea una página de vacante de LinkedIn
   if (!esLinkedInJobView(tab.url)) {
@@ -273,6 +440,7 @@ async function init() {
 
   // 5. Renderizar formulario (con datos extraídos editables)
   renderFormulario(resultado.datos);
+  await restaurarUltimoAnalisis();
 
   // 6. Si la API no está disponible, deshabilitar el botón de guardar
   if (!apiOk) {
