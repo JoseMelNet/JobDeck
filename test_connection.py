@@ -69,4 +69,4 @@ except Exception as exc:
 print("\n" + "=" * 60)
 print("TODOS LOS TESTS PASARON")
 print("=" * 60)
-print("\nYa puedes ejecutar: streamlit run app.py\n")
+print("\nYa puedes ejecutar la interfaz principal con: uvicorn api:app --reload\n")

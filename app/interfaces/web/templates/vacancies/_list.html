@@ -1,0 +1,63 @@
+{% if vacancies %}
+    <div class="simple-table">
+        <div class="table-head">
+            <div>ID</div>
+            <div>Empresa</div>
+            <div>Cargo</div>
+            <div>Modalidad</div>
+            <div>Estado</div>
+        </div>
+        {% for item in vacancies %}
+            <a
+                class="table-row row-link{% if selected_vacancy and selected_vacancy.id == item.id %} is-selected{% endif %}"
+                href="/app/vacancies?selected={{ item.id }}&q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
+                hx-get="/app/vacancies/{{ item.id }}/detail?q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
+                hx-target="#vacancy-detail"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+            >
+                <div class="mono-cell">#{{ item.id }}</div>
+                <div>
+                    <div class="primary-cell">{{ item.empresa }}</div>
+                    <div class="secondary-cell">{{ item.fecha_registro.strftime("%d/%m/%Y") if item.fecha_registro else "-" }}</div>
+                </div>
+                <div>
+                    <div class="primary-cell">{{ item.cargo }}</div>
+                    <div class="secondary-cell">{{ item.score_label }}</div>
+                </div>
+                <div><span class="soft-badge">{{ item.modalidad }}</span></div>
+                <div><span class="status-badge status-{{ item.status_meta.tone }}">{{ item.status_meta.label }}</span></div>
+            </a>
+        {% endfor %}
+    </div>
+    {% if pagination.total_pages > 1 %}
+        <div class="detail-actions">
+            {% if pagination.has_prev %}
+                <a
+                    class="secondary-link"
+                    href="/app/vacancies?q={{ query }}&view={{ current_view }}&page={{ pagination.prev_page }}&page_size={{ pagination.page_size }}"
+                    hx-get="/app/vacancies/list?q={{ query }}&view={{ current_view }}&page={{ pagination.prev_page }}&page_size={{ pagination.page_size }}"
+                    hx-target="#vacancy-list"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                >Anterior</a>
+            {% endif %}
+            <span class="muted-note">Pagina {{ pagination.page }} de {{ pagination.total_pages }}</span>
+            {% if pagination.has_next %}
+                <a
+                    class="secondary-link"
+                    href="/app/vacancies?q={{ query }}&view={{ current_view }}&page={{ pagination.next_page }}&page_size={{ pagination.page_size }}"
+                    hx-get="/app/vacancies/list?q={{ query }}&view={{ current_view }}&page={{ pagination.next_page }}&page_size={{ pagination.page_size }}"
+                    hx-target="#vacancy-list"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                >Siguiente</a>
+            {% endif %}
+        </div>
+    {% endif %}
+{% else %}
+    <div class="empty-panel">
+        <h3>No hay coincidencias</h3>
+        <p>No hay vacantes que coincidan con los filtros actuales.</p>
+    </div>
+{% endif %}

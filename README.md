@@ -4,8 +4,7 @@ Aplicacion para registrar vacantes, analizarlas contra un perfil profesional y g
 
 ## Estado actual
 
-- Streamlit como interfaz principal en `app.py`
-- FastAPI para integraciones locales en `api.py`
+- interfaz principal web sobre `FastAPI + Jinja2 + HTMX`
 - arquitectura por capas en `app/`
 - persistencia SQL Server via `pyodbc`
 - suite automatizada con `unittest`
@@ -16,32 +15,28 @@ Aplicacion para registrar vacantes, analizarlas contra un perfil profesional y g
 - registrar vacantes
 - listar, archivar, reactivar y eliminar vacantes
 - analizar vacantes contra el perfil activo
-- registrar y gestionar aplicaciones
-- tablero de aplicaciones por estado
+- gestionar aplicaciones y su seguimiento
 - gestionar perfil profesional, skills, experiencia, proyectos, educacion, cursos y certificaciones
+- renderizar una vista CV consolidada desde la web
 
 ## Estructura
 
 ```text
 CVs-Optimizator/
-├── app.py
-├── api.py
-├── app/
-│   ├── application/
-│   ├── config/
-│   ├── domain/
-│   └── infrastructure/
-├── modules/
-│   ├── components/
-│   ├── registrar_vacante.py
-│   ├── mis_vacantes.py
-│   ├── registrar_aplicacion.py
-│   ├── mis_aplicaciones.py
-│   └── mi_perfil.py
-├── tests/
-├── sql_queries/
-├── run_tests.py
-└── .github/workflows/ci.yml
+|-- app.py
+|-- api.py
+|-- app/
+|   |-- application/
+|   |-- config/
+|   |-- domain/
+|   |-- infrastructure/
+|   `-- interfaces/
+|       `-- web/
+|-- modules/
+|-- tests/
+|-- sql_queries/
+|-- run_tests.py
+`-- .github/workflows/ci.yml
 ```
 
 ## Requisitos
@@ -75,16 +70,16 @@ pip install -r requirements.txt
 
 ## Ejecucion
 
-Streamlit:
-
-```bash
-streamlit run app.py
-```
-
-API local:
+Interfaz principal web:
 
 ```bash
 uvicorn api:app --reload
+```
+
+Luego abre:
+
+```text
+http://127.0.0.1:8000/app
 ```
 
 Prueba rapida de BD:
@@ -92,6 +87,24 @@ Prueba rapida de BD:
 ```bash
 python test_connection.py
 ```
+
+## Flujo principal de la web
+
+1. `Nueva Vacante`
+2. `Inbox`
+3. `Seguimiento`
+4. `Mi Perfil`
+
+La interfaz web ya cubre el flujo principal del producto:
+
+- registrar vacante
+- analizarla
+- revisarla en inbox
+- moverla a seguimiento
+- actualizar estados de aplicacion
+- mantener perfil y vista CV
+
+Las vistas largas de `Inbox` y `Seguimiento` ya incluyen paginacion y tamano de pagina configurable para evitar listas demasiado pesadas.
 
 ## Tests
 
@@ -101,12 +114,12 @@ Entrada unica recomendada:
 python run_tests.py
 ```
 
-Estado actual de la suite:
+Estado actual de la suite principal:
 
-- tests de UI compartida
 - tests de casos de uso
 - tests de repositorios
 - tests de API
+- tests de rutas web
 - tests de flujos integrados con mocks
 
 ## CI
@@ -126,37 +139,14 @@ Resumen corto:
 - `app/domain`: enums y excepciones
 - `app/application`: casos de uso y servicios
 - `app/infrastructure`: conexion y repositorios
-- `modules`: interfaces Streamlit y componentes visuales
+- `app/interfaces/web`: interfaz HTML principal
+- `modules`: codigo residual compartido, como `analizar_vacante.py`
 
-Detalle adicional en [docs/ARCHITECTURE.md](/C:/Users/josem/PycharmProjects/CVs-Optimizator/docs/ARCHITECTURE.md).
-
-## UI actual
-
-La interfaz principal esta montada en `app.py` con `st.tabs(...)` como mecanismo de navegacion horizontal.
-
-Pestanas principales:
-
-- `Registrar Vacante`: formulario de alta de vacantes
-- `Mis Vacantes`: tabla filtrable, detalle y acciones sobre vacantes
-- `Registrar Aplicacion`: formulario de registro de aplicaciones
-- `Mis Aplicaciones`: tablero kanban por estado y dialogo de detalle
-- `Mi Perfil`: gestion completa del perfil profesional
-
-La pestana `Mi Perfil` tiene una segunda capa de navegacion interna:
-
-- `Datos Personales`
-- `Skills`
-- `Experiencia`
-- `Proyectos`
-- `Educacion`
-- `Cursos`
-- `Certificaciones`
-- `Vista CV`
-
-Ademas, la UI comparte componentes visuales en `modules/components/` para evitar duplicacion entre pantallas. Ahi viven estilos comunes, labels centralizados y componentes especificos para vacantes, aplicaciones y secciones de perfil.
+Detalle adicional en [ARCHITECTURE.md](/C:/Users/josem/PycharmProjects/CVs-Optimizator/docs/ARCHITECTURE.md).
 
 ## Notas
 
-- el proyecto fue migrado desde una estructura mas monolitica a una arquitectura por capas
-- la suite actual corre localmente con `43` tests
+- la web es ahora la interfaz recomendada
+- `app.py` en la raiz queda solo como acceso rapido informativo
+- la suite principal corre localmente con `53` tests cubriendo la interfaz web principal
 - el pipeline de CI ya esta preparado para validar cambios automaticamente

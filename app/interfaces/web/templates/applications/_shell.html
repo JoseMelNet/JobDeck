@@ -1,0 +1,53 @@
+{% if flash_message %}
+    <section class="flash-message flash-{{ flash_message[0] }}">
+        {{ flash_message[1] }}
+    </section>
+{% endif %}
+
+<section class="panel filter-panel">
+    <form
+        class="filter-form"
+        method="get"
+        action="/app/applications"
+        hx-get="/app/applications/shell"
+        hx-target="#applications-shell"
+        hx-swap="outerHTML"
+        hx-push-url="true"
+    >
+        <label>
+            <span>Buscar</span>
+            <input type="text" name="q" value="{{ query }}" placeholder="Empresa o cargo">
+        </label>
+        <label>
+            <span>Estado</span>
+            <select name="state">
+                <option value="Todos"{% if current_state == "Todos" %} selected{% endif %}>Todos</option>
+                {% for option in follow_up_states %}
+                    <option value="{{ option }}"{% if option == current_state %} selected{% endif %}>{{ status_labels.get(option, option) }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Por pagina</span>
+            <select name="page_size">
+                {% for option in pagination.page_size_options %}
+                    <option value="{{ option }}"{% if option == pagination.page_size %} selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <input type="hidden" name="page" value="1">
+        <button type="submit">Filtrar</button>
+    </form>
+</section>
+
+<section class="layout-two-columns">
+    <section class="panel">
+        <div id="application-list">
+            {% include "applications/_list.html" %}
+        </div>
+    </section>
+
+    <div id="application-detail">
+        {% include "applications/_detail.html" %}
+    </div>
+</section>

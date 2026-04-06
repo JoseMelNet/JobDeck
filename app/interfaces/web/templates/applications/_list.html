@@ -1,0 +1,60 @@
+{% if applications %}
+    <div class="simple-table">
+        <div class="table-head">
+            <div>ID</div>
+            <div>Empresa</div>
+            <div>Cargo</div>
+            <div>Estado</div>
+            <div>Fecha</div>
+        </div>
+        {% for item in applications %}
+            <a
+                class="table-row row-link{% if selected_application and selected_application.id == item.id %} is-selected{% endif %}"
+                href="/app/applications?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
+                hx-get="/app/applications/shell?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
+                hx-target="#applications-shell"
+                hx-swap="outerHTML"
+                hx-push-url="true"
+            >
+                <div class="mono-cell">#{{ item.id }}</div>
+                <div>
+                    <div class="primary-cell">{{ item.empresa }}</div>
+                    <div class="secondary-cell">{{ item.modalidad }}</div>
+                </div>
+                <div class="primary-cell">{{ item.cargo }}</div>
+                <div><span class="status-badge status-{{ item.status_meta.tone }}">{{ item.status_meta.label }}</span></div>
+                <div>{% if item.fecha_aplicacion %}{{ item.fecha_aplicacion.strftime("%d/%m/%Y") }}{% else %}-{% endif %}</div>
+            </a>
+        {% endfor %}
+    </div>
+    {% if pagination.total_pages > 1 %}
+        <div class="detail-actions">
+            {% if pagination.has_prev %}
+                <a
+                    class="secondary-link"
+                    href="/app/applications?q={{ query }}&state={{ current_state }}&page={{ pagination.prev_page }}&page_size={{ pagination.page_size }}"
+                    hx-get="/app/applications/shell?q={{ query }}&state={{ current_state }}&page={{ pagination.prev_page }}&page_size={{ pagination.page_size }}"
+                    hx-target="#applications-shell"
+                    hx-swap="outerHTML"
+                    hx-push-url="true"
+                >Anterior</a>
+            {% endif %}
+            <span class="muted-note">Pagina {{ pagination.page }} de {{ pagination.total_pages }}</span>
+            {% if pagination.has_next %}
+                <a
+                    class="secondary-link"
+                    href="/app/applications?q={{ query }}&state={{ current_state }}&page={{ pagination.next_page }}&page_size={{ pagination.page_size }}"
+                    hx-get="/app/applications/shell?q={{ query }}&state={{ current_state }}&page={{ pagination.next_page }}&page_size={{ pagination.page_size }}"
+                    hx-target="#applications-shell"
+                    hx-swap="outerHTML"
+                    hx-push-url="true"
+                >Siguiente</a>
+            {% endif %}
+        </div>
+    {% endif %}
+{% else %}
+    <div class="empty-panel">
+        <h3>Sin coincidencias</h3>
+        <p>No hay aplicaciones que coincidan con los filtros actuales.</p>
+    </div>
+{% endif %}

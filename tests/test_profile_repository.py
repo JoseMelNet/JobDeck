@@ -174,6 +174,38 @@ class ProfileRepositoryTests(unittest.TestCase):
         self.assertTrue(result[0]["es_proyecto_actual"])
 
     @patch("app.infrastructure.persistence.repositories.profile_repository.get_connection")
+    def test_update_project_handles_current_project_by_storing_no_end_date(self, get_connection_mock):
+        conn = Mock()
+        cursor = Mock()
+        cursor.rowcount = 1
+        conn.cursor.return_value = cursor
+        get_connection_mock.return_value = conn
+        repository = ProfileRepository()
+
+        result = repository.update_project(
+            5,
+            {
+                "nombre": "Dashboard",
+                "empresa": "ACME",
+                "ciudad": "Bogota",
+                "fecha_inicio": date(2024, 1, 1),
+                "fecha_fin": date(2024, 6, 1),
+                "es_proyecto_actual": True,
+                "stack": "Python",
+                "funciones": "Desc",
+                "logros": "Impacto",
+                "url_repositorio": "http://repo",
+            },
+        )
+
+        self.assertTrue(result["success"])
+        args = cursor.execute.call_args.args[1]
+        self.assertIsNone(args[4])
+        self.assertEqual(args[5], 1)
+        self.assertEqual(args[10], 5)
+        conn.commit.assert_called_once()
+
+    @patch("app.infrastructure.persistence.repositories.profile_repository.get_connection")
     def test_add_education_commits(self, get_connection_mock):
         conn = Mock()
         cursor = Mock()
