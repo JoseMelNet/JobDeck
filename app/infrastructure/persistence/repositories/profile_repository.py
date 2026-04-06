@@ -471,6 +471,57 @@ class ProfileRepository:
         finally:
             self._close(cursor, conn)
 
+    def update_project(self, proyecto_id: int, datos: dict) -> dict:
+        conn = None
+        cursor = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE perfil_proyectos SET
+                    nombre = ?,
+                    empresa = ?,
+                    ciudad = ?,
+                    fecha_inicio = ?,
+                    fecha_fin = ?,
+                    es_proyecto_actual = ?,
+                    stack = ?,
+                    funciones = ?,
+                    logros = ?,
+                    url_repositorio = ?,
+                    fecha_actualizacion = GETDATE()
+                WHERE id = ?
+                """,
+                (
+                    self._clean(datos.get("nombre")),
+                    self._clean(datos.get("empresa")),
+                    self._clean(datos.get("ciudad")),
+                    datos.get("fecha_inicio"),
+                    datos.get("fecha_fin") if not datos.get("es_proyecto_actual") else None,
+                    1 if datos.get("es_proyecto_actual") else 0,
+                    self._clean(datos.get("stack")),
+                    self._clean(datos.get("funciones")),
+                    self._clean(datos.get("logros")),
+                    self._clean(datos.get("url_repositorio")),
+                    proyecto_id,
+                ),
+            )
+            conn.commit()
+            if cursor.rowcount > 0:
+                return {"success": True, "message": "Proyecto actualizado correctamente"}
+            return {"success": False, "message": f"No se encontro proyecto con ID {proyecto_id}"}
+        except Exception as exc:
+            if conn is not None:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+            logger.exception("Error actualizando proyecto %s", proyecto_id)
+            return {"success": False, "message": f"Error en BD: {exc}"}
+        finally:
+            self._close(cursor, conn)
+
     def get_education(self, perfil_id: int) -> list[dict]:
         conn = None
         cursor = None

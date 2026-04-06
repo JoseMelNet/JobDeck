@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-El proyecto evoluciono de un MVP centrado en scripts a un monolito ordenado con capas claras.
+El proyecto evoluciono de un MVP centrado en scripts a un monolito ordenado con capas claras y con interfaz principal web.
 
 ## Capas
 
@@ -56,8 +56,8 @@ Ejemplos:
 
 Ubicacion practica actual:
 
-- `app.py` y `modules/` para Streamlit
-- `api.py` para FastAPI
+- [api.py](/C:/Users/josem/PycharmProjects/CVs-Optimizator/api.py) como entrada HTTP
+- `app/interfaces/web/` como interfaz principal HTML
 
 Responsabilidades:
 
@@ -72,133 +72,93 @@ Completado:
 - eliminada la dependencia activa a `database.py`
 - repositorios nativos sobre `pyodbc`
 - casos de uso principales conectados
-- particion de `mi_perfil.py`
-- componentes UI reutilizables
-- labels y estilos centralizados para UI
+- interfaz web principal sobre FastAPI + Jinja2 + HTMX
+- `Mi Perfil` migrado a web, incluida `Vista CV`
 - tests unitarios y de API
+- tests de rutas web principales
 - CI con sintaxis, lint y tests
 
 Pendiente recomendado:
 
-- adelgazar mas `modules/`
-- mover mas logica de presentacion a componentes/presenters
-- unificar mas validaciones de entrada
+- seguir puliendo UX y consistencia visual de la interfaz web
 - ampliar cobertura de integracion real con BD si se necesita
 
 ## Configuracion de UI
 
-### Navegacion principal
+### Interfaz principal web
 
-La aplicacion Streamlit se monta desde `app.py`.
+La aplicacion principal ahora vive en [api.py](/C:/Users/josem/PycharmProjects/CVs-Optimizator/api.py) y monta la interfaz HTML desde `app/interfaces/web/`.
 
-La navegacion principal usa `st.tabs(...)` con cinco secciones:
+Ruta principal:
 
-1. `Registrar Vacante`
-2. `Mis Vacantes`
-3. `Registrar Aplicacion`
-4. `Mis Aplicaciones`
-5. `Mi Perfil`
+- `/app`
 
-Antes de renderizar las pestañas, `app.py` hace tres cosas:
+Tecnologia usada:
 
-- configura la pagina con `st.set_page_config(...)`
-- valida conexion a SQL Server con `test_connection()`
-- muestra metricas globales de vacantes y aplicaciones
+- FastAPI
+- Jinja2
+- HTMX
+- CSS propio
 
-Esto significa que la pantalla inicial funciona como dashboard liviano mas lanzador de modulos.
+### Navegacion principal web
 
-### Modulos de primer nivel
+La interfaz web sigue el flujo real de trabajo:
 
-Cada pestaña principal delega el render a un modulo independiente en `modules/`:
+1. `Nueva Vacante`
+2. `Inbox`
+3. `Seguimiento`
+4. `Mi Perfil`
 
-- `modules/registrar_vacante.py`
-- `modules/mis_vacantes.py`
-- `modules/registrar_aplicacion.py`
-- `modules/mis_aplicaciones.py`
-- `modules/mi_perfil.py`
+Esto alinea la UI con el uso real:
 
-La idea actual es que estos modulos actuen como interfaz y orquestacion de pantalla, no como capa de persistencia.
+- entra vacante
+- se analiza
+- se revisa en inbox
+- si interesa, pasa a seguimiento
+- el perfil se mantiene aparte como contexto para analisis
 
-### Estructura interna de Mi Perfil
+### Mi Perfil web
 
-`modules/mi_perfil.py` usa una segunda capa de `st.tabs(...)` para dividir el perfil en sub-secciones:
+`Mi Perfil` ya cubre de forma operativa:
 
-1. `Datos Personales`
-2. `Skills`
-3. `Experiencia`
-4. `Proyectos`
-5. `Educacion`
-6. `Cursos`
-7. `Certificaciones`
-8. `Vista CV`
+- datos principales
+- skills
+- experiencia
+- proyectos
+- educacion
+- cursos
+- certificaciones
+- vista CV
 
-La implementacion esta partida en varios modulos:
+Patrones usados:
 
-- `modules/profile_tabs_primary.py`
-  Maneja datos personales y skills.
-- `modules/profile_tabs_background.py`
-  Maneja experiencia, proyectos, educacion, cursos y certificaciones.
-- `modules/profile_cv.py`
-  Renderiza la vista resumida tipo CV.
-- `modules/profile_shared.py`
-  Centraliza utilidades compartidas de perfil.
+- formularios HTML simples
+- refresco parcial con HTMX
+- tarjetas expandibles para experiencia y proyectos
+- bloques de resumen y ayuda
+- vista CV de solo lectura generada desde el mismo perfil
+- paginacion para listas largas con tamano de pagina configurable
 
-Esta separacion reduce el tamano del modulo principal de perfil y facilita futuros cambios visuales por seccion.
-
-### Patrones UI actuales
-
-La UI actual usa tres patrones principales:
-
-- tablas y filtros para vacantes
-- tablero kanban para aplicaciones
-- tabs internas para perfil
-
-Adicionalmente hay dialogs, expanders, cards y bloques de metadata para detalle de registros.
-
-### Componentes visuales compartidos
-
-La carpeta `modules/components/` concentra la base visual reutilizable.
-
-Piezas relevantes:
-
-- `ui_styles.py`
-  Inyecta estilos compartidos para management views.
-- `ui_labels.py`
-  Centraliza labels visibles, opciones y metadata de estados/modalidades.
-- `profile_components.py`
-  Componentes genericos para estados vacios, listas, metadata y acciones simples.
-- `vacancy_components.py`
-  Componentes especificos para resumen, analisis y acciones de vacantes.
-- `application_components.py`
-  Componentes especificos para tarjetas, columnas y detalle de aplicaciones.
-
-### Estado de la UI
-
-La UI ya esta mas ordenada que en la version original, pero todavia necesita una actualizacion visual completa.
-
-Los puntos mas claros para una siguiente fase de rediseño son:
-
-- unificar iconografia, textos y tono visual
-- mejorar consistencia entre dashboard, vacantes, aplicaciones y perfil
-- reducir HTML inline y mover mas presentacion a componentes dedicados
-- convertir `app.py` en un shell visual mas limpio
-- definir un sistema visual mas estable para cards, badges, filtros y acciones
+`app.py` en la raiz queda solo como acceso rapido informativo para abrir la interfaz web.
 
 ## Flujo tipico
 
 Vacantes:
 
-1. Streamlit/FastAPI recibe datos
+1. la web o la extension registran la vacante
 2. `CreateVacancyUseCase` valida y delega al repositorio
 3. `AnalyzeVacancyUseCase` obtiene vacante, perfil y guarda analisis
+4. la vacante se revisa en `Inbox`
 
 Aplicaciones:
 
-1. UI recoge datos
-2. `RegisterApplicationUseCase` valida estado
-3. `ApplicationRepository` persiste
+1. desde `Inbox`, la vacante pasa a seguimiento
+2. `RegisterApplicationUseCase` crea la aplicacion en estado inicial
+3. `Seguimiento` permite actualizar el estado real del proceso
 
 Perfil:
 
-1. Streamlit invoca `ProfileRepository`
-2. `AnalysisService` compone payloads de perfil para analisis
+1. la web invoca `ProfileRepository`
+2. el perfil se mantiene desde formularios HTML
+3. `AnalysisService` compone payloads de perfil para analisis
+4. la `Vista CV` resume el perfil consolidado

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title }} | CVs Optimizator</title>
+    <link rel="stylesheet" href="/static/css/app.css">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body>
+    <header class="shell-header">
+        <div class="shell-brand">
+            <div class="shell-title">CVs Optimizator</div>
+            <div class="shell-subtitle">Vacantes, analisis y seguimiento</div>
+        </div>
+        <nav class="shell-nav">
+            {% for item in nav_items %}
+                <a href="{{ item.href }}" class="nav-link{% if item.active %} is-active{% endif %}">{{ item.label }}</a>
+            {% endfor %}
+        </nav>
+    </header>
+
+    <section class="kpi-strip">
+        {% for metric in metrics %}
+            <article class="kpi-card">
+                <div class="kpi-label">{{ metric.label }}</div>
+                <div class="kpi-value">{{ metric.value }}</div>
+            </article>
+        {% endfor %}
+    </section>
+
+    <main class="page-shell">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

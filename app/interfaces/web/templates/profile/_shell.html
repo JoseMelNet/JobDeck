@@ -1,0 +1,411 @@
+﻿{% if flash_message %}
+    <section class="flash-message flash-{{ flash_message[0] }}">{{ flash_message[1] }}</section>
+{% endif %}
+
+<section class="summary-strip profile-summary-strip">
+    <article class="summary-card"><div class="summary-label">Skills</div><div class="summary-value">{{ skills|length }}</div></article>
+    <article class="summary-card"><div class="summary-label">Experiencias</div><div class="summary-value">{{ experiences|length }}</div></article>
+    <article class="summary-card"><div class="summary-label">Formacion</div><div class="summary-value">{{ education|length + courses|length + certifications|length }}</div></article>
+</section>
+
+<section class="profile-hint-grid">
+    <article class="helper-box soft">
+        <h3>Como usar esta pantalla</h3>
+        <p>Empieza por datos principales y skills. Luego completa experiencia y proyectos para mejorar el analisis de vacantes.</p>
+    </article>
+    <article class="helper-box">
+        <h3>Vista CV</h3>
+        <p>La vista CV se actualiza con la informacion registrada aqui y te sirve para revisar la consistencia general del perfil.</p>
+    </article>
+</section>
+
+<section class="layout-two-columns profile-layout">
+    <section class="panel">
+        <div class="section-title">
+            <div>
+                <h2>Datos principales</h2>
+                <p>Estos datos alimentan el analisis de vacantes y el resumen general del perfil.</p>
+            </div>
+        </div>
+        <p class="section-caption">Los campos de esta seccion son la base del perfil y del contexto que consume el analizador.</p>
+        <form class="stack-form" method="post" action="/app/profile/save" hx-post="/app/profile/save" hx-target="#profile-shell" hx-swap="innerHTML">
+            <div class="grid-two">
+                <label><span>Nombre completo</span><input type="text" name="nombre" placeholder="Ej. Jose Martinez" value="{{ profile.nombre if profile else '' }}"></label>
+                <label><span>Titulo profesional</span><input type="text" name="titulo_profesional" placeholder="Ej. Data Analyst | BI | SQL" value="{{ profile.titulo_profesional if profile else '' }}"></label>
+            </div>
+            <div class="grid-two">
+                <label><span>Ciudad</span><input type="text" name="ciudad" placeholder="Ej. Bogota" value="{{ profile.ciudad if profile else '' }}"></label>
+                <label><span>Celular</span><input type="text" name="celular" placeholder="Ej. 3001234567" value="{{ profile.celular if profile else '' }}"></label>
+            </div>
+            <label><span>Direccion</span><input type="text" name="direccion" placeholder="Opcional" value="{{ profile.direccion if profile else '' }}"></label>
+            <div class="grid-two">
+                <label><span>Correo</span><input type="email" name="correo" value="{{ profile.correo if profile else '' }}"></label>
+                <label>
+                    <span>Nivel actual</span>
+                    <select name="nivel_actual">
+                        {% for option in level_options %}
+                            <option value="{{ option }}"{% if profile and profile.nivel_actual == option %} selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+            <div class="grid-two">
+                <label><span>LinkedIn</span><input type="url" name="perfil_linkedin" placeholder="https://linkedin.com/in/..." value="{{ profile.perfil_linkedin if profile else '' }}"></label>
+                <label><span>GitHub</span><input type="url" name="perfil_github" placeholder="https://github.com/..." value="{{ profile.perfil_github if profile else '' }}"></label>
+            </div>
+            <div class="grid-three">
+                <label><span>Anios de experiencia</span><input type="number" min="0" name="anos_experiencia" value="{{ profile.anos_experiencia if profile and profile.anos_experiencia is not none else 0 }}"></label>
+                <label><span>Salario minimo</span><input type="number" min="0" name="salario_min" value="{{ profile.salario_min if profile and profile.salario_min is not none else '' }}"></label>
+                <label><span>Salario maximo</span><input type="number" min="0" name="salario_max" value="{{ profile.salario_max if profile and profile.salario_max is not none else '' }}"></label>
+            </div>
+            <div class="grid-two">
+                <label><span>Moneda</span><input type="text" name="moneda" value="{{ profile.moneda if profile else 'COP' }}"></label>
+                <fieldset class="checkbox-group">
+                    <legend>Modalidades aceptadas</legend>
+                    <div class="checkbox-list">
+                        {% for option in modality_options %}
+                            <label class="checkbox-item"><input type="checkbox" name="modalidades_aceptadas" value="{{ option }}"{% if option in selected_modalities %} checked{% endif %}><span>{{ option }}</span></label>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+            </div>
+            <button type="submit">Guardar perfil</button>
+        </form>
+    </section>
+
+    <section class="stack-panel">
+        <section class="panel">
+            <div class="section-title">
+                <div>
+                    <h2>Skills</h2>
+                    <p>Manten tus skills clave visibles para el analisis de afinidad.</p>
+                </div>
+            </div>
+            <p class="section-caption">Mantener skills claras y concretas ayuda a que la afinidad con vacantes sea mas fiable.</p>
+            <form class="stack-form compact-form" method="post" action="/app/profile/skills" hx-post="/app/profile/skills" hx-target="#profile-shell" hx-swap="innerHTML">
+                <div class="grid-two">
+                    <label><span>Categoria</span><input type="text" name="categoria" placeholder="Ej. Data, BI, Backend" required></label>
+                    <label><span>Skill</span><input type="text" name="skill" placeholder="Ej. SQL" required></label>
+                </div>
+                <label>
+                    <span>Nivel</span>
+                    <select name="nivel">
+                        {% for option in skill_level_options %}
+                            <option value="{{ option }}">{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button type="submit">Agregar skill</button>
+            </form>
+            {% if skills %}
+                <div class="record-list compact-record-list">
+                    {% for item in skills %}
+                        <article class="record-card">
+                            <div class="record-header">
+                                <div>
+                                    <h3>{{ item.skill }}</h3>
+                                    <p>{{ item.categoria }} · {{ item.nivel }}</p>
+                                </div>
+                                <form method="post" action="/app/profile/skills/{{ item.id }}/delete" hx-post="/app/profile/skills/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+                                    <button type="submit" class="danger-action">Eliminar</button>
+                                </form>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-panel"><h3>Sin skills</h3><p>Agrega tus skills principales para que el analisis de vacantes sea mas preciso.</p></div>
+            {% endif %}
+        </section>
+
+        <section class="panel helper-panel">
+            <h2>Estado del perfil</h2>
+            <ul class="flow-list">
+                <li>Datos principales: {% if profile %}configurados{% else %}pendientes{% endif %}</li>
+                <li>Skills registradas: {{ skills|length }}</li>
+                <li>Experiencias registradas: {{ experiences|length }}</li>
+                <li>Proyectos registrados: {{ projects|length }}</li>
+                <li>Formacion registrada: {{ education|length + courses|length + certifications|length }}</li>
+            </ul>
+            <div class="helper-box soft">
+                <h3>Estado de migracion</h3>
+                <p>Mi Perfil ya puede mantenerse desde la web para el flujo principal del producto.</p>
+            </div>
+        </section>
+    </section>
+</section>
+
+<section class="profile-sections-grid">
+    <section class="panel">
+        <div class="section-title"><div><h2>Experiencia</h2><p>Registra y actualiza tu trayectoria laboral actual.</p></div><span class="soft-badge">{{ experiences|length }} registradas</span></div>
+        <details class="section-disclosure" {% if not experiences %}open{% endif %}>
+            <summary>Agregar experiencia</summary>
+            <form class="stack-form compact-form section-form" method="post" action="/app/profile/experiences" hx-post="/app/profile/experiences" hx-target="#profile-shell" hx-swap="innerHTML">
+            <div class="grid-two">
+                <label><span>Cargo</span><input type="text" name="cargo" placeholder="Ej. Data Analyst" required></label>
+                <label><span>Empresa</span><input type="text" name="empresa" placeholder="Ej. Bancolombia" required></label>
+            </div>
+            <div class="grid-two">
+                <label><span>Ciudad</span><input type="text" name="ciudad" placeholder="Ej. Medellin"></label>
+                <label><span>Descripcion empresa</span><input type="text" name="descripcion_empresa" placeholder="Ej. Fintech, 500+ empleados"></label>
+            </div>
+            <div class="grid-three">
+                <label><span>Fecha inicio</span><input type="date" name="fecha_inicio" required></label>
+                <label><span>Fecha fin</span><input type="date" name="fecha_fin"></label>
+                <label class="checkbox-inline"><input type="checkbox" name="es_trabajo_actual" value="true"><span>Trabajo actual</span></label>
+            </div>
+            <label><span>Funciones</span><textarea name="funciones" rows="4"></textarea></label>
+            <label><span>Logros</span><textarea name="logros" rows="4"></textarea></label>
+            <button type="submit">Agregar experiencia</button>
+            </form>
+        </details>
+        {% if experiences %}
+            <div class="record-list">
+                {% for item in experiences %}
+                    <details class="record-card record-disclosure">
+                        <summary class="record-summary">
+                            <div class="record-header">
+                                <div><h3>{{ item.cargo }} · {{ item.empresa }}</h3><p>{{ item.ciudad or '-' }}</p></div>
+                                <span class="soft-badge">{{ item.fecha_inicio.strftime("%m/%Y") if item.fecha_inicio else "-" }} - {% if item.es_trabajo_actual %}Actual{% elif item.fecha_fin %}{{ item.fecha_fin.strftime("%m/%Y") }}{% else %}-{% endif %}</span>
+                            </div>
+                        </summary>
+                        <div class="disclosure-body">
+                            <form class="stack-form compact-form" method="post" action="/app/profile/experiences/{{ item.id }}/update" hx-post="/app/profile/experiences/{{ item.id }}/update" hx-target="#profile-shell" hx-swap="innerHTML">
+                                <div class="grid-two">
+                                    <label><span>Cargo</span><input type="text" name="cargo" value="{{ item.cargo }}" required></label>
+                                    <label><span>Empresa</span><input type="text" name="empresa" value="{{ item.empresa }}" required></label>
+                                </div>
+                                <div class="grid-two">
+                                    <label><span>Ciudad</span><input type="text" name="ciudad" value="{{ item.ciudad or '' }}"></label>
+                                    <label><span>Descripcion empresa</span><input type="text" name="descripcion_empresa" value="{{ item.descripcion_empresa or '' }}"></label>
+                                </div>
+                                <div class="grid-three">
+                                    <label><span>Fecha inicio</span><input type="date" name="fecha_inicio" value="{{ item.fecha_inicio.isoformat() if item.fecha_inicio else '' }}" required></label>
+                                    <label><span>Fecha fin</span><input type="date" name="fecha_fin" value="{{ item.fecha_fin.isoformat() if item.fecha_fin else '' }}"></label>
+                                    <label class="checkbox-inline"><input type="checkbox" name="es_trabajo_actual" value="true"{% if item.es_trabajo_actual %} checked{% endif %}><span>Trabajo actual</span></label>
+                                </div>
+                                <label><span>Funciones</span><textarea name="funciones" rows="4">{{ item.funciones or '' }}</textarea></label>
+                                <label><span>Logros</span><textarea name="logros" rows="4">{{ item.logros or '' }}</textarea></label>
+                                <div class="detail-actions"><button type="submit">Guardar cambios</button></div>
+                            </form>
+                            <form method="post" action="/app/profile/experiences/{{ item.id }}/delete" hx-post="/app/profile/experiences/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+                                <button type="submit" class="danger-action">Eliminar</button>
+                            </form>
+                        </div>
+                    </details>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-panel"><h3>Sin experiencia registrada</h3><p>Aun no hay experiencias cargadas en el perfil.</p></div>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <div class="section-title"><div><h2>Proyectos</h2><p>Proyectos que respaldan tu experiencia tecnica.</p></div><span class="soft-badge">{{ projects|length }} registrados</span></div>
+        <details class="section-disclosure" {% if not projects %}open{% endif %}>
+            <summary>Agregar proyecto</summary>
+            <form class="stack-form compact-form section-form" method="post" action="/app/profile/projects" hx-post="/app/profile/projects" hx-target="#profile-shell" hx-swap="innerHTML">
+            <div class="grid-two">
+                <label><span>Nombre</span><input type="text" name="nombre" placeholder="Ej. Dashboard de ventas" required></label>
+                <label><span>Empresa</span><input type="text" name="empresa" placeholder="Opcional"></label>
+            </div>
+            <div class="grid-two">
+                <label><span>Ciudad</span><input type="text" name="ciudad" placeholder="Ej. Bogota"></label>
+                <label><span>Stack</span><input type="text" name="stack" placeholder="Python, SQL, Power BI"></label>
+            </div>
+            <div class="grid-three">
+                <label><span>Fecha inicio</span><input type="date" name="fecha_inicio" required></label>
+                <label><span>Fecha fin</span><input type="date" name="fecha_fin"></label>
+                <label class="checkbox-inline"><input type="checkbox" name="es_proyecto_actual" value="true"><span>En curso</span></label>
+            </div>
+            <label><span>URL repositorio</span><input type="url" name="url_repositorio"></label>
+            <label><span>Descripcion</span><textarea name="funciones" rows="4"></textarea></label>
+            <label><span>Logros / impacto</span><textarea name="logros" rows="4"></textarea></label>
+            <button type="submit">Agregar proyecto</button>
+            </form>
+        </details>
+        {% if projects %}
+            <div class="record-list">
+                {% for item in projects %}
+                    <details class="record-card record-disclosure">
+                        <summary class="record-summary">
+                            <div class="record-header">
+                                <div><h3>{{ item.nombre }}</h3><p>{{ item.empresa or 'Proyecto personal' }}</p></div>
+                                {% if item.stack %}<span class="soft-badge">{{ item.stack }}</span>{% endif %}
+                            </div>
+                        </summary>
+                        <div class="disclosure-body">
+                            <form class="stack-form compact-form" method="post" action="/app/profile/projects/{{ item.id }}/update" hx-post="/app/profile/projects/{{ item.id }}/update" hx-target="#profile-shell" hx-swap="innerHTML">
+                                <div class="grid-two">
+                                    <label><span>Nombre</span><input type="text" name="nombre" value="{{ item.nombre }}" required></label>
+                                    <label><span>Empresa</span><input type="text" name="empresa" value="{{ item.empresa or '' }}"></label>
+                                </div>
+                                <div class="grid-two">
+                                    <label><span>Ciudad</span><input type="text" name="ciudad" value="{{ item.ciudad or '' }}"></label>
+                                    <label><span>Stack</span><input type="text" name="stack" value="{{ item.stack or '' }}"></label>
+                                </div>
+                                <div class="grid-three">
+                                    <label><span>Fecha inicio</span><input type="date" name="fecha_inicio" value="{{ item.fecha_inicio.isoformat() if item.fecha_inicio else '' }}" required></label>
+                                    <label><span>Fecha fin</span><input type="date" name="fecha_fin" value="{{ item.fecha_fin.isoformat() if item.fecha_fin else '' }}"></label>
+                                    <label class="checkbox-inline"><input type="checkbox" name="es_proyecto_actual" value="true"{% if item.es_proyecto_actual %} checked{% endif %}><span>En curso</span></label>
+                                </div>
+                                <label><span>URL repositorio</span><input type="url" name="url_repositorio" value="{{ item.url_repositorio or '' }}"></label>
+                                <label><span>Descripcion</span><textarea name="funciones" rows="4">{{ item.funciones or '' }}</textarea></label>
+                                <label><span>Logros / impacto</span><textarea name="logros" rows="4">{{ item.logros or '' }}</textarea></label>
+                                <div class="detail-actions"><button type="submit">Guardar cambios</button></div>
+                            </form>
+                            <form method="post" action="/app/profile/projects/{{ item.id }}/delete" hx-post="/app/profile/projects/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+                                <button type="submit" class="danger-action">Eliminar</button>
+                            </form>
+                        </div>
+                    </details>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-panel"><h3>Sin proyectos registrados</h3><p>No hay proyectos cargados todavia.</p></div>
+        {% endif %}
+    </section>
+</section>
+
+<section class="profile-sections-grid">
+    <section class="panel">
+        <div class="section-title"><div><h2>Educacion</h2><p>Formacion academica principal.</p></div><span class="soft-badge">{{ education|length }} registros</span></div>
+        <details class="section-disclosure" {% if not education %}open{% endif %}>
+            <summary>Agregar educacion</summary>
+            <form class="stack-form compact-form section-form" method="post" action="/app/profile/education" hx-post="/app/profile/education" hx-target="#profile-shell" hx-swap="innerHTML">
+            <div class="grid-two">
+                <label><span>Titulo</span><input type="text" name="titulo" placeholder="Ej. Ingenieria de Sistemas" required></label>
+                <label><span>Institucion</span><input type="text" name="institucion" placeholder="Ej. Universidad Nacional" required></label>
+            </div>
+            <div class="grid-three">
+                <label><span>Nivel</span><select name="nivel">{% for option in education_level_options %}<option value="{{ option }}">{{ option }}</option>{% endfor %}</select></label>
+                <label><span>Ciudad</span><input type="text" name="ciudad"></label>
+                <label><span>Estado</span><select name="status">{% for option in education_status_options %}<option value="{{ option }}">{{ option }}</option>{% endfor %}</select></label>
+            </div>
+            <div class="grid-two">
+                <label><span>Fecha inicio</span><input type="date" name="fecha_inicio" required></label>
+                <label><span>Fecha fin</span><input type="date" name="fecha_fin"></label>
+            </div>
+            <button type="submit">Agregar educacion</button>
+            </form>
+        </details>
+        {% if education %}
+            <div class="record-list compact-record-list">
+                {% for item in education %}
+                    <article class="record-card">
+                        <div class="record-header">
+                            <div><h3>{{ item.titulo }}</h3><p>{{ item.institucion }} · {{ item.nivel }}</p></div>
+                            <span class="soft-badge">{{ item.status }}</span>
+                        </div>
+                        <div class="detail-actions">
+                            <form method="post" action="/app/profile/education/{{ item.id }}/delete" hx-post="/app/profile/education/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+                                <button type="submit" class="danger-action">Eliminar</button>
+                            </form>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-panel"><h3>Sin educacion registrada</h3><p>No hay estudios cargados todavia.</p></div>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <div class="section-title"><div><h2>Cursos</h2><p>Formacion complementaria para reforzar tu perfil.</p></div><span class="soft-badge">{{ courses|length }} registros</span></div>
+        <details class="section-disclosure" {% if not courses %}open{% endif %}>
+            <summary>Agregar curso</summary>
+            <form class="stack-form compact-form section-form" method="post" action="/app/profile/courses" hx-post="/app/profile/courses" hx-target="#profile-shell" hx-swap="innerHTML">
+            <div class="grid-two">
+                <label><span>Titulo</span><input type="text" name="titulo" placeholder="Ej. SQL para analisis de datos" required></label>
+                <label><span>Institucion</span><input type="text" name="institucion" placeholder="Ej. Coursera" required></label>
+            </div>
+            <div class="grid-three">
+                <label><span>Fecha inicio</span><input type="date" name="fecha_inicio"></label>
+                <label><span>Fecha fin</span><input type="date" name="fecha_fin"></label>
+                <label><span>Estado</span><select name="status">{% for option in course_status_options %}<option value="{{ option }}">{{ option }}</option>{% endfor %}</select></label>
+            </div>
+            <label><span>URL certificado</span><input type="url" name="url_certificado"></label>
+            <button type="submit">Agregar curso</button>
+            </form>
+        </details>
+        {% if courses %}
+            <div class="record-list compact-record-list">
+                {% for item in courses %}
+                    <article class="record-card">
+                        <div class="record-header">
+                            <div><h3>{{ item.titulo }}</h3><p>{{ item.institucion }}</p></div>
+                            <span class="soft-badge">{{ item.status }}</span>
+                        </div>
+                        <div class="detail-actions">
+                            <form method="post" action="/app/profile/courses/{{ item.id }}/delete" hx-post="/app/profile/courses/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+                                <button type="submit" class="danger-action">Eliminar</button>
+                            </form>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-panel"><h3>Sin cursos registrados</h3><p>No hay cursos cargados todavia.</p></div>
+        {% endif %}
+    </section>
+</section>
+
+<section class="profile-sections-grid">
+    <section class="panel">
+        <div class="section-title"><div><h2>Certificaciones</h2><p>Credenciales y badges relevantes para tus postulaciones.</p></div><span class="soft-badge">{{ certifications|length }} registros</span></div>
+        <details class="section-disclosure" {% if not certifications %}open{% endif %}>
+            <summary>Agregar certificacion</summary>
+            <form class="stack-form compact-form section-form" method="post" action="/app/profile/certifications" hx-post="/app/profile/certifications" hx-target="#profile-shell" hx-swap="innerHTML">
+            <div class="grid-two">
+                <label><span>Titulo</span><input type="text" name="titulo" placeholder="Ej. AWS Certified Data Analytics" required></label>
+                <label><span>Institucion</span><input type="text" name="institucion" placeholder="Ej. Amazon Web Services" required></label>
+            </div>
+            <div class="grid-three">
+                <label><span>Fecha obtencion</span><input type="date" name="fecha_obtencion" required></label>
+                <label><span>Fecha vencimiento</span><input type="date" name="fecha_vencimiento"></label>
+                <label><span>Estado</span><select name="status">{% for option in certification_status_options %}<option value="{{ option }}">{{ option }}</option>{% endfor %}</select></label>
+            </div>
+            <label><span>URL certificado</span><input type="url" name="url_certificado"></label>
+            <button type="submit">Agregar certificacion</button>
+            </form>
+        </details>
+        {% if certifications %}
+            <div class="record-list compact-record-list">
+                {% for item in certifications %}
+                    <article class="record-card">
+                        <div class="record-header">
+                            <div><h3>{{ item.titulo }}</h3><p>{{ item.institucion }}</p></div>
+                            <span class="soft-badge">{{ item.status }}</span>
+                        </div>
+                        <div class="detail-actions">
+                            <form method="post" action="/app/profile/certifications/{{ item.id }}/delete" hx-post="/app/profile/certifications/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+                                <button type="submit" class="danger-action">Eliminar</button>
+                            </form>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-panel"><h3>Sin certificaciones registradas</h3><p>No hay certificaciones cargadas todavia.</p></div>
+        {% endif %}
+    </section>
+</section>
+
+<section class="panel cv-panel">
+    <div class="section-title">
+        <div>
+            <h2>Vista CV</h2>
+            <p>Vista de solo lectura del perfil consolidado para revisar como se presentaria tu hoja de vida.</p>
+        </div>
+    </div>
+    {% if cv_preview_html %}
+        {{ cv_preview_html | safe }}
+    {% else %}
+        <div class="empty-panel">
+            <h3>Sin vista CV disponible</h3>
+            <p>Completa los datos principales del perfil para generar esta vista.</p>
+        </div>
+    {% endif %}
+</section>
+
+

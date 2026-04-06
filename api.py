@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app.application.use_cases.analyze_vacancy import AnalyzeVacancyUseCase
@@ -16,6 +18,10 @@ from app.infrastructure.persistence.connection import test_connection
 from app.infrastructure.persistence.repositories.analysis_repository import AnalysisRepository
 from app.infrastructure.persistence.repositories.profile_repository import ProfileRepository
 from app.infrastructure.persistence.repositories.vacancy_repository import VacancyRepository
+from app.interfaces.web.routes.applications import router as web_applications_router
+from app.interfaces.web.routes.dashboard import router as web_dashboard_router
+from app.interfaces.web.routes.profile import router as web_profile_router
+from app.interfaces.web.routes.vacancies import router as web_vacancies_router
 
 
 logger = logging.getLogger(__name__)
@@ -43,6 +49,13 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+static_dir = Path(__file__).resolve().parent / "app" / "interfaces" / "web" / "static"
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+app.include_router(web_dashboard_router)
+app.include_router(web_vacancies_router)
+app.include_router(web_applications_router)
+app.include_router(web_profile_router)
 
 
 class VacantePayload(BaseModel):

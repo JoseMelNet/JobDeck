@@ -228,3 +228,78 @@ class AnalysisRepository:
             return None
         finally:
             self._close(cursor, conn)
+
+    def get_by_vacancy_ids(self, vacante_ids: list[int]) -> dict[int, dict]:
+        if not vacante_ids:
+            return {}
+
+        conn = None
+        cursor = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            placeholders = ",".join("?" for _ in vacante_ids)
+            cursor.execute(
+                f"""
+                SELECT
+                    vacante_id,
+                    score_total, score_global, semaforo,
+                    seniority_inferido, justificacion_seniority,
+                    modalidad_detectada, salario_detectado,
+                    resumen_analisis,
+                    skills_match, skills_gap,
+                    skills_requeridas, skills_blandas_detectadas,
+                    idiomas_requeridos,
+                    aspiracion_salarial_sugerida,
+                    score_skills_tecnicas, score_seniority,
+                    score_modalidad, score_idiomas, score_skills_blandas,
+                    tipo_real_de_rol,
+                    afinidad_general, justificacion_afinidad,
+                    fortalezas_principales, riesgos_principales,
+                    encaje_estrategico, justificacion_decision,
+                    decision_aplicacion, ajustes_cv_recomendados,
+                    fecha_analisis
+                FROM vacantes_analisis
+                WHERE vacante_id IN ({placeholders})
+                """,
+                tuple(vacante_ids),
+            )
+            results = {}
+            for row in cursor.fetchall():
+                results[row[0]] = {
+                    "score_total": float(row[1]) if row[1] else 0,
+                    "score_global": float(row[2]) if row[2] else 0,
+                    "semaforo": row[3] or "gris",
+                    "seniority_inferido": row[4],
+                    "justificacion_seniority": row[5],
+                    "modalidad_detectada": row[6],
+                    "salario_detectado": row[7],
+                    "resumen_analisis": row[8],
+                    "skills_match": self._sjson(row[9]),
+                    "skills_gap": self._sjson(row[10]),
+                    "skills_requeridas": self._sjson(row[11]),
+                    "skills_blandas_detectadas": self._sjson(row[12]),
+                    "idiomas_requeridos": self._sjson(row[13]),
+                    "aspiracion_salarial_sugerida": row[14],
+                    "score_skills_tecnicas": float(row[15]) if row[15] else 0,
+                    "score_seniority": float(row[16]) if row[16] else 0,
+                    "score_modalidad": float(row[17]) if row[17] else 0,
+                    "score_idiomas": float(row[18]) if row[18] else 0,
+                    "score_skills_blandas": float(row[19]) if row[19] else 0,
+                    "tipo_real_de_rol": row[20],
+                    "afinidad_general": row[21],
+                    "justificacion_afinidad": row[22],
+                    "fortalezas_principales": self._sjson(row[23]),
+                    "riesgos_principales": self._sjson(row[24]),
+                    "encaje_estrategico": row[25],
+                    "justificacion_decision": row[26],
+                    "decision_aplicacion": row[27],
+                    "ajustes_cv_recomendados": self._sjson(row[28]),
+                    "fecha_analisis": row[29],
+                }
+            return results
+        except Exception:
+            logger.exception("Error obteniendo analisis de vacantes")
+            return {}
+        finally:
+            self._close(cursor, conn)

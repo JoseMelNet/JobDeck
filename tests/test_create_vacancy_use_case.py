@@ -46,6 +46,27 @@ class CreateVacancyUseCaseTests(unittest.TestCase):
             link="https://example.com",
         )
 
+    def test_normalizes_unaccented_hybrid_modality(self):
+        repository = Mock(return_value=None)
+        repository.create.return_value = {"success": True, "id": 2}
+        use_case = CreateVacancyUseCase(repository)
+
+        result = use_case.execute(
+            empresa="ACME",
+            cargo="Data Analyst",
+            modalidad="Hibrido",
+            descripcion="Desc",
+        )
+
+        self.assertEqual(result, {"success": True, "id": 2})
+        repository.create.assert_called_once_with(
+            empresa="ACME",
+            cargo="Data Analyst",
+            modalidad="Híbrido",
+            descripcion="Desc",
+            link=None,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

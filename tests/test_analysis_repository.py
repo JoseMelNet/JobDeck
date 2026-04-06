@@ -64,6 +64,54 @@ class AnalysisRepositoryTests(unittest.TestCase):
         self.assertEqual(result["fortalezas_principales"], ["f1"])
         self.assertEqual(result["decision_aplicacion"], "Aplicar")
 
+    @patch("app.infrastructure.persistence.repositories.analysis_repository.get_connection")
+    def test_get_by_vacancy_ids_returns_dictionary_by_vacancy(self, get_connection_mock):
+        conn = Mock()
+        cursor = Mock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = [
+            (
+                3,
+                80,
+                79,
+                "verde",
+                "Senior",
+                "ok",
+                "Remoto",
+                "$1000",
+                "resumen",
+                '["SQL"]',
+                '["Python"]',
+                '["SQL","Python"]',
+                '["Comunicacion"]',
+                '["English"]',
+                "1000-2000",
+                20,
+                15,
+                10,
+                5,
+                8,
+                "Data",
+                "Alta",
+                "just",
+                '["f1"]',
+                '["r1"]',
+                "encaje",
+                "decision",
+                "Aplicar",
+                '["aj1"]',
+                "2026-01-01",
+            )
+        ]
+        get_connection_mock.return_value = conn
+        repository = AnalysisRepository()
+
+        result = repository.get_by_vacancy_ids([3, 5])
+
+        self.assertIn(3, result)
+        self.assertEqual(result[3]["score_total"], 80.0)
+        self.assertEqual(result[3]["skills_match"], ["SQL"])
+
 
 if __name__ == "__main__":
     unittest.main()

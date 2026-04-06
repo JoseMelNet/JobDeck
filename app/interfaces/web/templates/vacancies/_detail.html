@@ -1,0 +1,88 @@
+{% if selected_vacancy %}
+    <section class="panel">
+        <div class="page-header">
+            <div>
+                <h2>{{ selected_vacancy.empresa }} - {{ selected_vacancy.cargo }}</h2>
+                <p><span class="status-badge status-{{ selected_vacancy.status_meta.tone }}">{{ selected_vacancy.status_meta.label }}</span></p>
+            </div>
+            {% if not selected_vacancy.has_application %}
+                <div class="detail-actions">
+                    <form method="post" action="/app/vacancies/{{ selected_vacancy.id }}/interest">
+                        <button class="primary-link" type="submit">Me interesa</button>
+                    </form>
+                </div>
+            {% else %}
+                <div class="detail-actions">
+                    <a class="secondary-link" href="/app/applications">Ver en Seguimiento</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="detail-grid">
+            <article class="detail-card">
+                <div class="detail-label">Modalidad</div>
+                <div class="detail-value">{{ selected_vacancy.modalidad }}</div>
+            </article>
+            <article class="detail-card">
+                <div class="detail-label">Registrada</div>
+                <div class="detail-value">
+                    {% if selected_vacancy.fecha_registro %}
+                        {{ selected_vacancy.fecha_registro.strftime("%d/%m/%Y") }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </article>
+            <article class="detail-card">
+                <div class="detail-label">Link</div>
+                <div class="detail-value">
+                    {% if selected_vacancy.link %}
+                        <a href="{{ selected_vacancy.link }}" target="_blank">Abrir</a>
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+
+        {% if selected_vacancy.analisis %}
+            <div class="analysis-summary">
+                <h3>Analisis</h3>
+                <div class="detail-grid">
+                    <article class="detail-card">
+                        <div class="detail-label">Score</div>
+                        <div class="detail-value">{{ "%.0f"|format(selected_vacancy.analisis.score_total or 0) }}</div>
+                    </article>
+                    <article class="detail-card">
+                        <div class="detail-label">Afinidad</div>
+                        <div class="detail-value">{{ selected_vacancy.analisis.afinidad_general or "-" }}</div>
+                    </article>
+                    <article class="detail-card">
+                        <div class="detail-label">Decision sugerida</div>
+                        <div class="detail-value">{{ selected_vacancy.analisis.decision_aplicacion or "-" }}</div>
+                    </article>
+                </div>
+                {% if selected_vacancy.analisis.skills_match %}
+                    <div class="pill-group">
+                        {% for skill in selected_vacancy.analisis.skills_match[:6] %}
+                            <span class="soft-badge">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <p class="analysis-text">{{ selected_vacancy.analisis.resumen_analisis or selected_vacancy.analisis.justificacion_decision or "Sin resumen aun." }}</p>
+            </div>
+        {% else %}
+            <p class="muted-note">Esta vacante aun no tiene analisis disponible.</p>
+        {% endif %}
+
+        <div class="description-block">
+            <h3>Descripcion</h3>
+            <p>{{ selected_vacancy.descripcion }}</p>
+        </div>
+    </section>
+{% else %}
+    <section class="panel empty-panel">
+        <h3>Sin detalle</h3>
+        <p>Selecciona una vacante para ver su analisis y decidir si te interesa.</p>
+    </section>
+{% endif %}
