@@ -1,5 +1,9 @@
 const API_BASE = "http://localhost:8001";
-const ACTIVE_JOB_KEY = "activeAnalysisJob";
+const ACTIVE_TASK_KEY = "activeAnalysisTasks";
+
+function normalizarUrlVacante(url) {
+  return (url || "").split("?")[0];
+}
 
 if (chrome.sidePanel?.setPanelBehavior) {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
@@ -13,8 +17,17 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true;
   }
 
-  if (request.action === "clearActiveJob") {
-    chrome.storage.local.remove(ACTIVE_JOB_KEY, () => sendResponse({ success: true }));
+  if (request.action === "clearActiveTask") {
+    const pageUrl = normalizarUrlVacante(request.pageUrl);
+    chrome.storage.local.get(ACTIVE_TASK_KEY, (result) => {
+      const tasks = result[ACTIVE_TASK_KEY] || {};
+      if (pageUrl) {
+        delete tasks[pageUrl];
+        chrome.storage.local.set({ [ACTIVE_TASK_KEY]: tasks }, () => sendResponse({ success: true }));
+        return;
+      }
+      chrome.storage.local.remove(ACTIVE_TASK_KEY, () => sendResponse({ success: true }));
+    });
     return true;
   }
 
@@ -37,15 +50,19 @@ async function guardarVacanteEnSegundoPlano(payload) {
     throw new Error(data.detail || data.message || "No se pudo guardar la vacante");
   }
 
-  const activeJob = {
-    jobId: data.job_id,
+  const activeTask = {
+    taskId: data.task_id || data.job_id,
     vacancyId: data.id,
     status: data.status,
     message: data.message,
+    pageUrl: normalizarUrlVacante(payload.link),
     savedAt: new Date().toISOString(),
   };
-  await chrome.storage.local.set({ [ACTIVE_JOB_KEY]: activeJob });
-  return activeJob;
+  const storage = await chrome.storage.local.get(ACTIVE_TASK_KEY);
+  const tasks = storage[ACTIVE_TASK_KEY] || {};
+  tasks[activeTask.pageUrl] = activeTask;
+  await chrome.storage.local.set({ [ACTIVE_TASK_KEY]: tasks });
+  return activeTask;
 }
 
 async function guardarVacanteConApiLegacy(payload) {
@@ -61,7 +78,7 @@ async function guardarVacanteConApiLegacy(payload) {
   }
 
   return {
-    jobId: null,
+    taskId: null,
     vacancyId: data.id,
     status: "completed",
     message: "Vacante guardada. La API local no soporta analisis en segundo plano todavia.",

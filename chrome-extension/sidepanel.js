@@ -1,6 +1,6 @@
 /**
- * popup.js
- * Orquesta toda la lógica del popup:
+ * sidepanel.js
+ * Orquesta toda la lógica del panel lateral:
  *   1. Verifica que la API local esté corriendo
  *   2. Inyecta content.js y solicita extracción del DOM
  *   3. Renderiza el formulario con los datos extraídos (editables)
@@ -8,9 +8,12 @@
  */
 
 const API_BASE = "http://localhost:8001";
-const ACTIVE_JOB_KEY = "activeAnalysisJob";
-const LAST_ANALYSIS_KEY = "lastAnalysisResult";
+const ACTIVE_TASK_KEY = "activeAnalysisTasks";
+const LAST_ANALYSIS_KEY = "lastAnalysisResults";
 let pollingTimer = null;
+let currentTabId = null;
+let currentTabUrl = null;
+let watchersInitialized = false;
 
 const MODALIDADES = ["Remoto", "Presencial", "Híbrido"];
 
@@ -37,6 +40,12 @@ function mostrarToast(tipo, mensaje) {
   toast.style.display = "block";
   toast.textContent = mensaje;
   $("mainContent").appendChild(toast);
+}
+
+function limpiarVistaTransitoria() {
+  document.querySelectorAll(".toast").forEach((t) => t.remove());
+  const analysisPanel = document.getElementById("analysisPanel");
+  if (analysisPanel) analysisPanel.remove();
 }
 
 function setGuardarEstado(texto, disabled = true) {
@@ -71,21 +80,49 @@ async function storageSet(values) {
   await chrome.storage.local.set(values);
 }
 
-function describirJob(job) {
-  if (job.status === "queued") {
+async function guardarDatoPorUrl(storageKey, pageUrl, value) {
+  const normalizedUrl = normalizarUrlVacante(pageUrl);
+  if (!normalizedUrl) return;
+  const current = (await storageGet(storageKey)) || {};
+  current[normalizedUrl] = value;
+  await storageSet({ [storageKey]: current });
+}
+
+async function leerDatoPorUrl(storageKey, pageUrl) {
+  const normalizedUrl = normalizarUrlVacante(pageUrl);
+  if (!normalizedUrl) return null;
+  const current = (await storageGet(storageKey)) || {};
+  return current[normalizedUrl] || null;
+}
+
+async function borrarDatoPorUrl(storageKey, pageUrl) {
+  const normalizedUrl = normalizarUrlVacante(pageUrl);
+  if (!normalizedUrl) return;
+  const current = (await storageGet(storageKey)) || {};
+  if (!(normalizedUrl in current)) return;
+  delete current[normalizedUrl];
+  await storageSet({ [storageKey]: current });
+}
+
+function normalizarUrlVacante(url) {
+  return (url || "").split("?")[0];
+}
+
+function describirTarea(task) {
+  if (task.status === "queued") {
     return { status: "checking", text: "Vacante guardada · analisis en cola" };
   }
-  if (job.status === "running") {
+  if (task.status === "running") {
     return { status: "checking", text: "Analizando vacante en segundo plano..." };
   }
-  if (job.status === "completed") {
+  if (task.status === "completed") {
     return { status: "ok", text: "Vacante guardada y analizada" };
   }
   return { status: "error", text: "Vacante guardada, pero el analisis fallo" };
 }
 
-async function consultarEstadoJob(jobId) {
-  const res = await fetch(`${API_BASE}/vacantes/jobs/${jobId}`, { signal: AbortSignal.timeout(3000) });
+async function consultarEstadoTarea(taskId) {
+  const res = await fetch(`${API_BASE}/vacantes/tasks/${taskId}`, { signal: AbortSignal.timeout(3000) });
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data.detail || "No se pudo consultar el estado del analisis");
@@ -100,6 +137,17 @@ async function consultarAnalisisVacante(vacancyId) {
     throw new Error(data.detail || "No se pudo cargar el analisis");
   }
   return data.analysis;
+}
+
+async function consultarVacantePorLink(link) {
+  const url = new URL(`${API_BASE}/vacantes/by-link`);
+  url.searchParams.set("link", normalizarUrlVacante(link));
+  const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || "No se pudo consultar la vacante");
+  }
+  return data;
 }
 
 function renderAnalisis(analysis) {
@@ -137,42 +185,46 @@ function renderAnalisis(analysis) {
   $("mainContent").appendChild(root);
 }
 
-async function iniciarSeguimientoJob(jobId) {
+async function iniciarSeguimientoTarea(taskId) {
   if (pollingTimer) clearInterval(pollingTimer);
 
   const actualizar = async () => {
     try {
-      const job = await consultarEstadoJob(jobId);
-      const status = describirJob(job);
+      const task = await consultarEstadoTarea(taskId);
+      const status = describirTarea(task);
       setStatus(status.status, status.text);
 
-      if (job.status === "queued" || job.status === "running") {
-        setGuardarEstado(job.status === "queued" ? "⏳ Analisis en cola..." : "🤖 Analizando...", true);
+      if (task.status === "queued" || task.status === "running") {
+        setGuardarEstado(task.status === "queued" ? "⏳ Analisis en cola..." : "🤖 Analizando...", true);
         return;
       }
 
-      if (job.status === "completed") {
+      if (task.status === "completed") {
         try {
-          const analysis = await consultarAnalisisVacante(job.vacancy_id);
-          await storageSet({ [LAST_ANALYSIS_KEY]: { vacancyId: job.vacancy_id, analysis } });
+          const analysis = await consultarAnalisisVacante(task.vacancy_id);
+          await guardarDatoPorUrl(LAST_ANALYSIS_KEY, currentTabUrl, {
+            vacancyId: task.vacancy_id,
+            pageUrl: currentTabUrl,
+            analysis,
+          });
           renderAnalisis(analysis);
         } catch (_) {
           // Si el analisis todavia no esta visible por API, mantenemos solo el estado.
         }
-        mostrarToast("success", `✅ ${job.message}`);
+        mostrarToast("success", `✅ ${task.message}`);
         setGuardarEstado("✅ Guardada y analizada", true);
       } else {
-        const detalle = job.error ? `${job.message} ${job.error}` : job.message;
+        const detalle = task.error ? `${task.message} ${task.error}` : task.message;
         mostrarToast("error", `❌ ${detalle}`);
         setGuardarEstado("💾 Guardar en CVs-Optimizador", false);
       }
 
       clearInterval(pollingTimer);
       pollingTimer = null;
-      await storageRemove(ACTIVE_JOB_KEY);
-      await runtimeSendMessage({ action: "clearActiveJob" });
+      await borrarDatoPorUrl(ACTIVE_TASK_KEY, currentTabUrl);
+      await runtimeSendMessage({ action: "clearActiveTask", pageUrl: currentTabUrl });
     } catch (_) {
-      setStatus("checking", "Analisis en segundo plano. Reabre el popup para refrescar.");
+      setStatus("checking", "Analisis en segundo plano. Reabre el panel para refrescar.");
     }
   };
 
@@ -180,17 +232,39 @@ async function iniciarSeguimientoJob(jobId) {
   pollingTimer = setInterval(actualizar, 2000);
 }
 
-async function restaurarJobActivo() {
-  const activeJob = await storageGet(ACTIVE_JOB_KEY);
-  if (!activeJob?.jobId) return;
+async function restaurarTareaActiva() {
+  const activeTask = await leerDatoPorUrl(ACTIVE_TASK_KEY, currentTabUrl);
+  if (!activeTask?.taskId) return;
   mostrarToast("info", "ℹ️ Hay una vacante procesandose en segundo plano.");
-  await iniciarSeguimientoJob(activeJob.jobId);
+  await iniciarSeguimientoTarea(activeTask.taskId);
 }
 
 async function restaurarUltimoAnalisis() {
-  const lastAnalysis = await storageGet(LAST_ANALYSIS_KEY);
+  const lastAnalysis = await leerDatoPorUrl(LAST_ANALYSIS_KEY, currentTabUrl);
   if (!lastAnalysis?.analysis) return;
   renderAnalisis(lastAnalysis.analysis);
+}
+
+async function cargarAnalisisHistorico(link) {
+  if (!link) return false;
+
+  try {
+    const result = await consultarVacantePorLink(link);
+    if (!result?.found || !result?.analysis || !result?.vacancy?.id) {
+      return false;
+    }
+
+    await guardarDatoPorUrl(LAST_ANALYSIS_KEY, link, {
+      vacancyId: result.vacancy.id,
+      pageUrl: normalizarUrlVacante(link),
+      analysis: result.analysis,
+    });
+    renderAnalisis(result.analysis);
+    setStatus("ok", "Vacante ya analizada");
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -381,11 +455,15 @@ async function guardarVacante() {
     });
 
     if (response?.success) {
-      if (response.legacyMode || !response.jobId) {
+      if (response.legacyMode || !response.taskId) {
         setStatus("ok", "Vacante guardada");
         try {
           const analysis = await consultarAnalisisVacante(response.vacancyId);
-          await storageSet({ [LAST_ANALYSIS_KEY]: { vacancyId: response.vacancyId, analysis } });
+          await guardarDatoPorUrl(LAST_ANALYSIS_KEY, payload.link, {
+            vacancyId: response.vacancyId,
+            pageUrl: normalizarUrlVacante(payload.link),
+            analysis,
+          });
           renderAnalisis(analysis);
           mostrarToast("success", `✅ Vacante guardada (ID: ${response.vacancyId}) y analisis cargado.`);
         } catch (_) {
@@ -396,7 +474,7 @@ async function guardarVacante() {
       }
 
       mostrarToast("info", `ℹ️ Vacante guardada (ID: ${response.vacancyId}). Analisis en segundo plano iniciado.`);
-      await iniciarSeguimientoJob(response.jobId);
+      await iniciarSeguimientoTarea(response.taskId);
     } else {
       const detalle = response?.error || "Error desconocido";
       mostrarToast("error", `❌ ${detalle}`);
@@ -410,27 +488,24 @@ async function guardarVacante() {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────────────────────────
-
-async function init() {
-  // 1. Verificar API
+async function refrescarTabActiva() {
   const apiOk = await verificarAPI();
-
-  // 2. Obtener tab actual
   const tab = await obtenerTab();
-  await restaurarJobActivo();
+  currentTabId = tab?.id ?? null;
+  currentTabUrl = normalizarUrlVacante(tab?.url);
 
-  // 3. Verificar que sea una página de vacante de LinkedIn
-  if (!esLinkedInJobView(tab.url)) {
-    renderPaginaIncorrecta(tab.url);
+  limpiarVistaTransitoria();
+  if (pollingTimer) {
+    clearInterval(pollingTimer);
+    pollingTimer = null;
+  }
+
+  if (!esLinkedInJobView(tab?.url)) {
+    renderPaginaIncorrecta(tab?.url);
     return;
   }
 
-  // 4. Extraer datos del DOM
   $("mainContent").innerHTML = `<div class="spinner" style="display:block;margin:30px auto;"></div>`;
-
   const resultado = await extraerDatosDeTab(tab.id);
 
   if (!resultado.success) {
@@ -438,11 +513,11 @@ async function init() {
     return;
   }
 
-  // 5. Renderizar formulario (con datos extraídos editables)
   renderFormulario(resultado.datos);
+  await restaurarTareaActiva();
   await restaurarUltimoAnalisis();
+  await cargarAnalisisHistorico(resultado.datos.link);
 
-  // 6. Si la API no está disponible, deshabilitar el botón de guardar
   if (!apiOk) {
     const btn = $("btnGuardar");
     if (btn) {
@@ -450,6 +525,33 @@ async function init() {
       btn.textContent = "API no disponible";
     }
   }
+}
+
+function inicializarObservadoresTabs() {
+  if (watchersInitialized) return;
+  watchersInitialized = true;
+
+  chrome.tabs.onActivated.addListener(() => {
+    refrescarTabActiva().catch(() => {});
+  });
+
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    const targetUrl = normalizarUrlVacante(tab?.url);
+    const matchesCurrent = tabId === currentTabId || (tab?.active && targetUrl === currentTabUrl);
+    if (!matchesCurrent) return;
+    if (changeInfo.status === "complete") {
+      refrescarTabActiva().catch(() => {});
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────
+
+async function init() {
+  inicializarObservadoresTabs();
+  await refrescarTabActiva();
 }
 
 document.addEventListener("DOMContentLoaded", init);

@@ -15,6 +15,9 @@ Aplicacion para registrar vacantes, analizarlas contra un perfil profesional y g
 - registrar vacantes
 - listar, archivar, reactivar y eliminar vacantes
 - analizar vacantes contra el perfil activo
+- guardar vacantes desde la extension de Chrome
+- mostrar progreso de guardado y analisis en la extension
+- recuperar analisis historicos en la extension al reabrir una vacante ya registrada por `link`
 - gestionar aplicaciones y su seguimiento
 - gestionar perfil profesional, skills, experiencia, proyectos, educacion, cursos y certificaciones
 - renderizar una vista CV consolidada desde la web
@@ -32,7 +35,7 @@ CVs-Optimizator/
 |   |-- infrastructure/
 |   `-- interfaces/
 |       `-- web/
-|-- modules/
+|-- chrome-extension/
 |-- tests/
 |-- sql_queries/
 |-- run_tests.py
@@ -106,6 +109,27 @@ La interfaz web ya cubre el flujo principal del producto:
 
 Las vistas largas de `Inbox` y `Seguimiento` ya incluyen paginacion y tamano de pagina configurable para evitar listas demasiado pesadas.
 
+## Extension de Chrome
+
+La extension usa `side panel` en lugar de popup efimero.
+
+Flujo actual:
+
+1. extrae la vacante desde LinkedIn
+2. guarda la vacante por API local
+3. inicia el analisis en segundo plano
+4. muestra estados intermedios en el panel lateral
+5. si la vacante ya existia y tenia analisis, lo recupera desde la BD usando el `link`
+
+Endpoints usados por la extension:
+
+- `GET /health`
+- `POST /vacantes`
+- `POST /vacantes/async`
+- `GET /vacantes/tasks/{task_id}`
+- `GET /vacantes/{vacancy_id}/analysis`
+- `GET /vacantes/by-link?link=...`
+
 ## Tests
 
 Entrada unica recomendada:
@@ -121,6 +145,7 @@ Estado actual de la suite principal:
 - tests de API
 - tests de rutas web
 - tests de flujos integrados con mocks
+- tests del flujo async y de recuperacion de analisis por `link`
 
 ## CI
 
@@ -140,7 +165,7 @@ Resumen corto:
 - `app/application`: casos de uso y servicios
 - `app/infrastructure`: conexion y repositorios
 - `app/interfaces/web`: interfaz HTML principal
-- `modules`: codigo residual compartido, como `analizar_vacante.py`
+- `chrome-extension`: integracion local con LinkedIn y la API
 
 Detalle adicional en [ARCHITECTURE.md](/C:/Users/josem/PycharmProjects/CVs-Optimizator/docs/ARCHITECTURE.md).
 
@@ -148,5 +173,6 @@ Detalle adicional en [ARCHITECTURE.md](/C:/Users/josem/PycharmProjects/CVs-Optim
 
 - la web es ahora la interfaz recomendada
 - `app.py` en la raiz queda solo como acceso rapido informativo
-- la suite principal corre localmente con `53` tests cubriendo la interfaz web principal
+- la extension de Chrome ya opera con panel lateral y recuperacion de analisis historico por `link`
+- la suite principal corre localmente con `60` tests
 - el pipeline de CI ya esta preparado para validar cambios automaticamente

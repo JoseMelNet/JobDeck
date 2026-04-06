@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -38,8 +38,8 @@ analyze_vacancy_use_case = AnalyzeVacancyUseCase(
     profile_repository=profile_repository,
     analysis_repository=analysis_repository,
 )
-analysis_jobs: dict[str, dict] = {}
-analysis_jobs_lock = threading.Lock()
+analysis_tasks: dict[str, dict] = {}
+analysis_tasks_lock = threading.Lock()
 
 
 app = FastAPI(
@@ -78,12 +78,12 @@ class VacanteResponse(BaseModel):
 
 
 class AsyncVacanteResponse(VacanteResponse):
-    job_id: str
+    task_id: str
     status: str
 
 
-class AnalysisJobResponse(BaseModel):
-    job_id: str
+class AnalysisTaskResponse(BaseModel):
+    task_id: str
     vacancy_id: int
     status: str
     step: str
@@ -98,24 +98,30 @@ class VacancyAnalysisResponse(BaseModel):
     analysis: dict
 
 
+class VacancyByLinkResponse(BaseModel):
+    found: bool
+    vacancy: Optional[dict] = None
+    analysis: Optional[dict] = None
+
+
 def _utc_now() -> str:
     return datetime.utcnow().isoformat(timespec="seconds") + "Z"
 
 
-def _set_job_state(job_id: str, **updates) -> dict:
-    with analysis_jobs_lock:
-        current = analysis_jobs.get(job_id, {}).copy()
+def _set_task_state(task_id: str, **updates) -> dict:
+    with analysis_tasks_lock:
+        current = analysis_tasks.get(task_id, {}).copy()
         current.update(updates)
         current["updated_at"] = _utc_now()
-        analysis_jobs[job_id] = current
+        analysis_tasks[task_id] = current
         return current.copy()
 
 
-def _create_analysis_job(vacancy_id: int) -> dict:
-    job_id = str(uuid4())
+def _create_analysis_task(vacancy_id: int) -> dict:
+    task_id = str(uuid4())
     now = _utc_now()
-    job = {
-        "job_id": job_id,
+    task = {
+        "task_id": task_id,
         "vacancy_id": vacancy_id,
         "status": "queued",
         "step": "saved",
@@ -124,14 +130,14 @@ def _create_analysis_job(vacancy_id: int) -> dict:
         "created_at": now,
         "updated_at": now,
     }
-    with analysis_jobs_lock:
-        analysis_jobs[job_id] = job
-    return job.copy()
+    with analysis_tasks_lock:
+        analysis_tasks[task_id] = task
+    return task.copy()
 
 
-def _run_analysis_job(job_id: str, vacancy_id: int) -> None:
-    _set_job_state(
-        job_id,
+def _run_analysis_task(task_id: str, vacancy_id: int) -> None:
+    _set_task_state(
+        task_id,
         status="running",
         step="analyzing",
         message="Analizando vacante contra el perfil activo.",
@@ -140,16 +146,16 @@ def _run_analysis_job(job_id: str, vacancy_id: int) -> None:
     try:
         result = analyze_vacancy_use_case.execute(vacancy_id)
         if result["omitido"]:
-            _set_job_state(
-                job_id,
+            _set_task_state(
+                task_id,
                 status="completed",
                 step="completed",
                 message="Vacante guardada. Analisis omitido porque no hay perfil activo.",
                 error=None,
             )
             return
-        _set_job_state(
-            job_id,
+        _set_task_state(
+            task_id,
             status="completed",
             step="completed",
             message="Vacante guardada y analizada correctamente.",
@@ -157,8 +163,8 @@ def _run_analysis_job(job_id: str, vacancy_id: int) -> None:
         )
     except AnalysisError as exc:
         logger.warning("La vacante %s se guardo, pero el analisis automatico fallo: %s", vacancy_id, exc)
-        _set_job_state(
-            job_id,
+        _set_task_state(
+            task_id,
             status="failed",
             step="failed",
             message="La vacante se guardo, pero el analisis fallo.",
@@ -257,25 +263,30 @@ def crear_vacante_async(payload: VacantePayload, background_tasks: BackgroundTas
     if not resultado["success"] or not resultado.get("id"):
         raise HTTPException(status_code=500, detail=resultado["message"])
 
-    job = _create_analysis_job(resultado["id"])
-    background_tasks.add_task(_run_analysis_job, job["job_id"], resultado["id"])
+    task = _create_analysis_task(resultado["id"])
+    background_tasks.add_task(_run_analysis_task, task["task_id"], resultado["id"])
 
     return AsyncVacanteResponse(
         success=True,
         message="Vacante guardada. Analisis en segundo plano iniciado.",
         id=resultado["id"],
-        job_id=job["job_id"],
-        status=job["status"],
+        task_id=task["task_id"],
+        status=task["status"],
     )
 
 
-@app.get("/vacantes/jobs/{job_id}", response_model=AnalysisJobResponse)
-def get_analysis_job(job_id: str):
-    with analysis_jobs_lock:
-        job = analysis_jobs.get(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job no encontrado")
-    return AnalysisJobResponse(**job)
+@app.get("/vacantes/tasks/{task_id}", response_model=AnalysisTaskResponse)
+def get_analysis_task(task_id: str):
+    with analysis_tasks_lock:
+        task = analysis_tasks.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    return AnalysisTaskResponse(**task)
+
+
+@app.get("/vacantes/jobs/{task_id}", response_model=AnalysisTaskResponse)
+def get_analysis_job_legacy(task_id: str):
+    return get_analysis_task(task_id)
 
 
 @app.get("/vacantes/{vacancy_id}/analysis", response_model=VacancyAnalysisResponse)
@@ -284,3 +295,13 @@ def get_vacancy_analysis(vacancy_id: int):
     if not analysis:
         raise HTTPException(status_code=404, detail="Analisis no encontrado")
     return VacancyAnalysisResponse(vacancy_id=vacancy_id, analysis=analysis)
+
+
+@app.get("/vacantes/by-link", response_model=VacancyByLinkResponse)
+def get_vacancy_by_link(link: str = Query(..., min_length=1)):
+    vacancy = vacancy_repository.get_by_link(link)
+    if not vacancy:
+        return VacancyByLinkResponse(found=False, vacancy=None, analysis=None)
+
+    analysis = analysis_repository.get_by_vacancy_id(vacancy["id"])
+    return VacancyByLinkResponse(found=True, vacancy=vacancy, analysis=analysis)
