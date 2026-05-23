@@ -284,11 +284,12 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn("Data Analyst · Acme", response.text)
         self.assertIn('action="/app/profile/experiences/10/update"', response.text)
         self.assertIn('action="/app/profile/experiences/10/delete"', response.text)
+        self.assertIn('id="profile-experiences-shell"', response.text)
         self.assertIn("Proyectos", response.text)
         self.assertIn("Dashboard", response.text)
         self.assertIn('action="/app/profile/projects/20/update"', response.text)
         self.assertIn('action="/app/profile/projects/20/delete"', response.text)
-        self.assertIn('hx-target="#profile-shell"', response.text)
+        self.assertIn('id="profile-projects-shell"', response.text)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_profile_formation_partial_renders_isolated_formation_shell(self, mock_repository):
@@ -338,6 +339,30 @@ class WebProfileTests(unittest.TestCase):
         self.assertNotIn('id="profile-skills-shell"', response.text)
         self.assertNotIn('id="profile-basics-shell"', response.text)
         self.assertNotIn('id="profile-cv-preview"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_experiences_partial_renders_isolated_experiences_shell(self, mock_repository):
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = []
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.get("/app/profile/experiences")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-experiences-shell"', response.text)
+        self.assertIn("Experiencia", response.text)
+        self.assertNotIn('id="profile-skills-shell"', response.text)
+        self.assertNotIn('id="profile-basics-shell"', response.text)
+        self.assertNotIn('id="profile-projects-shell"', response.text)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_add_project_hx_returns_isolated_projects_fragment(self, mock_repository):
@@ -439,6 +464,138 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn("Dashboard V2", response.text)
         self.assertIn('id="profile-skills-shell"', response.text)
         self.assertNotIn('id="profile-cv-preview"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_add_experience_hx_returns_isolated_experiences_fragment(self, mock_repository):
+        mock_repository.add_experience.return_value = {"success": True}
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = [
+            {
+                "id": 6,
+                "cargo": "Data Analyst",
+                "empresa": "Acme",
+                "ciudad": "Bogota",
+                "descripcion_empresa": "Retail",
+                "fecha_inicio": date(2024, 1, 1),
+                "fecha_fin": None,
+                "es_trabajo_actual": True,
+                "funciones": "Analisis",
+                "logros": "Impacto",
+            }
+        ]
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.post(
+            "/app/profile/experiences",
+            data={
+                "cargo": "Data Analyst",
+                "empresa": "Acme",
+                "ciudad": "Bogota",
+                "fecha_inicio": "2024-01-01",
+                "es_trabajo_actual": "true",
+            },
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-experiences-shell"', response.text)
+        self.assertIn("La experiencia fue guardada.", response.text)
+        self.assertIn("Data Analyst · Acme", response.text)
+        self.assertIn('id="profile-overview"', response.text)
+        self.assertIn('id="profile-skills-shell"', response.text)
+        self.assertIn('id="profile-cv-preview"', response.text)
+        self.assertIn('hx-swap-oob="innerHTML"', response.text)
+        self.assertIn('hx-swap-oob="outerHTML"', response.text)
+        self.assertNotIn('id="profile-projects-shell"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_update_experience_hx_returns_isolated_experiences_fragment(self, mock_repository):
+        mock_repository.update_experience.return_value = {"success": True}
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = [
+            {
+                "id": 6,
+                "cargo": "Senior Data Analyst",
+                "empresa": "Acme",
+                "ciudad": "Bogota",
+                "descripcion_empresa": "Retail",
+                "fecha_inicio": date(2024, 1, 1),
+                "fecha_fin": None,
+                "es_trabajo_actual": True,
+                "funciones": "Analisis",
+                "logros": "Impacto",
+            }
+        ]
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.post(
+            "/app/profile/experiences/6/update",
+            data={
+                "cargo": "Senior Data Analyst",
+                "empresa": "Acme",
+                "ciudad": "Bogota",
+                "fecha_inicio": "2024-01-01",
+                "es_trabajo_actual": "true",
+            },
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-experiences-shell"', response.text)
+        self.assertIn("La experiencia fue guardada.", response.text)
+        self.assertIn("Senior Data Analyst · Acme", response.text)
+        self.assertIn('id="profile-overview"', response.text)
+        self.assertIn('id="profile-skills-shell"', response.text)
+        self.assertIn('id="profile-cv-preview"', response.text)
+        self.assertNotIn('id="profile-projects-shell"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_delete_experience_hx_returns_isolated_experiences_fragment(self, mock_repository):
+        mock_repository.delete_experience.return_value = {"success": True}
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = []
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.post(
+            "/app/profile/experiences/6/delete",
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-experiences-shell"', response.text)
+        self.assertIn("La experiencia fue eliminada.", response.text)
+        self.assertIn("Sin experiencia registrada", response.text)
+        self.assertIn('id="profile-overview"', response.text)
+        self.assertIn('id="profile-skills-shell"', response.text)
+        self.assertIn('id="profile-cv-preview"', response.text)
+        self.assertNotIn('id="profile-projects-shell"', response.text)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_delete_project_hx_returns_isolated_projects_fragment(self, mock_repository):

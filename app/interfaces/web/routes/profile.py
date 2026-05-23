@@ -265,6 +265,20 @@ def _render_profile_projects_shell(request: Request, flash: str = "", include_oo
     )
 
 
+def _render_profile_experiences_shell(request: Request, flash: str = "", include_oob: bool = False):
+    context = _build_profile_context(flash=flash)
+    template_name = "profile/_experiences_fragment.html" if include_oob else "profile/_experiences_shell.html"
+    return templates.TemplateResponse(
+        request=request,
+        name=template_name,
+        context={
+            "request": request,
+            **context,
+            "experiences_flash_message": context["flash_message"] if flash else None,
+        },
+    )
+
+
 @router.get("/app/profile")
 def profile_index(request: Request, flash: str | None = None):
     context = _build_profile_context(flash=flash)
@@ -304,6 +318,11 @@ def profile_formation_partial(request: Request, flash: str | None = None):
 @router.get("/app/profile/projects", response_class=HTMLResponse)
 def profile_projects_partial(request: Request, flash: str | None = None):
     return _render_profile_projects_shell(request, flash or "")
+
+
+@router.get("/app/profile/experiences", response_class=HTMLResponse)
+def profile_experiences_partial(request: Request, flash: str | None = None):
+    return _render_profile_experiences_shell(request, flash or "")
 
 
 @router.post("/app/profile/save")
@@ -409,7 +428,7 @@ def add_experience(
         )
         flash = "experience_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
-        return _render_profile_shell(request, flash)
+        return _render_profile_experiences_shell(request, flash, include_oob=True)
     return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
 
 
@@ -443,7 +462,7 @@ def update_experience(
     )
     flash = "experience_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
-        return _render_profile_shell(request, flash)
+        return _render_profile_experiences_shell(request, flash, include_oob=True)
     return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
 
 
@@ -452,7 +471,7 @@ def delete_experience(request: Request, experience_id: int):
     result = profile_repository.delete_experience(experience_id)
     flash = "experience_deleted" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
-        return _render_profile_shell(request, flash)
+        return _render_profile_experiences_shell(request, flash, include_oob=True)
     return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
 
 

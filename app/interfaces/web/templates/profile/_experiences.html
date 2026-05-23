@@ -2,7 +2,7 @@
     <div class="section-title"><div><h2>Experiencia</h2><p>Registra y actualiza tu trayectoria laboral actual.</p></div><span class="soft-badge">{{ experiences|length }} registradas</span></div>
     <details class="section-disclosure" {% if not experiences %}open{% endif %}>
         <summary>Agregar experiencia</summary>
-        <form class="stack-form compact-form section-form" method="post" action="/app/profile/experiences" hx-post="/app/profile/experiences" hx-target="#profile-shell" hx-swap="innerHTML">
+        <form class="stack-form compact-form section-form" method="post" action="/app/profile/experiences" hx-post="/app/profile/experiences" hx-target="#profile-experiences-shell" hx-swap="outerHTML">
         <div class="grid-two">
             <label><span>Cargo</span><input type="text" name="cargo" placeholder="Ej. Data Analyst" required></label>
             <label><span>Empresa</span><input type="text" name="empresa" placeholder="Ej. Bancolombia" required></label>

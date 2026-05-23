@@ -1,0 +1,11 @@
+<section id="profile-experiences-shell">
+    {% if experiences_flash_message %}
+        {% set flash_tone = experiences_flash_message[0] %}
+        {% set flash_text = experiences_flash_message[1] %}
+        {% include "components/_flash.html" %}
+    {% endif %}
+
+    <section class="profile-sections-grid">
+        {% include "profile/_experiences.html" %}
+    </section>
+</section>
