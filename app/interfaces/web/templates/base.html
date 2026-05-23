@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ page_title }} | CVs Optimizator</title>
-    <link rel="stylesheet" href="/static/css/app.css">
+    <link rel="stylesheet" href="/static/css/app.css?v={{ static_version('css/app.css') }}">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
 <body>
@@ -13,21 +13,28 @@
             <div class="shell-title">CVs Optimizator</div>
             <div class="shell-subtitle">Vacantes, analisis y seguimiento</div>
         </div>
-        <nav class="shell-nav">
-            {% for item in nav_items %}
-                <a href="{{ item.href }}" class="nav-link{% if item.active %} is-active{% endif %}">{{ item.label }}</a>
+        <div class="shell-nav-group">
+            <nav class="shell-nav">
+                {% for item in nav_items if item.href != "/app/vacancies/new" %}
+                    <a href="{{ item.href }}" class="nav-link{% if item.active %} is-active{% endif %}">{{ item.label }}</a>
+                {% endfor %}
+            </nav>
+            {% for item in nav_items if item.href == "/app/vacancies/new" %}
+                <a href="{{ item.href }}" class="shell-header-action{% if item.active %} is-active{% endif %}">{{ item.label }}</a>
             {% endfor %}
-        </nav>
+        </div>
     </header>
 
-    <section class="kpi-strip">
-        {% for metric in metrics %}
-            <article class="kpi-card">
-                <div class="kpi-label">{{ metric.label }}</div>
-                <div class="kpi-value">{{ metric.value }}</div>
-            </article>
-        {% endfor %}
-    </section>
+    {% if not hide_global_metrics %}
+        <section class="kpi-strip">
+            {% for metric in metrics %}
+                <article class="kpi-card">
+                    <div class="kpi-label">{{ metric.label }}</div>
+                    <div class="kpi-value">{{ metric.value }}</div>
+                </article>
+            {% endfor %}
+        </section>
+    {% endif %}
 
     <main class="page-shell">
         {% block content %}{% endblock %}
