@@ -4,136 +4,14 @@
     {% include "components/_flash.html" %}
 {% endif %}
 
-<section class="summary-strip profile-summary-strip">
-    <article class="summary-card"><div class="summary-label">Skills</div><div class="summary-value">{{ skills|length }}</div></article>
-    <article class="summary-card"><div class="summary-label">Experiencias</div><div class="summary-value">{{ experiences|length }}</div></article>
-    <article class="summary-card"><div class="summary-label">Formacion</div><div class="summary-value">{{ education|length + courses|length + certifications|length }}</div></article>
-</section>
-
-<section class="profile-hint-grid">
-    <article class="helper-box soft">
-        <h3>Como usar esta pantalla</h3>
-        <p>Empieza por datos principales y skills. Luego completa experiencia y proyectos para mejorar el analisis de vacantes.</p>
-    </article>
-    <article class="helper-box">
-        <h3>Vista CV</h3>
-        <p>La vista CV se actualiza con la informacion registrada aqui y te sirve para revisar la consistencia general del perfil.</p>
-    </article>
-</section>
+{% include "profile/_overview.html" %}
 
 <section class="layout-two-columns profile-layout">
-    <section class="panel">
-        <div class="section-title">
-            <div>
-                <h2>Datos principales</h2>
-                <p>Estos datos alimentan el analisis de vacantes y el resumen general del perfil.</p>
-            </div>
-        </div>
-        <p class="section-caption">Los campos de esta seccion son la base del perfil y del contexto que consume el analizador.</p>
-        <form class="stack-form" method="post" action="/app/profile/save" hx-post="/app/profile/save" hx-target="#profile-shell" hx-swap="innerHTML">
-            <div class="grid-two">
-                <label><span>Nombre completo</span><input type="text" name="nombre" placeholder="Ej. Jose Martinez" value="{{ profile.nombre if profile else '' }}"></label>
-                <label><span>Titulo profesional</span><input type="text" name="titulo_profesional" placeholder="Ej. Data Analyst | BI | SQL" value="{{ profile.titulo_profesional if profile else '' }}"></label>
-            </div>
-            <div class="grid-two">
-                <label><span>Ciudad</span><input type="text" name="ciudad" placeholder="Ej. Bogota" value="{{ profile.ciudad if profile else '' }}"></label>
-                <label><span>Celular</span><input type="text" name="celular" placeholder="Ej. 3001234567" value="{{ profile.celular if profile else '' }}"></label>
-            </div>
-            <label><span>Direccion</span><input type="text" name="direccion" placeholder="Opcional" value="{{ profile.direccion if profile else '' }}"></label>
-            <div class="grid-two">
-                <label><span>Correo</span><input type="email" name="correo" value="{{ profile.correo if profile else '' }}"></label>
-                <label>
-                    <span>Nivel actual</span>
-                    <select name="nivel_actual">
-                        {% for option in level_options %}
-                            <option value="{{ option }}"{% if profile and profile.nivel_actual == option %} selected{% endif %}>{{ option }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-            </div>
-            <div class="grid-two">
-                <label><span>LinkedIn</span><input type="url" name="perfil_linkedin" placeholder="https://linkedin.com/in/..." value="{{ profile.perfil_linkedin if profile else '' }}"></label>
-                <label><span>GitHub</span><input type="url" name="perfil_github" placeholder="https://github.com/..." value="{{ profile.perfil_github if profile else '' }}"></label>
-            </div>
-            <div class="grid-three">
-                <label><span>Anios de experiencia</span><input type="number" min="0" name="anos_experiencia" value="{{ profile.anos_experiencia if profile and profile.anos_experiencia is not none else 0 }}"></label>
-                <label><span>Salario minimo</span><input type="number" min="0" name="salario_min" value="{{ profile.salario_min if profile and profile.salario_min is not none else '' }}"></label>
-                <label><span>Salario maximo</span><input type="number" min="0" name="salario_max" value="{{ profile.salario_max if profile and profile.salario_max is not none else '' }}"></label>
-            </div>
-            <div class="grid-two">
-                <label><span>Moneda</span><input type="text" name="moneda" value="{{ profile.moneda if profile else 'COP' }}"></label>
-                <fieldset class="checkbox-group">
-                    <legend>Modalidades aceptadas</legend>
-                    <div class="checkbox-list">
-                        {% for option in modality_options %}
-                            <label class="checkbox-item"><input type="checkbox" name="modalidades_aceptadas" value="{{ option }}"{% if option in selected_modalities %} checked{% endif %}><span>{{ option }}</span></label>
-                        {% endfor %}
-                    </div>
-                </fieldset>
-            </div>
-            <button type="submit">Guardar perfil</button>
-        </form>
-    </section>
+    {% include "profile/_basics.html" %}
 
     <section class="stack-panel">
-        <section class="panel">
-            <div class="section-title">
-                <div>
-                    <h2>Skills</h2>
-                    <p>Manten tus skills clave visibles para el analisis de afinidad.</p>
-                </div>
-            </div>
-            <p class="section-caption">Mantener skills claras y concretas ayuda a que la afinidad con vacantes sea mas fiable.</p>
-            <form class="stack-form compact-form" method="post" action="/app/profile/skills" hx-post="/app/profile/skills" hx-target="#profile-shell" hx-swap="innerHTML">
-                <div class="grid-two">
-                    <label><span>Categoria</span><input type="text" name="categoria" placeholder="Ej. Data, BI, Backend" required></label>
-                    <label><span>Skill</span><input type="text" name="skill" placeholder="Ej. SQL" required></label>
-                </div>
-                <label>
-                    <span>Nivel</span>
-                    <select name="nivel">
-                        {% for option in skill_level_options %}
-                            <option value="{{ option }}">{{ option }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-                <button type="submit">Agregar skill</button>
-            </form>
-            {% if skills %}
-                <div class="record-list compact-record-list">
-                    {% for item in skills %}
-                        <article class="record-card">
-                            <div class="record-header">
-                                <div>
-                                    <h3>{{ item.skill }}</h3>
-                                    <p>{{ item.categoria }} · {{ item.nivel }}</p>
-                                </div>
-                                <form method="post" action="/app/profile/skills/{{ item.id }}/delete" hx-post="/app/profile/skills/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
-                                    <button type="submit" class="danger-action">Eliminar</button>
-                                </form>
-                            </div>
-                        </article>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-panel"><h3>Sin skills</h3><p>Agrega tus skills principales para que el analisis de vacantes sea mas preciso.</p></div>
-            {% endif %}
-        </section>
-
-        <section class="panel helper-panel">
-            <h2>Estado del perfil</h2>
-            <ul class="flow-list">
-                <li>Datos principales: {% if profile %}configurados{% else %}pendientes{% endif %}</li>
-                <li>Skills registradas: {{ skills|length }}</li>
-                <li>Experiencias registradas: {{ experiences|length }}</li>
-                <li>Proyectos registrados: {{ projects|length }}</li>
-                <li>Formacion registrada: {{ education|length + courses|length + certifications|length }}</li>
-            </ul>
-            <div class="helper-box soft">
-                <h3>Estado de migracion</h3>
-                <p>Mi Perfil ya puede mantenerse desde la web para el flujo principal del producto.</p>
-            </div>
-        </section>
+        {% include "profile/_skills.html" %}
+        {% include "profile/_profile_status.html" %}
     </section>
 </section>
 

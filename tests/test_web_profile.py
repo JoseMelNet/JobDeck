@@ -39,6 +39,29 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn("SQL", response.text)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_shell_partial_renders_profile_sections(self, mock_repository):
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = [{"id": 1, "categoria": "Data", "skill": "SQL", "nivel": "Avanzado"}]
+        mock_repository.get_experiences.return_value = []
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.get("/app/profile/shell?flash=skill_added")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("La skill fue agregada al perfil.", response.text)
+        self.assertIn("Datos principales", response.text)
+        self.assertIn("Estado del perfil", response.text)
+        self.assertIn("Vista CV", response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_save_profile_hx_returns_profile_shell(self, mock_repository):
         mock_repository.save_profile.return_value = {"success": True, "id": 1}
         mock_repository.get_active_profile.return_value = {
