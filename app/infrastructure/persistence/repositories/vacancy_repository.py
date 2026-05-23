@@ -16,6 +16,16 @@ class VacancyRepository:
     """Persistence access for vacancies."""
 
     @staticmethod
+    def normalize_link(link: Optional[str]) -> Optional[str]:
+        if not link:
+            return None
+        normalized = link.strip()
+        if not normalized:
+            return None
+        normalized = normalized.split("?", 1)[0].rstrip("/")
+        return normalized or None
+
+    @staticmethod
     def _close(cursor=None, conn=None) -> None:
         if cursor is not None:
             try:
@@ -71,7 +81,7 @@ class VacancyRepository:
                     empresa,
                     cargo,
                     modalidad,
-                    link.strip() if link and link.strip() else None,
+                    self.normalize_link(link),
                     descripcion,
                 ),
             )
@@ -141,6 +151,37 @@ class VacancyRepository:
             return self._row_to_vacancy(row) if row else None
         except Exception:
             logger.exception("Error obteniendo vacante %s", vacante_id)
+            return None
+        finally:
+            self._close(cursor, conn)
+
+    def get_by_link(self, link: Optional[str]) -> Optional[dict]:
+        normalized_link = self.normalize_link(link)
+        if not normalized_link:
+            return None
+
+        conn = None
+        cursor = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT TOP 1 id, empresa, cargo, modalidad, link, descripcion, fecha_registro, motivo_archivo
+                FROM vacantes
+                WHERE link = ? OR link = ? OR link = ?
+                ORDER BY fecha_registro DESC
+                """,
+                (
+                    normalized_link,
+                    f"{normalized_link}/",
+                    normalized_link.split("?", 1)[0],
+                ),
+            )
+            row = cursor.fetchone()
+            return self._row_to_vacancy(row) if row else None
+        except Exception:
+            logger.exception("Error obteniendo vacante por link %s", normalized_link)
             return None
         finally:
             self._close(cursor, conn)

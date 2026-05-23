@@ -1,33 +1,72 @@
 {% if vacancies %}
     <div class="simple-table">
         <div class="table-head">
-            <div>ID</div>
+            <div>Score</div>
             <div>Empresa</div>
             <div>Cargo</div>
-            <div>Modalidad</div>
+            <div>Fecha</div>
+            <div>Decisión</div>
             <div>Estado</div>
         </div>
         {% for item in vacancies %}
-            <a
-                class="table-row row-link{% if selected_vacancy and selected_vacancy.id == item.id %} is-selected{% endif %}"
-                href="/app/vacancies?selected={{ item.id }}&q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                hx-get="/app/vacancies/{{ item.id }}/detail?q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                hx-target="#vacancy-detail"
-                hx-swap="innerHTML"
-                hx-push-url="true"
+            <div
+                class="table-row-shell{% if selected_vacancy and selected_vacancy.id == item.id %} is-selected{% endif %}"
+                {% if selected_vacancy and selected_vacancy.id == item.id %}data-selected-row="true"{% endif %}
             >
-                <div class="mono-cell">#{{ item.id }}</div>
-                <div>
-                    <div class="primary-cell">{{ item.empresa }}</div>
-                    <div class="secondary-cell">{{ item.fecha_registro.strftime("%d/%m/%Y") if item.fecha_registro else "-" }}</div>
+                <a
+                    class="table-row row-link"
+                    href="/app/vacancies?selected={{ item.id }}&q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
+                    hx-get="/app/vacancies/list?selected={{ item.id }}&q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
+                    hx-target="#vacancy-list"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                >
+                    <div class="score-cell">
+                        {% if item.score_meta.value is not none %}
+                            <span class="analysis-pill analysis-pill-score tone-{{ item.score_meta.tone }}">{{ item.score_meta.value }}</span>
+                        {% else %}
+                            <span class="analysis-pill tone-gray">-</span>
+                        {% endif %}
+                    </div>
+                    <div class="company-cell">
+                        <div class="primary-cell truncate-cell" title="{{ item.empresa }}">{{ item.empresa }}</div>
+                        <div class="secondary-cell truncate-cell" title="{{ item.modalidad }}">{{ item.modalidad }}</div>
+                    </div>
+                    <div class="role-cell">
+                        <div class="primary-cell truncate-cell" title="{{ item.cargo }}">{{ item.cargo }}</div>
+                        <div class="secondary-cell truncate-cell" title="{{ item.affinity_meta.label if item.score_meta.value is not none else 'Pendiente de analisis' }}">
+                            {% if item.score_meta.value is not none %}
+                                {{ item.affinity_meta.label }}
+                            {% else %}
+                                Pendiente de analisis
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="date-cell">
+                        <span class="date-chip">{{ item.fecha_registro.strftime("%d/%m/%Y") if item.fecha_registro else "-" }}</span>
+                    </div>
+                    <div class="decision-cell">
+                        <span class="analysis-pill tone-{{ item.decision_meta.tone }}">{{ item.decision_meta.label }}</span>
+                    </div>
+                    <div class="status-cell"><span class="status-badge status-{{ item.status_meta.tone }}">{{ item.status_meta.label }}</span></div>
+                </a>
+                <div class="row-quick-actions">
+                    {% if not item.has_application %}
+                        <form method="post" action="/app/vacancies/{{ item.id }}/discard">
+                            <input type="hidden" name="q" value="{{ query }}">
+                            <input type="hidden" name="view" value="{{ current_view }}">
+                            <input type="hidden" name="page" value="{{ pagination.page }}">
+                            <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
+                            <button type="submit" class="quick-action danger-action">Descartar</button>
+                        </form>
+                    {% endif %}
                 </div>
-                <div>
-                    <div class="primary-cell">{{ item.cargo }}</div>
-                    <div class="secondary-cell">{{ item.score_label }}</div>
+            </div>
+            {% if selected_vacancy and selected_vacancy.id == item.id %}
+                <div class="inline-detail-row" data-inline-detail="true">
+                    {% include "vacancies/_detail.html" %}
                 </div>
-                <div><span class="soft-badge">{{ item.modalidad }}</span></div>
-                <div><span class="status-badge status-{{ item.status_meta.tone }}">{{ item.status_meta.label }}</span></div>
-            </a>
+            {% endif %}
         {% endfor %}
     </div>
     {% if pagination.total_pages > 1 %}

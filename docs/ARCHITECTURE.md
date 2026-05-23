@@ -4,6 +4,8 @@
 
 El proyecto evoluciono de un MVP centrado en scripts a un monolito ordenado con capas claras y con interfaz principal web.
 
+Tambien expone una API local para la extension de Chrome, usada para capturar vacantes desde LinkedIn y consultar analisis ya existentes.
+
 ## Capas
 
 ### Domain
@@ -64,6 +66,7 @@ Responsabilidades:
 - recoger input
 - llamar casos de uso o repositorios
 - renderizar output
+- exponer endpoints para la extension de Chrome y el panel lateral
 
 ## Estado actual del refactor
 
@@ -73,6 +76,9 @@ Completado:
 - repositorios nativos sobre `pyodbc`
 - casos de uso principales conectados
 - interfaz web principal sobre FastAPI + Jinja2 + HTMX
+- extension de Chrome migrada a `side panel`
+- guardado asincrono de vacantes con seguimiento de tasks
+- recuperacion de analisis historico por `link` para vacantes ya registradas
 - `Mi Perfil` migrado a web, incluida `Vista CV`
 - tests unitarios y de API
 - tests de rutas web principales
@@ -99,6 +105,32 @@ Tecnologia usada:
 - Jinja2
 - HTMX
 - CSS propio
+
+### Extension de Chrome
+
+La extension vive en `chrome-extension/` y usa `manifest v3` con `service worker` y `side panel`.
+
+Responsabilidades:
+
+- extraer datos de la vacante desde LinkedIn
+- llamar la API local para guardar y analizar
+- mostrar progreso de guardado y analisis
+- recuperar un analisis historico si la vacante ya existe en BD
+
+Endpoints clave:
+
+- `GET /health`
+- `POST /vacantes`
+- `POST /vacantes/async`
+- `GET /vacantes/tasks/{task_id}`
+- `GET /vacantes/{vacancy_id}/analysis`
+- `GET /vacantes/by-link?link=...`
+
+Decisiones relevantes:
+
+- el panel lateral persiste mejor que un popup clasico y no depende del foco
+- el `service worker` permite disparar guardado y analisis aunque la UI no permanezca abierta
+- la vacante se relaciona por `link` normalizado para recuperar analisis historicos sin depender de storage local
 
 ### Navegacion principal web
 
@@ -147,8 +179,10 @@ Vacantes:
 
 1. la web o la extension registran la vacante
 2. `CreateVacancyUseCase` valida y delega al repositorio
-3. `AnalyzeVacancyUseCase` obtiene vacante, perfil y guarda analisis
-4. la vacante se revisa en `Inbox`
+3. si entra por extension, puede lanzarse `POST /vacantes/async` y seguirse por task
+4. `AnalyzeVacancyUseCase` obtiene vacante, perfil y guarda analisis
+5. la extension puede volver a cargar ese analisis por `link`
+6. la vacante se revisa en `Inbox`
 
 Aplicaciones:
 

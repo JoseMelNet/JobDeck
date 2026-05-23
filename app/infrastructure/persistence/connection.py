@@ -11,6 +11,10 @@ import pyodbc
 from app.config.settings import settings
 
 
+class DatabaseConfigurationError(ValueError):
+    """Raised when database credentials are missing or incomplete."""
+
+
 def get_odbc_driver() -> str:
     """Return the preferred SQL Server ODBC driver available in the machine."""
     available_drivers = pyodbc.drivers()
@@ -23,7 +27,27 @@ def get_odbc_driver() -> str:
     return "ODBC Driver for SQL Server"
 
 
+def missing_database_settings() -> list[str]:
+    missing = []
+    if not settings.db_user:
+        missing.append("DB_USER")
+    if not settings.db_password:
+        missing.append("DB_PASSWORD")
+    return missing
+
+
+def validate_database_settings() -> None:
+    missing = missing_database_settings()
+    if missing:
+        joined = ", ".join(missing)
+        raise DatabaseConfigurationError(
+            f"Faltan variables de configuracion de BD: {joined}. "
+            "Define estas variables en .env o en el entorno antes de conectar a SQL Server."
+        )
+
+
 def build_connection_string() -> str:
+    validate_database_settings()
     driver = get_odbc_driver()
     return (
         f"Driver={{{driver}}};"
@@ -31,6 +55,19 @@ def build_connection_string() -> str:
         f"Database={settings.db_database};"
         f"UID={settings.db_user};"
         f"PWD={settings.db_password};"
+    )
+
+
+def build_safe_connection_summary() -> str:
+    driver = get_odbc_driver()
+    user_state = "configured" if settings.db_user else "missing"
+    password_state = "configured" if settings.db_password else "missing"
+    return (
+        f"Driver={{{driver}}};"
+        f"Server={settings.db_server};"
+        f"Database={settings.db_database};"
+        f"UID=<{user_state}>;"
+        f"PWD=<{password_state}>;"
     )
 
 
@@ -48,7 +85,7 @@ def test_connection() -> bool:
         cursor = conn.cursor()
         cursor.execute("SELECT 1")
         return True
-    except pyodbc.Error:
+    except (pyodbc.Error, DatabaseConfigurationError):
         return False
     finally:
         if cursor is not None:

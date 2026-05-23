@@ -39,9 +39,79 @@ register_application_use_case = RegisterApplicationUseCase(application_repositor
 STATUS_META = {
     "En seguimiento": {"tone": "blue", "label": "En seguimiento"},
     "Analizada": {"tone": "green", "label": "Analizada"},
-    "Registrada": {"tone": "gray", "label": "Registrada"},
+    "Sin analizar": {"tone": "gray", "label": "Sin analizar"},
 }
 INBOX_VIEWS = ["Todas", "Recientes", "Analizadas", "En seguimiento", "Sin analizar"]
+ANALYSIS_TONE_DEFAULT = {"tone": "gray", "label": "Sin analisis"}
+
+
+def _safe_score(value) -> float | None:
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _score_meta(analysis: dict | None) -> dict:
+    if not analysis:
+        return {**ANALYSIS_TONE_DEFAULT, "value": None}
+
+    score = _safe_score(analysis.get("score_total"))
+    if score is None:
+        return {**ANALYSIS_TONE_DEFAULT, "value": None}
+    if score >= 80:
+        tone = "green"
+    elif score >= 60:
+        tone = "amber"
+    else:
+        tone = "red"
+    return {"tone": tone, "label": "Score", "value": round(score)}
+
+
+def _keyword_tone(value: str | None, mapping: dict[str, str], default_label: str) -> dict:
+    if not value:
+        return {"tone": "gray", "label": "-", "raw": None}
+
+    normalized = value.strip()
+    lowered = normalized.lower()
+    for keyword, tone in mapping.items():
+        if keyword in lowered:
+            return {"tone": tone, "label": normalized, "raw": normalized}
+    return {"tone": "gray", "label": normalized or default_label, "raw": normalized}
+
+
+def _affinity_meta(analysis: dict | None) -> dict:
+    if not analysis:
+        return {"tone": "gray", "label": "-", "raw": None}
+    return _keyword_tone(
+        analysis.get("afinidad_general"),
+        {
+            "alta": "green",
+            "media": "amber",
+            "baja": "red",
+        },
+        "-",
+    )
+
+
+def _decision_meta(analysis: dict | None) -> dict:
+    if not analysis:
+        return {"tone": "gray", "label": "-", "raw": None}
+
+    decision = analysis.get("decision_aplicacion")
+    if not decision:
+        return {"tone": "gray", "label": "-", "raw": None}
+
+    lowered = decision.strip().lower()
+    if "no aplicar" in lowered or "descartar" in lowered or "rechazar" in lowered:
+        tone = "red"
+    elif "revis" in lowered or "evalu" in lowered or "consider" in lowered:
+        tone = "amber"
+    elif "aplicar" in lowered or "prior" in lowered or "avanz" in lowered:
+        tone = "green"
+    else:
+        tone = "gray"
+    return {"tone": tone, "label": decision.strip(), "raw": decision.strip()}
 
 
 def _application_ids_with_tracking() -> set[int]:
@@ -50,6 +120,7 @@ def _application_ids_with_tracking() -> set[int]:
 
 def _build_vacancy_items(limit: int | None = None) -> list[dict]:
     vacancies = vacancy_repository.list_all()
+    vacancies = [item for item in vacancies if not item.get("motivo_archivo")]
     vacancies = sorted(vacancies, key=lambda item: item.get("fecha_registro") or "", reverse=True)
     visible_vacancies = vacancies[:limit] if limit else vacancies
     vacancy_ids = [item["id"] for item in visible_vacancies]
@@ -59,14 +130,20 @@ def _build_vacancy_items(limit: int | None = None) -> list[dict]:
     for vacancy in visible_vacancies:
         analysis = analyses_by_vacancy.get(vacancy["id"])
         has_application = vacancy["id"] in tracked_vacancy_ids
-        status_label = "En seguimiento" if has_application else ("Analizada" if analysis else "Registrada")
+        status_label = "En seguimiento" if has_application else ("Analizada" if analysis else "Sin analizar")
+        score_meta = _score_meta(analysis)
+        affinity_meta = _affinity_meta(analysis)
+        decision_meta = _decision_meta(analysis)
         items.append(
             {
                 **vacancy,
                 "analisis": analysis,
                 "status_label": status_label,
                 "status_meta": STATUS_META[status_label],
-                "score_label": f"{analysis.get('score_total', 0):.0f}" if analysis else "Sin score",
+                "score_label": f"{score_meta['value']:.0f}" if score_meta["value"] is not None else "Sin analisis",
+                "score_meta": score_meta,
+                "affinity_meta": affinity_meta,
+                "decision_meta": decision_meta,
                 "has_application": has_application,
             }
         )
@@ -134,6 +211,41 @@ def _selected_vacancy(selected_id: int | None) -> dict | None:
     return next((item for item in items if item["id"] == selected_id), items[0])
 
 
+def _next_visible_vacancy_id(current_id: int, *, q: str | None, view: str) -> int | None:
+    items = _filter_vacancy_items(_build_vacancy_items(limit=None), q=q, view=view)
+    if not items:
+        return None
+    for item in items:
+        if item["id"] != current_id:
+            return item["id"]
+    return None
+
+
+def _build_inbox_url(
+    *,
+    selected: int | None = None,
+    flash: str | None = None,
+    q: str | None = None,
+    view: str = "Todas",
+    page: int = 1,
+    page_size: int = DEFAULT_PAGE_SIZE,
+) -> str:
+    params: list[str] = []
+    if selected is not None:
+        params.append(f"selected={selected}")
+    if flash:
+        params.append(f"flash={flash}")
+    if q:
+        params.append(f"q={q}")
+    if view and view != "Todas":
+        params.append(f"view={view}")
+    if page != 1:
+        params.append(f"page={page}")
+    if page_size != DEFAULT_PAGE_SIZE:
+        params.append(f"page_size={page_size}")
+    return "/app/vacancies" + (f"?{'&'.join(params)}" if params else "")
+
+
 def _flash_message(flash: str | None) -> tuple[str, str] | None:
     if flash == "vacancy_created":
         return ("success", "Vacante registrada y analizada. Revisa el resultado en Inbox.")
@@ -143,6 +255,10 @@ def _flash_message(flash: str | None) -> tuple[str, str] | None:
         return ("warning", "Vacante registrada, pero el analisis no pudo completarse.")
     if flash == "interest_error":
         return ("warning", "No se pudo enviar la vacante a Seguimiento.")
+    if flash == "vacancy_discarded":
+        return ("info", "Vacante descartada y removida del Inbox.")
+    if flash == "vacancy_discard_error":
+        return ("warning", "No se pudo descartar la vacante.")
     return None
 
 
@@ -160,7 +276,7 @@ def _build_inbox_context(
     filtered_items = _filter_vacancy_items(all_items, q=q, view=normalized_view)
     resolved_page = _resolve_page_for_selected(filtered_items, selected, normalized_page_size, page)
     items, pagination = _paginate_items(filtered_items, resolved_page, normalized_page_size)
-    selected_vacancy = next((item for item in items if item["id"] == selected), None) if selected else (items[0] if items else None)
+    selected_vacancy = next((item for item in items if item["id"] == selected), None) if selected else None
     return {
         "vacancies": items,
         "selected_vacancy": selected_vacancy,
@@ -188,6 +304,8 @@ def vacancies_index(
     page_size: int = DEFAULT_PAGE_SIZE,
 ):
     context = _build_inbox_context(selected=selected, flash=flash, q=q, view=view, page=page, page_size=page_size)
+    metrics = _build_metrics()
+    metric_lookup = {item["label"]: item["value"] for item in metrics}
     return templates.TemplateResponse(
         request=request,
         name="vacancies/index.html",
@@ -195,7 +313,15 @@ def vacancies_index(
             "page_title": "Inbox de Vacantes",
             "active_nav": "vacancies",
             "nav_items": _build_nav("vacancies"),
-            "metrics": _build_metrics(),
+            "metrics": metrics,
+            "hide_global_metrics": True,
+            "context_bar": [
+                {"label": "Vacantes visibles", "value": context["summary"]["total"]},
+                {"label": "Analizadas", "value": context["summary"]["analizadas"]},
+                {"label": "En seguimiento", "value": context["summary"]["seguimiento"]},
+                {"label": "Aplicaciones", "value": metric_lookup.get("Aplicaciones", 0)},
+                {"label": "Rechazadas", "value": metric_lookup.get("Rechazadas", 0)},
+            ],
             **context,
         },
     )
@@ -264,7 +390,16 @@ def vacancy_detail_partial(request: Request, vacancy_id: int):
     return templates.TemplateResponse(
         request=request,
         name="vacancies/_detail.html",
-        context={"request": request, "selected_vacancy": vacancy},
+        context={
+            "request": request,
+            "selected_vacancy": vacancy,
+            "query": request.query_params.get("q", ""),
+            "current_view": request.query_params.get("view", "Todas"),
+            "pagination": {
+                "page": int(request.query_params.get("page", "1")),
+                "page_size": int(request.query_params.get("page_size", str(DEFAULT_PAGE_SIZE))),
+            },
+        },
     )
 
 
@@ -311,3 +446,39 @@ def mark_vacancy_as_interesting(vacancy_id: int):
         )
 
     return RedirectResponse(url="/app/vacancies?flash=interest_error", status_code=303)
+
+
+@router.post("/app/vacancies/{vacancy_id}/discard")
+def discard_vacancy(
+    vacancy_id: int,
+    q: str | None = Form(default=None),
+    view: str = Form(default="Todas"),
+    page: int = Form(default=1),
+    page_size: int = Form(default=DEFAULT_PAGE_SIZE),
+):
+    result = vacancy_repository.archive(vacancy_id, "Otro")
+    if not result["success"]:
+        return RedirectResponse(
+            url=_build_inbox_url(
+                selected=vacancy_id,
+                flash="vacancy_discard_error",
+                q=q,
+                view=view,
+                page=page,
+                page_size=page_size,
+            ),
+            status_code=303,
+        )
+
+    next_selected = _next_visible_vacancy_id(vacancy_id, q=q, view=view)
+    return RedirectResponse(
+        url=_build_inbox_url(
+            selected=next_selected,
+            flash="vacancy_discarded",
+            q=q,
+            view=view,
+            page=page,
+            page_size=page_size,
+        ),
+        status_code=303,
+    )

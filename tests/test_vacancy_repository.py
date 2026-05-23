@@ -32,6 +32,13 @@ class VacancyRepositoryTests(unittest.TestCase):
         self.assertEqual(result["empresa"], "ACME")
         self.assertEqual(result["motivo_archivo"], "Descartada")
 
+    def test_normalize_link_removes_query_and_trailing_slash(self):
+        repository = VacancyRepository()
+
+        result = repository.normalize_link(" https://www.linkedin.com/jobs/view/4384356134/?refId=abc ")
+
+        self.assertEqual(result, "https://www.linkedin.com/jobs/view/4384356134")
+
     @patch("app.infrastructure.persistence.repositories.vacancy_repository.get_connection")
     def test_create_commits_when_insert_succeeds(self, get_connection_mock):
         conn = Mock()
@@ -52,6 +59,30 @@ class VacancyRepositoryTests(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertEqual(result["id"], 5)
         conn.commit.assert_called_once()
+
+    @patch("app.infrastructure.persistence.repositories.vacancy_repository.get_connection")
+    def test_get_by_link_returns_latest_match(self, get_connection_mock):
+        conn = Mock()
+        cursor = Mock()
+        conn.cursor.return_value = cursor
+        cursor.fetchone.return_value = (
+            9,
+            "ACME",
+            "Analyst",
+            "Remoto",
+            "https://www.linkedin.com/jobs/view/4384356134/",
+            "Desc",
+            "2026-04-06",
+            None,
+        )
+        get_connection_mock.return_value = conn
+        repository = VacancyRepository()
+
+        result = repository.get_by_link("https://www.linkedin.com/jobs/view/4384356134/?tracking=abc")
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result["id"], 9)
+        cursor.execute.assert_called_once()
 
 
 if __name__ == "__main__":

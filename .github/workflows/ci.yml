@@ -27,7 +27,7 @@ jobs:
 
       - name: Validate Python syntax
         run: |
-          python -m compileall app modules tests api.py app.py services.py run_tests.py
+          python -m compileall app modules tests api.py app.py run_tests.py
 
   lint:
     runs-on: windows-latest
@@ -48,7 +48,7 @@ jobs:
 
       - name: Run Ruff
         run: |
-          ruff check app modules tests api.py app.py services.py run_tests.py
+          ruff check app modules tests api.py app.py run_tests.py
 
   test:
     runs-on: windows-latest
