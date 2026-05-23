@@ -1,0 +1,25 @@
+{% if pagination.total_pages > 1 %}
+    <div class="detail-actions">
+        {% if pagination.has_prev %}
+            <a
+                class="secondary-link"
+                href="{{ pagination_prev_href }}"
+                hx-get="{{ pagination_prev_hx_get }}"
+                hx-target="{{ pagination_hx_target }}"
+                hx-swap="{{ pagination_hx_swap }}"
+                hx-push-url="{{ pagination_hx_push_url }}"
+            >Anterior</a>
+        {% endif %}
+        <span class="muted-note">Pagina {{ pagination.page }} de {{ pagination.total_pages }}</span>
+        {% if pagination.has_next %}
+            <a
+                class="secondary-link"
+                href="{{ pagination_next_href }}"
+                hx-get="{{ pagination_next_hx_get }}"
+                hx-target="{{ pagination_hx_target }}"
+                hx-swap="{{ pagination_hx_swap }}"
+                hx-push-url="{{ pagination_hx_push_url }}"
+            >Siguiente</a>
+        {% endif %}
+    </div>
+{% endif %}

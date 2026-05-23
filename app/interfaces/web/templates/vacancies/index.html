@@ -1,12 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="page-header">
-    <div class="page-header-copy">
-        <h1>Inbox de Vacantes</h1>
-        <p>Revisa, prioriza y decide sin salir del workspace.</p>
-    </div>
-</section>
+{% set page_header_title = "Inbox de Vacantes" %}
+{% set page_header_description = "Revisa, prioriza y decide sin salir del workspace." %}
+{% set page_header_copy_class = "page-header-copy" %}
+{% include "components/_page_header.html" %}
 
 <section class="context-strip">
     {% for item in context_bar %}
@@ -18,9 +16,9 @@
 </section>
 
 {% if flash_message %}
-    <section class="flash-message flash-{{ flash_message[0] }}">
-        {{ flash_message[1] }}
-    </section>
+    {% set flash_tone = flash_message[0] %}
+    {% set flash_text = flash_message[1] %}
+    {% include "components/_flash.html" %}
 {% endif %}
 
 <section class="filter-panel">

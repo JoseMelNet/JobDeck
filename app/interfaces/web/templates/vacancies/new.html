@@ -1,23 +1,21 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="page-header">
-    <div>
-        <h1>Nueva Vacante</h1>
-        <p>Entrada manual de vacantes. La extension de Chrome seguira usando la API actual.</p>
-    </div>
-</section>
+{% set page_header_title = "Nueva Vacante" %}
+{% set page_header_description = "Entrada manual de vacantes. La extension de Chrome seguira usando la API actual." %}
+{% set page_header_copy_class = none %}
+{% include "components/_page_header.html" %}
 
 <section class="layout-two-columns form-layout">
     <section class="panel">
         {% if request.query_params.get("flash") == "validation_error" %}
-            <section class="flash-message flash-warning">
-                Revisa los datos de la vacante. Hay un valor invalido o faltante.
-            </section>
+            {% set flash_tone = "warning" %}
+            {% set flash_text = "Revisa los datos de la vacante. Hay un valor invalido o faltante." %}
+            {% include "components/_flash.html" %}
         {% elif request.query_params.get("flash") == "save_error" %}
-            <section class="flash-message flash-warning">
-                No se pudo guardar la vacante. Intenta nuevamente.
-            </section>
+            {% set flash_tone = "warning" %}
+            {% set flash_text = "No se pudo guardar la vacante. Intenta nuevamente." %}
+            {% include "components/_flash.html" %}
         {% endif %}
 
         <form class="stack-form" method="post" action="/app/vacancies/new">

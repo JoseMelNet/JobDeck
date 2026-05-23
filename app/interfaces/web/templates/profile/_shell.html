@@ -1,5 +1,7 @@
 ﻿{% if flash_message %}
-    <section class="flash-message flash-{{ flash_message[0] }}">{{ flash_message[1] }}</section>
+    {% set flash_tone = flash_message[0] %}
+    {% set flash_text = flash_message[1] %}
+    {% include "components/_flash.html" %}
 {% endif %}
 
 <section class="summary-strip profile-summary-strip">
