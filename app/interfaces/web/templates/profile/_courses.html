@@ -1,0 +1,38 @@
+<section class="panel">
+    <div class="section-title"><div><h2>Cursos</h2><p>Formacion complementaria para reforzar tu perfil.</p></div><span class="soft-badge">{{ courses|length }} registros</span></div>
+    <details class="section-disclosure" {% if not courses %}open{% endif %}>
+        <summary>Agregar curso</summary>
+        <form class="stack-form compact-form section-form" method="post" action="/app/profile/courses" hx-post="/app/profile/courses" hx-target="#profile-shell" hx-swap="innerHTML">
+        <div class="grid-two">
+            <label><span>Titulo</span><input type="text" name="titulo" placeholder="Ej. SQL para analisis de datos" required></label>
+            <label><span>Institucion</span><input type="text" name="institucion" placeholder="Ej. Coursera" required></label>
+        </div>
+        <div class="grid-three">
+            <label><span>Fecha inicio</span><input type="date" name="fecha_inicio"></label>
+            <label><span>Fecha fin</span><input type="date" name="fecha_fin"></label>
+            <label><span>Estado</span><select name="status">{% for option in course_status_options %}<option value="{{ option }}">{{ option }}</option>{% endfor %}</select></label>
+        </div>
+        <label><span>URL certificado</span><input type="url" name="url_certificado"></label>
+        <button type="submit">Agregar curso</button>
+        </form>
+    </details>
+    {% if courses %}
+        <div class="record-list compact-record-list">
+            {% for item in courses %}
+                <article class="record-card">
+                    <div class="record-header">
+                        <div><h3>{{ item.titulo }}</h3><p>{{ item.institucion }}</p></div>
+                        <span class="soft-badge">{{ item.status }}</span>
+                    </div>
+                    <div class="detail-actions">
+                        <form method="post" action="/app/profile/courses/{{ item.id }}/delete" hx-post="/app/profile/courses/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+                            <button type="submit" class="danger-action">Eliminar</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-panel"><h3>Sin cursos registrados</h3><p>No hay cursos cargados todavia.</p></div>
+    {% endif %}
+</section>

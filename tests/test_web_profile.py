@@ -208,3 +208,28 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn("La skill fue eliminada.", response.text)
         self.assertIn("Sin skills", response.text)
         self.assertNotIn('action="/app/profile/save"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_shell_partial_keeps_formation_sections(self, mock_repository):
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = []
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.get("/app/profile/shell")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Educacion", response.text)
+        self.assertIn("Cursos", response.text)
+        self.assertIn("Certificaciones", response.text)
+        self.assertIn('action="/app/profile/education"', response.text)
+        self.assertIn('action="/app/profile/courses"', response.text)
+        self.assertIn('action="/app/profile/certifications"', response.text)

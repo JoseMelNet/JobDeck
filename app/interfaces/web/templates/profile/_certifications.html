@@ -1,0 +1,38 @@
+<section class="panel">
+    <div class="section-title"><div><h2>Certificaciones</h2><p>Credenciales y badges relevantes para tus postulaciones.</p></div><span class="soft-badge">{{ certifications|length }} registros</span></div>
+    <details class="section-disclosure" {% if not certifications %}open{% endif %}>
+        <summary>Agregar certificacion</summary>
+        <form class="stack-form compact-form section-form" method="post" action="/app/profile/certifications" hx-post="/app/profile/certifications" hx-target="#profile-shell" hx-swap="innerHTML">
+        <div class="grid-two">
+            <label><span>Titulo</span><input type="text" name="titulo" placeholder="Ej. AWS Certified Data Analytics" required></label>
+            <label><span>Institucion</span><input type="text" name="institucion" placeholder="Ej. Amazon Web Services" required></label>
+        </div>
+        <div class="grid-three">
+            <label><span>Fecha obtencion</span><input type="date" name="fecha_obtencion" required></label>
+            <label><span>Fecha vencimiento</span><input type="date" name="fecha_vencimiento"></label>
+            <label><span>Estado</span><select name="status">{% for option in certification_status_options %}<option value="{{ option }}">{{ option }}</option>{% endfor %}</select></label>
+        </div>
+        <label><span>URL certificado</span><input type="url" name="url_certificado"></label>
+        <button type="submit">Agregar certificacion</button>
+        </form>
+    </details>
+    {% if certifications %}
+        <div class="record-list compact-record-list">
+            {% for item in certifications %}
+                <article class="record-card">
+                    <div class="record-header">
+                        <div><h3>{{ item.titulo }}</h3><p>{{ item.institucion }}</p></div>
+                        <span class="soft-badge">{{ item.status }}</span>
+                    </div>
+                    <div class="detail-actions">
+                        <form method="post" action="/app/profile/certifications/{{ item.id }}/delete" hx-post="/app/profile/certifications/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+                            <button type="submit" class="danger-action">Eliminar</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-panel"><h3>Sin certificaciones registradas</h3><p>No hay certificaciones cargadas todavia.</p></div>
+    {% endif %}
+</section>
