@@ -233,3 +233,230 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn('action="/app/profile/education"', response.text)
         self.assertIn('action="/app/profile/courses"', response.text)
         self.assertIn('action="/app/profile/certifications"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_formation_partial_renders_isolated_formation_shell(self, mock_repository):
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = []
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.get("/app/profile/formation")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn("Educacion", response.text)
+        self.assertIn("Cursos", response.text)
+        self.assertIn("Certificaciones", response.text)
+        self.assertNotIn('id="profile-skills-shell"', response.text)
+        self.assertNotIn('id="profile-basics-shell"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_add_education_hx_returns_isolated_formation_fragment(self, mock_repository):
+        mock_repository.add_education.return_value = {"success": True}
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = []
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = [
+            {
+                "id": 1,
+                "titulo": "Ingenieria",
+                "institucion": "UN",
+                "nivel": "Pregrado",
+                "status": "Completado",
+                "fecha_inicio": "2020-01-01",
+                "fecha_fin": None,
+            }
+        ]
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.post(
+            "/app/profile/education",
+            data={
+                "titulo": "Ingenieria",
+                "institucion": "UN",
+                "nivel": "Pregrado",
+                "status": "Completado",
+                "fecha_inicio": "2020-01-01",
+            },
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn("La educacion fue guardada.", response.text)
+        self.assertIn('id="profile-skills-shell"', response.text)
+        self.assertIn('id="profile-cv-preview"', response.text)
+        self.assertIn('hx-swap-oob="outerHTML"', response.text)
+        self.assertNotIn('action="/app/profile/experiences"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_delete_education_hx_returns_isolated_formation_fragment(self, mock_repository):
+        mock_repository.delete_education.return_value = {"success": True}
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = []
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.post(
+            "/app/profile/education/1/delete",
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn("La educacion fue eliminada.", response.text)
+        self.assertIn("Sin educacion registrada", response.text)
+        self.assertNotIn('action="/app/profile/save"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_add_course_hx_returns_isolated_formation_fragment(self, mock_repository):
+        mock_repository.add_course.return_value = {"success": True}
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = []
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = [{"id": 2, "titulo": "SQL", "institucion": "Coursera", "status": "Completado"}]
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.post(
+            "/app/profile/courses",
+            data={
+                "titulo": "SQL",
+                "institucion": "Coursera",
+                "status": "Completado",
+            },
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn("El curso fue guardado.", response.text)
+        self.assertIn("SQL", response.text)
+        self.assertIn('id="profile-cv-preview"', response.text)
+        self.assertNotIn('action="/app/profile/save"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_delete_course_hx_returns_isolated_formation_fragment(self, mock_repository):
+        mock_repository.delete_course.return_value = {"success": True}
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = []
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.post(
+            "/app/profile/courses/2/delete",
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn("El curso fue eliminado.", response.text)
+        self.assertIn("Sin cursos registrados", response.text)
+        self.assertNotIn('action="/app/profile/save"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_add_certification_hx_returns_isolated_formation_fragment(self, mock_repository):
+        mock_repository.add_certification.return_value = {"success": True}
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = []
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = [
+            {
+                "id": 3,
+                "titulo": "AWS",
+                "institucion": "AWS",
+                "status": "Vigente",
+                "fecha_obtencion": "2024-01-01",
+            }
+        ]
+
+        response = self.client.post(
+            "/app/profile/certifications",
+            data={
+                "titulo": "AWS",
+                "institucion": "AWS",
+                "status": "Vigente",
+                "fecha_obtencion": "2024-01-01",
+            },
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn("La certificacion fue guardada.", response.text)
+        self.assertIn("AWS", response.text)
+        self.assertIn('id="profile-cv-preview"', response.text)
+        self.assertNotIn('action="/app/profile/save"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_delete_certification_hx_returns_isolated_formation_fragment(self, mock_repository):
+        mock_repository.delete_certification.return_value = {"success": True}
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = []
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.post(
+            "/app/profile/certifications/3/delete",
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn("La certificacion fue eliminada.", response.text)
+        self.assertIn("Sin certificaciones registradas", response.text)
+        self.assertNotIn('action="/app/profile/save"', response.text)

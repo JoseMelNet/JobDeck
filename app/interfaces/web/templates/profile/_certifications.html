@@ -2,7 +2,7 @@
     <div class="section-title"><div><h2>Certificaciones</h2><p>Credenciales y badges relevantes para tus postulaciones.</p></div><span class="soft-badge">{{ certifications|length }} registros</span></div>
     <details class="section-disclosure" {% if not certifications %}open{% endif %}>
         <summary>Agregar certificacion</summary>
-        <form class="stack-form compact-form section-form" method="post" action="/app/profile/certifications" hx-post="/app/profile/certifications" hx-target="#profile-shell" hx-swap="innerHTML">
+        <form class="stack-form compact-form section-form" method="post" action="/app/profile/certifications" hx-post="/app/profile/certifications" hx-target="#profile-formation-shell" hx-swap="outerHTML">
         <div class="grid-two">
             <label><span>Titulo</span><input type="text" name="titulo" placeholder="Ej. AWS Certified Data Analytics" required></label>
             <label><span>Institucion</span><input type="text" name="institucion" placeholder="Ej. Amazon Web Services" required></label>
@@ -25,7 +25,7 @@
                         <span class="soft-badge">{{ item.status }}</span>
                     </div>
                     <div class="detail-actions">
-                        <form method="post" action="/app/profile/certifications/{{ item.id }}/delete" hx-post="/app/profile/certifications/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+                        <form method="post" action="/app/profile/certifications/{{ item.id }}/delete" hx-post="/app/profile/certifications/{{ item.id }}/delete" hx-target="#profile-formation-shell" hx-swap="outerHTML">
                             <button type="submit" class="danger-action">Eliminar</button>
                         </form>
                     </div>

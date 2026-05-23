@@ -237,6 +237,20 @@ def _render_profile_basics_shell(request: Request, flash: str = "", include_oob:
     )
 
 
+def _render_profile_formation_shell(request: Request, flash: str = "", include_oob: bool = False):
+    context = _build_profile_context(flash=flash)
+    template_name = "profile/_formation_fragment.html" if include_oob else "profile/_formation_shell.html"
+    return templates.TemplateResponse(
+        request=request,
+        name=template_name,
+        context={
+            "request": request,
+            **context,
+            "formation_flash_message": context["flash_message"] if flash else None,
+        },
+    )
+
+
 @router.get("/app/profile")
 def profile_index(request: Request, flash: str | None = None):
     context = _build_profile_context(flash=flash)
@@ -266,6 +280,11 @@ def profile_skills_partial(request: Request, flash: str | None = None):
 @router.get("/app/profile/basics", response_class=HTMLResponse)
 def profile_basics_partial(request: Request, flash: str | None = None):
     return _render_profile_basics_shell(request, flash or "")
+
+
+@router.get("/app/profile/formation", response_class=HTMLResponse)
+def profile_formation_partial(request: Request, flash: str | None = None):
+    return _render_profile_formation_shell(request, flash or "")
 
 
 @router.post("/app/profile/save")
@@ -531,7 +550,7 @@ def add_education(
         )
         flash = "education_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
-        return _render_profile_shell(request, flash)
+        return _render_profile_formation_shell(request, flash, include_oob=True)
     return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
 
 
@@ -540,7 +559,7 @@ def delete_education(request: Request, education_id: int):
     result = profile_repository.delete_education(education_id)
     flash = "education_deleted" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
-        return _render_profile_shell(request, flash)
+        return _render_profile_formation_shell(request, flash, include_oob=True)
     return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
 
 
@@ -571,7 +590,7 @@ def add_course(
         )
         flash = "course_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
-        return _render_profile_shell(request, flash)
+        return _render_profile_formation_shell(request, flash, include_oob=True)
     return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
 
 
@@ -580,7 +599,7 @@ def delete_course(request: Request, course_id: int):
     result = profile_repository.delete_course(course_id)
     flash = "course_deleted" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
-        return _render_profile_shell(request, flash)
+        return _render_profile_formation_shell(request, flash, include_oob=True)
     return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
 
 
@@ -611,7 +630,7 @@ def add_certification(
         )
         flash = "certification_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
-        return _render_profile_shell(request, flash)
+        return _render_profile_formation_shell(request, flash, include_oob=True)
     return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
 
 
@@ -620,6 +639,6 @@ def delete_certification(request: Request, certification_id: int):
     result = profile_repository.delete_certification(certification_id)
     flash = "certification_deleted" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
-        return _render_profile_shell(request, flash)
+        return _render_profile_formation_shell(request, flash, include_oob=True)
     return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
 

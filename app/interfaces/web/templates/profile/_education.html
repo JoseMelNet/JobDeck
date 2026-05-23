@@ -2,7 +2,7 @@
     <div class="section-title"><div><h2>Educacion</h2><p>Formacion academica principal.</p></div><span class="soft-badge">{{ education|length }} registros</span></div>
     <details class="section-disclosure" {% if not education %}open{% endif %}>
         <summary>Agregar educacion</summary>
-        <form class="stack-form compact-form section-form" method="post" action="/app/profile/education" hx-post="/app/profile/education" hx-target="#profile-shell" hx-swap="innerHTML">
+        <form class="stack-form compact-form section-form" method="post" action="/app/profile/education" hx-post="/app/profile/education" hx-target="#profile-formation-shell" hx-swap="outerHTML">
         <div class="grid-two">
             <label><span>Titulo</span><input type="text" name="titulo" placeholder="Ej. Ingenieria de Sistemas" required></label>
             <label><span>Institucion</span><input type="text" name="institucion" placeholder="Ej. Universidad Nacional" required></label>
@@ -28,7 +28,7 @@
                         <span class="soft-badge">{{ item.status }}</span>
                     </div>
                     <div class="detail-actions">
-                        <form method="post" action="/app/profile/education/{{ item.id }}/delete" hx-post="/app/profile/education/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+                        <form method="post" action="/app/profile/education/{{ item.id }}/delete" hx-post="/app/profile/education/{{ item.id }}/delete" hx-target="#profile-formation-shell" hx-swap="outerHTML">
                             <button type="submit" class="danger-action">Eliminar</button>
                         </form>
                     </div>
