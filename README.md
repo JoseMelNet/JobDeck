@@ -183,5 +183,5 @@ Detalle adicional en [ARCHITECTURE.md](/C:/Users/josem/PycharmProjects/CVs-Optim
 - la web es ahora la interfaz recomendada
 - `app.py` en la raiz queda solo como acceso rapido informativo
 - la extension de Chrome ya opera con panel lateral y recuperacion de analisis historico por `link`
-- la suite principal corre localmente con `60` tests
+- la suite principal corre localmente con `68` tests
 - el pipeline de CI ya esta preparado para validar cambios automaticamente
