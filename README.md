@@ -76,13 +76,13 @@ pip install -r requirements.txt
 Interfaz principal web:
 
 ```bash
-uvicorn api:app --reload
+uvicorn api:app --reload --port 8001
 ```
 
 Luego abre:
 
 ```text
-http://127.0.0.1:8000/app
+http://127.0.0.1:8001/app
 ```
 
 Prueba rapida de BD:

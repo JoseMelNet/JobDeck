@@ -482,7 +482,7 @@ async function guardarVacante() {
       setGuardarEstado("💾 Guardar en CVs-Optimizador", false);
     }
   } catch (err) {
-    mostrarToast("error", "❌ No se pudo conectar con la API. ¿Está corriendo uvicorn?");
+    mostrarToast("error", "❌ No se pudo conectar con la API. Ejecuta: uvicorn api:app --reload --port 8001");
     setStatus("error", "API no disponible");
     setGuardarEstado("💾 Guardar en CVs-Optimizador", false);
   }
