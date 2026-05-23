@@ -9,7 +9,7 @@
         </div>
         {% for item in applications %}
             <a
-                class="table-row row-link{% if selected_application and selected_application.id == item.id %} is-selected{% endif %}"
+                class="table-row row-link application-row{% if selected_application and selected_application.id == item.id %} is-selected{% endif %}"
                 href="/app/applications?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
                 hx-get="/app/applications/shell?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
                 hx-target="#applications-shell"

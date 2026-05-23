@@ -463,6 +463,33 @@ a {
     min-width: 0;
 }
 
+.application-row {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: #fbfcfe;
+}
+
+.application-row:hover {
+    border-color: #bfdbfe;
+    background: #f8fbff;
+    transform: translateY(-1px);
+}
+
+.application-row.is-selected {
+    border-color: #b3c9ff;
+    background: #eef4ff;
+    box-shadow: inset 4px 0 0 #1d4ed8;
+}
+
+.application-list-panel,
+.application-detail-panel {
+    min-width: 0;
+}
+
+.application-detail-panel {
+    align-self: start;
+}
+
 .table-row-shell:hover {
     border-color: #bfdbfe;
     background: #f8fbff;

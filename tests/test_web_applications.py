@@ -166,3 +166,58 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn("ACME 25", response.text)
         self.assertIn("Pagina 3 de 3", response.text)
         self.assertIn("ACME 25 - Role 25", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_shell_uses_system_filter_button_and_preserves_shell_target(self, mock_repository):
+        mock_repository.list_all.return_value = [
+            {
+                "id": 7,
+                "vacante_id": 3,
+                "empresa": "ACME",
+                "cargo": "Data Analyst",
+                "modalidad": "Remoto",
+                "link": "https://example.com",
+                "fecha_aplicacion": date(2026, 4, 1),
+                "estado": "Pending",
+                "nombre_recruiter": None,
+                "email_recruiter": None,
+                "telefono_recruiter": None,
+                "notas": "Pendiente",
+                "fecha_registro": date(2026, 4, 1),
+            }
+        ]
+
+        response = self.client.get("/app/applications/shell?q=acme&state=Todos&page=1&page_size=20")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('class="secondary-action filter-submit"', response.text)
+        self.assertIn('hx-target="#applications-shell"', response.text)
+        self.assertIn('hx-swap="outerHTML"', response.text)
+        self.assertIn('hx-push-url="true"', response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_partial_preserves_state_query_and_pagination(self, mock_repository):
+        mock_repository.list_all.return_value = [
+            {
+                "id": 25,
+                "vacante_id": 25,
+                "empresa": "ACME 25",
+                "cargo": "Role 25",
+                "modalidad": "Remoto",
+                "link": "https://example.com",
+                "fecha_aplicacion": date(2026, 4, 1),
+                "estado": "Pending",
+                "nombre_recruiter": None,
+                "email_recruiter": None,
+                "telefono_recruiter": None,
+                "notas": "",
+                "fecha_registro": date(2026, 4, 1),
+            }
+        ]
+
+        response = self.client.get("/app/applications/25/detail?q=acme&state=Todos&page=3&page_size=10")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("ACME 25 - Role 25", response.text)
+        self.assertIn('value="acme"', response.text)
+        self.assertIn('value="Todos"', response.text)
