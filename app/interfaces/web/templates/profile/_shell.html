@@ -4,15 +4,14 @@
     {% include "components/_flash.html" %}
 {% endif %}
 
-{% include "profile/_overview.html" %}
+<div id="profile-overview">
+    {% include "profile/_overview.html" %}
+</div>
 
 <section class="layout-two-columns profile-layout">
     {% include "profile/_basics.html" %}
 
-    <section class="stack-panel">
-        {% include "profile/_skills.html" %}
-        {% include "profile/_profile_status.html" %}
-    </section>
+    {% include "profile/_skills_shell.html" %}
 </section>
 
 <section class="profile-sections-grid">

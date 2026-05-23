@@ -6,7 +6,7 @@
         </div>
     </div>
     <p class="section-caption">Mantener skills claras y concretas ayuda a que la afinidad con vacantes sea mas fiable.</p>
-    <form class="stack-form compact-form" method="post" action="/app/profile/skills" hx-post="/app/profile/skills" hx-target="#profile-shell" hx-swap="innerHTML">
+    <form class="stack-form compact-form" method="post" action="/app/profile/skills" hx-post="/app/profile/skills" hx-target="#profile-skills-shell" hx-swap="outerHTML">
         <div class="grid-two">
             <label><span>Categoria</span><input type="text" name="categoria" placeholder="Ej. Data, BI, Backend" required></label>
             <label><span>Skill</span><input type="text" name="skill" placeholder="Ej. SQL" required></label>
@@ -30,7 +30,7 @@
                             <h3>{{ item.skill }}</h3>
                             <p>{{ item.categoria }} · {{ item.nivel }}</p>
                         </div>
-                        <form method="post" action="/app/profile/skills/{{ item.id }}/delete" hx-post="/app/profile/skills/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+                        <form method="post" action="/app/profile/skills/{{ item.id }}/delete" hx-post="/app/profile/skills/{{ item.id }}/delete" hx-target="#profile-skills-shell" hx-swap="outerHTML">
                             <button type="submit" class="danger-action">Eliminar</button>
                         </form>
                     </div>
