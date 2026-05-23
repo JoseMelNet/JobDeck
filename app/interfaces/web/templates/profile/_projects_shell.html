@@ -1,0 +1,11 @@
+<section id="profile-projects-shell">
+    {% if projects_flash_message %}
+        {% set flash_tone = projects_flash_message[0] %}
+        {% set flash_text = projects_flash_message[1] %}
+        {% include "components/_flash.html" %}
+    {% endif %}
+
+    <section class="profile-sections-grid">
+        {% include "profile/_projects.html" %}
+    </section>
+</section>

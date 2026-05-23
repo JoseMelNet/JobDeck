@@ -6,7 +6,7 @@
         </div>
     </summary>
     <div class="disclosure-body">
-        <form class="stack-form compact-form" method="post" action="/app/profile/projects/{{ item.id }}/update" hx-post="/app/profile/projects/{{ item.id }}/update" hx-target="#profile-shell" hx-swap="innerHTML">
+        <form class="stack-form compact-form" method="post" action="/app/profile/projects/{{ item.id }}/update" hx-post="/app/profile/projects/{{ item.id }}/update" hx-target="#profile-projects-shell" hx-swap="outerHTML">
             <div class="grid-two">
                 <label><span>Nombre</span><input type="text" name="nombre" value="{{ item.nombre }}" required></label>
                 <label><span>Empresa</span><input type="text" name="empresa" value="{{ item.empresa or '' }}"></label>
@@ -25,7 +25,7 @@
             <label><span>Logros / impacto</span><textarea name="logros" rows="4">{{ item.logros or '' }}</textarea></label>
             <div class="detail-actions"><button type="submit">Guardar cambios</button></div>
         </form>
-        <form method="post" action="/app/profile/projects/{{ item.id }}/delete" hx-post="/app/profile/projects/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+        <form method="post" action="/app/profile/projects/{{ item.id }}/delete" hx-post="/app/profile/projects/{{ item.id }}/delete" hx-target="#profile-projects-shell" hx-swap="outerHTML">
             <button type="submit" class="danger-action">Eliminar</button>
         </form>
     </div>
