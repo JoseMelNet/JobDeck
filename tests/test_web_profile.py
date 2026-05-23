@@ -86,7 +86,33 @@ class WebProfileTests(unittest.TestCase):
         self.assertNotIn('action="/app/profile/save"', response.text)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
-    def test_save_profile_hx_returns_profile_shell(self, mock_repository):
+    def test_profile_basics_partial_renders_isolated_basics_shell(self, mock_repository):
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+            "nivel_actual": "Mid",
+            "anos_experiencia": 3,
+            "moneda": "COP",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = []
+        mock_repository.get_projects.return_value = []
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.get("/app/profile/basics")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-basics-shell"', response.text)
+        self.assertIn("Datos principales", response.text)
+        self.assertIn('action="/app/profile/save"', response.text)
+        self.assertNotIn('id="profile-skills-shell"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_save_profile_hx_returns_isolated_basics_fragment(self, mock_repository):
         mock_repository.save_profile.return_value = {"success": True, "id": 1}
         mock_repository.get_active_profile.return_value = {
             "id": 1,
@@ -119,6 +145,11 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Los datos principales del perfil fueron guardados.", response.text)
+        self.assertIn('id="profile-basics-shell"', response.text)
+        self.assertIn('id="profile-skills-shell"', response.text)
+        self.assertIn('id="profile-cv-preview"', response.text)
+        self.assertIn('hx-swap-oob="outerHTML"', response.text)
+        self.assertNotIn('action="/app/profile/experiences"', response.text)
         payload = mock_repository.save_profile.call_args.args[0]
         self.assertEqual(payload["modalidades_aceptadas"], "Remoto,Hibrido")
 

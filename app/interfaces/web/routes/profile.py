@@ -223,6 +223,20 @@ def _render_profile_skills_shell(request: Request, flash: str = "", include_oob:
     )
 
 
+def _render_profile_basics_shell(request: Request, flash: str = "", include_oob: bool = False):
+    context = _build_profile_context(flash=flash)
+    template_name = "profile/_basics_fragment.html" if include_oob else "profile/_basics.html"
+    return templates.TemplateResponse(
+        request=request,
+        name=template_name,
+        context={
+            "request": request,
+            **context,
+            "basics_flash_message": context["flash_message"] if flash else None,
+        },
+    )
+
+
 @router.get("/app/profile")
 def profile_index(request: Request, flash: str | None = None):
     context = _build_profile_context(flash=flash)
@@ -247,6 +261,11 @@ def profile_shell_partial(request: Request, flash: str | None = None):
 @router.get("/app/profile/skills", response_class=HTMLResponse)
 def profile_skills_partial(request: Request, flash: str | None = None):
     return _render_profile_skills_shell(request, flash or "")
+
+
+@router.get("/app/profile/basics", response_class=HTMLResponse)
+def profile_basics_partial(request: Request, flash: str | None = None):
+    return _render_profile_basics_shell(request, flash or "")
 
 
 @router.post("/app/profile/save")
@@ -287,7 +306,7 @@ def save_profile(
     )
     flash = "profile_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
-        return _render_profile_shell(request, flash)
+        return _render_profile_basics_shell(request, flash, include_oob=True)
     return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
 
 

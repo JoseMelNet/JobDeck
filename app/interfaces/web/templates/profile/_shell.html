@@ -270,21 +270,6 @@
     </section>
 </section>
 
-<section class="panel cv-panel">
-    <div class="section-title">
-        <div>
-            <h2>Vista CV</h2>
-            <p>Vista de solo lectura del perfil consolidado para revisar como se presentaria tu hoja de vida.</p>
-        </div>
-    </div>
-    {% if cv_preview_html %}
-        {{ cv_preview_html | safe }}
-    {% else %}
-        <div class="empty-panel">
-            <h3>Sin vista CV disponible</h3>
-            <p>Completa los datos principales del perfil para generar esta vista.</p>
-        </div>
-    {% endif %}
-</section>
+{% include "profile/_cv_preview.html" %}
 
 

@@ -1,4 +1,4 @@
-<section id="profile-skills-shell" class="stack-panel">
+<section id="profile-skills-shell" class="stack-panel"{% if skills_shell_oob %} hx-swap-oob="outerHTML"{% endif %}>
     {% if skills_flash_message %}
         {% set flash_tone = skills_flash_message[0] %}
         {% set flash_text = skills_flash_message[1] %}

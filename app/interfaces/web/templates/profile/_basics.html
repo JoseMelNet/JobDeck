@@ -1,4 +1,9 @@
-<section class="panel">
+<section id="profile-basics-shell" class="panel">
+    {% if basics_flash_message %}
+        {% set flash_tone = basics_flash_message[0] %}
+        {% set flash_text = basics_flash_message[1] %}
+        {% include "components/_flash.html" %}
+    {% endif %}
     <div class="section-title">
         <div>
             <h2>Datos principales</h2>
@@ -6,7 +11,7 @@
         </div>
     </div>
     <p class="section-caption">Los campos de esta seccion son la base del perfil y del contexto que consume el analizador.</p>
-    <form class="stack-form" method="post" action="/app/profile/save" hx-post="/app/profile/save" hx-target="#profile-shell" hx-swap="innerHTML">
+    <form class="stack-form" method="post" action="/app/profile/save" hx-post="/app/profile/save" hx-target="#profile-basics-shell" hx-swap="outerHTML">
         <div class="grid-two">
             <label><span>Nombre completo</span><input type="text" name="nombre" placeholder="Ej. Jose Martinez" value="{{ profile.nombre if profile else '' }}"></label>
             <label><span>Titulo profesional</span><input type="text" name="titulo_profesional" placeholder="Ej. Data Analyst | BI | SQL" value="{{ profile.titulo_profesional if profile else '' }}"></label>
