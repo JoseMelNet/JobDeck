@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import sys
-
 import pyodbc
 
 from app.infrastructure.persistence.connection import (
