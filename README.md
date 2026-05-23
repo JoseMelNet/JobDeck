@@ -53,15 +53,24 @@ CVs-Optimizator/
 
 1. Crea `.env` a partir de `.env.example`.
 2. Ajusta credenciales de SQL Server.
+3. Agrega `OPENAI_API_KEY` si vas a ejecutar analisis reales de vacantes.
 
 Variables usadas:
 
 ```env
 DB_SERVER=localhost\MSSQLSERVER2025
 DB_DATABASE=job_postings_mvp
-DB_USER=sa
-DB_PASSWORD=tu_password
+DB_USER=your_sql_user
+DB_PASSWORD=your_sql_password
+OPENAI_API_KEY=your_openai_api_key
 ```
+
+Notas de configuracion:
+
+- `DB_USER` y `DB_PASSWORD` son obligatorias para conectarse a SQL Server.
+- `DB_SERVER` y `DB_DATABASE` mantienen defaults locales de desarrollo si no se definen.
+- `OPENAI_API_KEY` es obligatoria para ejecutar analisis reales con OpenAI.
+- La app puede arrancar sin BD, pero los flujos que persisten o consultan datos devolveran errores controlados o vistas vacias.
 
 ## Instalacion
 
