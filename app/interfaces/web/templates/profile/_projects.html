@@ -1,0 +1,34 @@
+<section class="panel">
+    <div class="section-title"><div><h2>Proyectos</h2><p>Proyectos que respaldan tu experiencia tecnica.</p></div><span class="soft-badge">{{ projects|length }} registrados</span></div>
+    <details class="section-disclosure" {% if not projects %}open{% endif %}>
+        <summary>Agregar proyecto</summary>
+        <form class="stack-form compact-form section-form" method="post" action="/app/profile/projects" hx-post="/app/profile/projects" hx-target="#profile-shell" hx-swap="innerHTML">
+        <div class="grid-two">
+            <label><span>Nombre</span><input type="text" name="nombre" placeholder="Ej. Dashboard de ventas" required></label>
+            <label><span>Empresa</span><input type="text" name="empresa" placeholder="Opcional"></label>
+        </div>
+        <div class="grid-two">
+            <label><span>Ciudad</span><input type="text" name="ciudad" placeholder="Ej. Bogota"></label>
+            <label><span>Stack</span><input type="text" name="stack" placeholder="Python, SQL, Power BI"></label>
+        </div>
+        <div class="grid-three">
+            <label><span>Fecha inicio</span><input type="date" name="fecha_inicio" required></label>
+            <label><span>Fecha fin</span><input type="date" name="fecha_fin"></label>
+            <label class="checkbox-inline"><input type="checkbox" name="es_proyecto_actual" value="true"><span>En curso</span></label>
+        </div>
+        <label><span>URL repositorio</span><input type="url" name="url_repositorio"></label>
+        <label><span>Descripcion</span><textarea name="funciones" rows="4"></textarea></label>
+        <label><span>Logros / impacto</span><textarea name="logros" rows="4"></textarea></label>
+        <button type="submit">Agregar proyecto</button>
+        </form>
+    </details>
+    {% if projects %}
+        <div class="record-list">
+            {% for item in projects %}
+                {% include "profile/_project_record.html" %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-panel"><h3>Sin proyectos registrados</h3><p>No hay proyectos cargados todavia.</p></div>
+    {% endif %}
+</section>

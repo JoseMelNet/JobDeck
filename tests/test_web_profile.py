@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 import unittest
 from unittest.mock import patch
 
@@ -233,6 +234,61 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn('action="/app/profile/education"', response.text)
         self.assertIn('action="/app/profile/courses"', response.text)
         self.assertIn('action="/app/profile/certifications"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_shell_partial_renders_experience_and_project_records(self, mock_repository):
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+        }
+        mock_repository.get_skills.return_value = []
+        mock_repository.get_experiences.return_value = [
+            {
+                "id": 10,
+                "cargo": "Data Analyst",
+                "empresa": "Acme",
+                "ciudad": "Bogota",
+                "descripcion_empresa": "Retail",
+                "fecha_inicio": date(2023, 1, 1),
+                "fecha_fin": date(2024, 2, 1),
+                "es_trabajo_actual": False,
+                "funciones": "Analisis",
+                "logros": "Ahorro",
+            }
+        ]
+        mock_repository.get_projects.return_value = [
+            {
+                "id": 20,
+                "nombre": "Dashboard",
+                "empresa": "Acme",
+                "ciudad": "Bogota",
+                "fecha_inicio": date(2024, 1, 1),
+                "fecha_fin": None,
+                "es_proyecto_actual": True,
+                "stack": "Python, SQL",
+                "funciones": "Construccion",
+                "logros": "Visibilidad",
+                "url_repositorio": "https://example.com/repo",
+            }
+        ]
+        mock_repository.get_education.return_value = []
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+        response = self.client.get("/app/profile/shell")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Experiencia", response.text)
+        self.assertIn("Data Analyst · Acme", response.text)
+        self.assertIn('action="/app/profile/experiences/10/update"', response.text)
+        self.assertIn('action="/app/profile/experiences/10/delete"', response.text)
+        self.assertIn("Proyectos", response.text)
+        self.assertIn("Dashboard", response.text)
+        self.assertIn('action="/app/profile/projects/20/update"', response.text)
+        self.assertIn('action="/app/profile/projects/20/delete"', response.text)
+        self.assertIn('hx-target="#profile-shell"', response.text)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_profile_formation_partial_renders_isolated_formation_shell(self, mock_repository):

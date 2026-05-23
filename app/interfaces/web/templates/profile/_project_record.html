@@ -1,0 +1,32 @@
+<details class="record-card record-disclosure">
+    <summary class="record-summary">
+        <div class="record-header">
+            <div><h3>{{ item.nombre }}</h3><p>{{ item.empresa or 'Proyecto personal' }}</p></div>
+            {% if item.stack %}<span class="soft-badge">{{ item.stack }}</span>{% endif %}
+        </div>
+    </summary>
+    <div class="disclosure-body">
+        <form class="stack-form compact-form" method="post" action="/app/profile/projects/{{ item.id }}/update" hx-post="/app/profile/projects/{{ item.id }}/update" hx-target="#profile-shell" hx-swap="innerHTML">
+            <div class="grid-two">
+                <label><span>Nombre</span><input type="text" name="nombre" value="{{ item.nombre }}" required></label>
+                <label><span>Empresa</span><input type="text" name="empresa" value="{{ item.empresa or '' }}"></label>
+            </div>
+            <div class="grid-two">
+                <label><span>Ciudad</span><input type="text" name="ciudad" value="{{ item.ciudad or '' }}"></label>
+                <label><span>Stack</span><input type="text" name="stack" value="{{ item.stack or '' }}"></label>
+            </div>
+            <div class="grid-three">
+                <label><span>Fecha inicio</span><input type="date" name="fecha_inicio" value="{{ item.fecha_inicio.isoformat() if item.fecha_inicio else '' }}" required></label>
+                <label><span>Fecha fin</span><input type="date" name="fecha_fin" value="{{ item.fecha_fin.isoformat() if item.fecha_fin else '' }}"></label>
+                <label class="checkbox-inline"><input type="checkbox" name="es_proyecto_actual" value="true"{% if item.es_proyecto_actual %} checked{% endif %}><span>En curso</span></label>
+            </div>
+            <label><span>URL repositorio</span><input type="url" name="url_repositorio" value="{{ item.url_repositorio or '' }}"></label>
+            <label><span>Descripcion</span><textarea name="funciones" rows="4">{{ item.funciones or '' }}</textarea></label>
+            <label><span>Logros / impacto</span><textarea name="logros" rows="4">{{ item.logros or '' }}</textarea></label>
+            <div class="detail-actions"><button type="submit">Guardar cambios</button></div>
+        </form>
+        <form method="post" action="/app/profile/projects/{{ item.id }}/delete" hx-post="/app/profile/projects/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+            <button type="submit" class="danger-action">Eliminar</button>
+        </form>
+    </div>
+</details>

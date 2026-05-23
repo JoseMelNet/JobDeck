@@ -1,0 +1,31 @@
+<details class="record-card record-disclosure">
+    <summary class="record-summary">
+        <div class="record-header">
+            <div><h3>{{ item.cargo }} · {{ item.empresa }}</h3><p>{{ item.ciudad or '-' }}</p></div>
+            <span class="soft-badge">{{ item.fecha_inicio.strftime("%m/%Y") if item.fecha_inicio else "-" }} - {% if item.es_trabajo_actual %}Actual{% elif item.fecha_fin %}{{ item.fecha_fin.strftime("%m/%Y") }}{% else %}-{% endif %}</span>
+        </div>
+    </summary>
+    <div class="disclosure-body">
+        <form class="stack-form compact-form" method="post" action="/app/profile/experiences/{{ item.id }}/update" hx-post="/app/profile/experiences/{{ item.id }}/update" hx-target="#profile-shell" hx-swap="innerHTML">
+            <div class="grid-two">
+                <label><span>Cargo</span><input type="text" name="cargo" value="{{ item.cargo }}" required></label>
+                <label><span>Empresa</span><input type="text" name="empresa" value="{{ item.empresa }}" required></label>
+            </div>
+            <div class="grid-two">
+                <label><span>Ciudad</span><input type="text" name="ciudad" value="{{ item.ciudad or '' }}"></label>
+                <label><span>Descripcion empresa</span><input type="text" name="descripcion_empresa" value="{{ item.descripcion_empresa or '' }}"></label>
+            </div>
+            <div class="grid-three">
+                <label><span>Fecha inicio</span><input type="date" name="fecha_inicio" value="{{ item.fecha_inicio.isoformat() if item.fecha_inicio else '' }}" required></label>
+                <label><span>Fecha fin</span><input type="date" name="fecha_fin" value="{{ item.fecha_fin.isoformat() if item.fecha_fin else '' }}"></label>
+                <label class="checkbox-inline"><input type="checkbox" name="es_trabajo_actual" value="true"{% if item.es_trabajo_actual %} checked{% endif %}><span>Trabajo actual</span></label>
+            </div>
+            <label><span>Funciones</span><textarea name="funciones" rows="4">{{ item.funciones or '' }}</textarea></label>
+            <label><span>Logros</span><textarea name="logros" rows="4">{{ item.logros or '' }}</textarea></label>
+            <div class="detail-actions"><button type="submit">Guardar cambios</button></div>
+        </form>
+        <form method="post" action="/app/profile/experiences/{{ item.id }}/delete" hx-post="/app/profile/experiences/{{ item.id }}/delete" hx-target="#profile-shell" hx-swap="innerHTML">
+            <button type="submit" class="danger-action">Eliminar</button>
+        </form>
+    </div>
+</details>
