@@ -69,31 +69,14 @@
             {% endif %}
         {% endfor %}
     </div>
-    {% if pagination.total_pages > 1 %}
-        <div class="detail-actions">
-            {% if pagination.has_prev %}
-                <a
-                    class="secondary-link"
-                    href="/app/vacancies?q={{ query }}&view={{ current_view }}&page={{ pagination.prev_page }}&page_size={{ pagination.page_size }}"
-                    hx-get="/app/vacancies/list?q={{ query }}&view={{ current_view }}&page={{ pagination.prev_page }}&page_size={{ pagination.page_size }}"
-                    hx-target="#vacancy-list"
-                    hx-swap="innerHTML"
-                    hx-push-url="true"
-                >Anterior</a>
-            {% endif %}
-            <span class="muted-note">Pagina {{ pagination.page }} de {{ pagination.total_pages }}</span>
-            {% if pagination.has_next %}
-                <a
-                    class="secondary-link"
-                    href="/app/vacancies?q={{ query }}&view={{ current_view }}&page={{ pagination.next_page }}&page_size={{ pagination.page_size }}"
-                    hx-get="/app/vacancies/list?q={{ query }}&view={{ current_view }}&page={{ pagination.next_page }}&page_size={{ pagination.page_size }}"
-                    hx-target="#vacancy-list"
-                    hx-swap="innerHTML"
-                    hx-push-url="true"
-                >Siguiente</a>
-            {% endif %}
-        </div>
-    {% endif %}
+    {% set pagination_prev_href = "/app/vacancies?q=%s&view=%s&page=%s&page_size=%s"|format(query, current_view, pagination.prev_page, pagination.page_size) %}
+    {% set pagination_prev_hx_get = "/app/vacancies/list?q=%s&view=%s&page=%s&page_size=%s"|format(query, current_view, pagination.prev_page, pagination.page_size) %}
+    {% set pagination_next_href = "/app/vacancies?q=%s&view=%s&page=%s&page_size=%s"|format(query, current_view, pagination.next_page, pagination.page_size) %}
+    {% set pagination_next_hx_get = "/app/vacancies/list?q=%s&view=%s&page=%s&page_size=%s"|format(query, current_view, pagination.next_page, pagination.page_size) %}
+    {% set pagination_hx_target = "#vacancy-list" %}
+    {% set pagination_hx_swap = "innerHTML" %}
+    {% set pagination_hx_push_url = "true" %}
+    {% include "components/_pagination.html" %}
 {% else %}
     <div class="empty-panel">
         <h3>No hay coincidencias</h3>

@@ -1,0 +1,41 @@
+<section class="panel">
+    <div class="section-title"><div><h2>Educacion</h2><p>Formacion academica principal.</p></div><span class="soft-badge">{{ education|length }} registros</span></div>
+    <details class="section-disclosure" {% if not education %}open{% endif %}>
+        <summary>Agregar educacion</summary>
+        <form class="stack-form compact-form section-form" method="post" action="/app/profile/education" hx-post="/app/profile/education" hx-target="#profile-formation-shell" hx-swap="outerHTML">
+        <div class="grid-two">
+            <label><span>Titulo</span><input type="text" name="titulo" placeholder="Ej. Ingenieria de Sistemas" required></label>
+            <label><span>Institucion</span><input type="text" name="institucion" placeholder="Ej. Universidad Nacional" required></label>
+        </div>
+        <div class="grid-three">
+            <label><span>Nivel</span><select name="nivel">{% for option in education_level_options %}<option value="{{ option }}">{{ option }}</option>{% endfor %}</select></label>
+            <label><span>Ciudad</span><input type="text" name="ciudad"></label>
+            <label><span>Estado</span><select name="status">{% for option in education_status_options %}<option value="{{ option }}">{{ option }}</option>{% endfor %}</select></label>
+        </div>
+        <div class="grid-two">
+            <label><span>Fecha inicio</span><input type="date" name="fecha_inicio" required></label>
+            <label><span>Fecha fin</span><input type="date" name="fecha_fin"></label>
+        </div>
+        <button type="submit">Agregar educacion</button>
+        </form>
+    </details>
+    {% if education %}
+        <div class="record-list compact-record-list">
+            {% for item in education %}
+                <article class="record-card">
+                    <div class="record-header">
+                        <div><h3>{{ item.titulo }}</h3><p>{{ item.institucion }} · {{ item.nivel }}</p></div>
+                        <span class="soft-badge">{{ item.status }}</span>
+                    </div>
+                    <div class="detail-actions">
+                        <form method="post" action="/app/profile/education/{{ item.id }}/delete" hx-post="/app/profile/education/{{ item.id }}/delete" hx-target="#profile-formation-shell" hx-swap="outerHTML">
+                            <button type="submit" class="danger-action">Eliminar</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-panel"><h3>Sin educacion registrada</h3><p>No hay estudios cargados todavia.</p></div>
+    {% endif %}
+</section>

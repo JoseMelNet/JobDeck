@@ -9,7 +9,7 @@
         </div>
         {% for item in applications %}
             <a
-                class="table-row row-link{% if selected_application and selected_application.id == item.id %} is-selected{% endif %}"
+                class="table-row row-link application-row{% if selected_application and selected_application.id == item.id %} is-selected{% endif %}"
                 href="/app/applications?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
                 hx-get="/app/applications/shell?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
                 hx-target="#applications-shell"
@@ -27,31 +27,14 @@
             </a>
         {% endfor %}
     </div>
-    {% if pagination.total_pages > 1 %}
-        <div class="detail-actions">
-            {% if pagination.has_prev %}
-                <a
-                    class="secondary-link"
-                    href="/app/applications?q={{ query }}&state={{ current_state }}&page={{ pagination.prev_page }}&page_size={{ pagination.page_size }}"
-                    hx-get="/app/applications/shell?q={{ query }}&state={{ current_state }}&page={{ pagination.prev_page }}&page_size={{ pagination.page_size }}"
-                    hx-target="#applications-shell"
-                    hx-swap="outerHTML"
-                    hx-push-url="true"
-                >Anterior</a>
-            {% endif %}
-            <span class="muted-note">Pagina {{ pagination.page }} de {{ pagination.total_pages }}</span>
-            {% if pagination.has_next %}
-                <a
-                    class="secondary-link"
-                    href="/app/applications?q={{ query }}&state={{ current_state }}&page={{ pagination.next_page }}&page_size={{ pagination.page_size }}"
-                    hx-get="/app/applications/shell?q={{ query }}&state={{ current_state }}&page={{ pagination.next_page }}&page_size={{ pagination.page_size }}"
-                    hx-target="#applications-shell"
-                    hx-swap="outerHTML"
-                    hx-push-url="true"
-                >Siguiente</a>
-            {% endif %}
-        </div>
-    {% endif %}
+    {% set pagination_prev_href = "/app/applications?q=%s&state=%s&page=%s&page_size=%s"|format(query, current_state, pagination.prev_page, pagination.page_size) %}
+    {% set pagination_prev_hx_get = "/app/applications/shell?q=%s&state=%s&page=%s&page_size=%s"|format(query, current_state, pagination.prev_page, pagination.page_size) %}
+    {% set pagination_next_href = "/app/applications?q=%s&state=%s&page=%s&page_size=%s"|format(query, current_state, pagination.next_page, pagination.page_size) %}
+    {% set pagination_next_hx_get = "/app/applications/shell?q=%s&state=%s&page=%s&page_size=%s"|format(query, current_state, pagination.next_page, pagination.page_size) %}
+    {% set pagination_hx_target = "#applications-shell" %}
+    {% set pagination_hx_swap = "outerHTML" %}
+    {% set pagination_hx_push_url = "true" %}
+    {% include "components/_pagination.html" %}
 {% else %}
     <div class="empty-panel">
         <h3>Sin coincidencias</h3>

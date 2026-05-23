@@ -1,0 +1,11 @@
+<div id="profile-overview" hx-swap-oob="innerHTML">
+    {% include "profile/_overview.html" %}
+</div>
+
+{% set skills_shell_oob = true %}
+{% include "profile/_skills_shell.html" %}
+
+{% set cv_preview_oob = true %}
+{% include "profile/_cv_preview.html" %}
+
+{% include "profile/_formation_shell.html" %}

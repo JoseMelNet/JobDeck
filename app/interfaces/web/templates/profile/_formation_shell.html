@@ -1,0 +1,16 @@
+<section id="profile-formation-shell">
+    {% if formation_flash_message %}
+        {% set flash_tone = formation_flash_message[0] %}
+        {% set flash_text = formation_flash_message[1] %}
+        {% include "components/_flash.html" %}
+    {% endif %}
+
+    <section class="profile-sections-grid">
+        {% include "profile/_education.html" %}
+        {% include "profile/_courses.html" %}
+    </section>
+
+    <section class="profile-sections-grid">
+        {% include "profile/_certifications.html" %}
+    </section>
+</section>

@@ -1,0 +1,33 @@
+<section class="panel">
+    <div class="section-title"><div><h2>Experiencia</h2><p>Registra y actualiza tu trayectoria laboral actual.</p></div><span class="soft-badge">{{ experiences|length }} registradas</span></div>
+    <details class="section-disclosure" {% if not experiences %}open{% endif %}>
+        <summary>Agregar experiencia</summary>
+        <form class="stack-form compact-form section-form" method="post" action="/app/profile/experiences" hx-post="/app/profile/experiences" hx-target="#profile-experiences-shell" hx-swap="outerHTML">
+        <div class="grid-two">
+            <label><span>Cargo</span><input type="text" name="cargo" placeholder="Ej. Data Analyst" required></label>
+            <label><span>Empresa</span><input type="text" name="empresa" placeholder="Ej. Bancolombia" required></label>
+        </div>
+        <div class="grid-two">
+            <label><span>Ciudad</span><input type="text" name="ciudad" placeholder="Ej. Medellin"></label>
+            <label><span>Descripcion empresa</span><input type="text" name="descripcion_empresa" placeholder="Ej. Fintech, 500+ empleados"></label>
+        </div>
+        <div class="grid-three">
+            <label><span>Fecha inicio</span><input type="date" name="fecha_inicio" required></label>
+            <label><span>Fecha fin</span><input type="date" name="fecha_fin"></label>
+            <label class="checkbox-inline"><input type="checkbox" name="es_trabajo_actual" value="true"><span>Trabajo actual</span></label>
+        </div>
+        <label><span>Funciones</span><textarea name="funciones" rows="4"></textarea></label>
+        <label><span>Logros</span><textarea name="logros" rows="4"></textarea></label>
+        <button type="submit">Agregar experiencia</button>
+        </form>
+    </details>
+    {% if experiences %}
+        <div class="record-list">
+            {% for item in experiences %}
+                {% include "profile/_experience_record.html" %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-panel"><h3>Sin experiencia registrada</h3><p>Aun no hay experiencias cargadas en el perfil.</p></div>
+    {% endif %}
+</section>

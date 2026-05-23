@@ -1,0 +1,15 @@
+{% include "vacancies/_summary.html" %}
+
+{% if flash_message %}
+    {% set flash_tone = flash_message[0] %}
+    {% set flash_text = flash_message[1] %}
+    {% include "components/_flash.html" %}
+{% endif %}
+
+{% include "vacancies/_filters.html" %}
+
+<section class="panel workspace-panel list-panel inbox-list-panel">
+    <div id="vacancy-list">
+        {% include "vacancies/_list.html" %}
+    </div>
+</section>

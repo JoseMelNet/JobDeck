@@ -1,12 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="page-header">
-    <div>
-        <h1>Seguimiento</h1>
-        <p>Control simple de vacantes que ya te interesan o a las que ya aplicaste.</p>
-    </div>
-</section>
+{% set page_header_title = "Seguimiento" %}
+{% set page_header_description = "Control simple de vacantes que ya te interesan o a las que ya aplicaste." %}
+{% set page_header_copy_class = none %}
+{% include "components/_page_header.html" %}
 
 <div id="applications-shell">
     {% include "applications/_shell.html" %}

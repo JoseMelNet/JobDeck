@@ -1,0 +1,8 @@
+<section class="context-strip">
+    {% for item in context_bar %}
+        <article class="context-item">
+            <span class="context-value">{{ item.value }}</span>
+            <span class="context-label">{{ item.label }}</span>
+        </article>
+    {% endfor %}
+</section>

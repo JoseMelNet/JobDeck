@@ -1,0 +1,34 @@
+<section class="filter-panel">
+    <form
+        class="filter-form filter-form-compact"
+        method="get"
+        action="/app/vacancies"
+        hx-get="/app/vacancies/list"
+        hx-target="#vacancy-list"
+        hx-swap="innerHTML"
+        hx-push-url="true"
+    >
+        <label>
+            <span>Buscar</span>
+            <input type="text" name="q" value="{{ query }}" placeholder="Empresa o cargo">
+        </label>
+        <label>
+            <span>Vista</span>
+            <select name="view">
+                {% for option in inbox_views %}
+                    <option value="{{ option }}"{% if option == current_view %} selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Por pagina</span>
+            <select name="page_size">
+                {% for option in pagination.page_size_options %}
+                    <option value="{{ option }}"{% if option == pagination.page_size %} selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <input type="hidden" name="page" value="1">
+        <button class="secondary-action filter-submit" type="submit">Aplicar</button>
+    </form>
+</section>
