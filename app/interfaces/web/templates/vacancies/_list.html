@@ -1,12 +1,8 @@
 {% if vacancies %}
-    <div class="simple-table">
-        <div class="table-head">
-            <div>Score</div>
-            <div>Empresa</div>
-            <div>Cargo</div>
-            <div>Fecha</div>
-            <div>Decisión</div>
-            <div>Estado</div>
+    <div class="simple-table opportunity-list">
+        <div class="list-section-label">
+            <span>Vacantes activas</span>
+            <span>{{ pagination.total_items }} en vista</span>
         </div>
         {% for item in vacancies %}
             <div
@@ -14,41 +10,43 @@
                 {% if selected_vacancy and selected_vacancy.id == item.id %}data-selected-row="true"{% endif %}
             >
                 <a
-                    class="table-row row-link"
+                    class="row-link opportunity-row"
                     href="/app/vacancies?selected={{ item.id }}&q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
                     hx-get="/app/vacancies?selected={{ item.id }}&q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
                     hx-target="#vacancies-shell"
                     hx-swap="outerHTML"
                     hx-push-url="true"
                 >
-                    <div class="score-cell">
-                        {% if item.score_meta.value is not none %}
-                            <span class="analysis-pill analysis-pill-score tone-{{ item.score_meta.tone }}">{{ item.score_meta.value }}</span>
-                        {% else %}
-                            <span class="analysis-pill tone-gray">-</span>
-                        {% endif %}
-                    </div>
-                    <div class="company-cell">
-                        <div class="primary-cell truncate-cell" title="{{ item.empresa }}">{{ item.empresa }}</div>
-                        <div class="secondary-cell truncate-cell" title="{{ item.modalidad }}">{{ item.modalidad }}</div>
-                    </div>
-                    <div class="role-cell">
-                        <div class="primary-cell truncate-cell" title="{{ item.cargo }}">{{ item.cargo }}</div>
-                        <div class="secondary-cell truncate-cell" title="{{ item.affinity_meta.label if item.score_meta.value is not none else 'Pendiente de analisis' }}">
-                            {% if item.score_meta.value is not none %}
-                                {{ item.affinity_meta.label }}
-                            {% else %}
-                                Pendiente de analisis
-                            {% endif %}
+                    <div class="opportunity-main">
+                        <div class="opportunity-topline">
+                            <div class="primary-cell truncate-cell" title="{{ item.empresa }}">{{ item.empresa }}</div>
+                            <span class="opportunity-score tone-{{ item.score_meta.tone }}">
+                                {% if item.score_meta.value is not none %}
+                                    {{ item.score_meta.value }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="opportunity-role-line">
+                            <div class="opportunity-role" title="{{ item.cargo }}">{{ item.cargo }}</div>
+                        </div>
+                        <div class="opportunity-meta-line">
+                            <span class="secondary-cell truncate-cell" title="{{ item.modalidad }}">{{ item.modalidad }}</span>
+                            <span class="secondary-cell">{{ item.fecha_registro.strftime("%d/%m/%Y") if item.fecha_registro else "-" }}</span>
+                            <span class="secondary-cell" title="{{ item.affinity_meta.label if item.score_meta.value is not none else 'Pendiente de analisis' }}">
+                                {% if item.score_meta.value is not none %}
+                                    {{ item.affinity_meta.label }}
+                                {% else %}
+                                    Pendiente de analisis
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
-                    <div class="date-cell">
-                        <span class="date-chip">{{ item.fecha_registro.strftime("%d/%m/%Y") if item.fecha_registro else "-" }}</span>
+                    <div class="opportunity-signals">
+                        <span class="analysis-pill opportunity-decision tone-{{ item.decision_meta.tone }}">{{ item.decision_meta.label }}</span>
+                        <span class="status-badge status-{{ item.status_meta.tone }}">{{ item.status_meta.label }}</span>
                     </div>
-                    <div class="decision-cell">
-                        <span class="analysis-pill tone-{{ item.decision_meta.tone }}">{{ item.decision_meta.label }}</span>
-                    </div>
-                    <div class="status-cell"><span class="status-badge status-{{ item.status_meta.tone }}">{{ item.status_meta.label }}</span></div>
                 </a>
             </div>
         {% endfor %}

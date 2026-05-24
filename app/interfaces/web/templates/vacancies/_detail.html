@@ -23,6 +23,21 @@
                     {% endif %}
                 </div>
             </div>
+        </div>
+
+        <div class="vacancy-score-strip">
+            <div class="vacancy-score-snapshot">
+                <span class="analysis-pill opportunity-score-pill tone-{{ selected_vacancy.score_meta.tone }}">
+                    Score {{ selected_vacancy.score_meta.value if selected_vacancy.score_meta.value is not none else "-" }}
+                </span>
+                <span class="vacancy-verdict tone-{{ selected_vacancy.decision_meta.tone }}">
+                    {{ selected_vacancy.decision_meta.label }}
+                </span>
+                <span class="soft-badge">{{ selected_vacancy.affinity_meta.label }}</span>
+                {% if analysis and analysis.encaje_estrategico %}
+                    <span class="soft-badge">{{ analysis.encaje_estrategico }}</span>
+                {% endif %}
+            </div>
             <div class="vacancy-card-actions">
                 {% if selected_vacancy.link %}
                     <a href="{{ selected_vacancy.link }}" target="_blank" rel="noreferrer" class="secondary-link vacancy-action-button">Abrir vacante</a>
@@ -44,15 +59,7 @@
             </div>
         </div>
 
-        <div class="vacancy-card-divider"></div>
-
-        <div class="vacancy-score-strip">
-            <div class="vacancy-score-value">
-                <div class="vacancy-score-label">Score</div>
-                <div class="vacancy-score-number tone-{{ selected_vacancy.score_meta.tone }}">
-                    {{ selected_vacancy.score_meta.value if selected_vacancy.score_meta.value is not none else "-" }}
-                </div>
-            </div>
+        <div class="vacancy-score-inline">
             <div class="vacancy-score-gauge-block">
                 <div class="vacancy-score-scale">
                     <span>0</span>
@@ -65,61 +72,25 @@
                     ></div>
                 </div>
             </div>
-            <div class="vacancy-verdict tone-{{ selected_vacancy.decision_meta.tone }}">
-                {{ selected_vacancy.decision_meta.label }} · {{ selected_vacancy.affinity_meta.label }}
-            </div>
-        </div>
-
-        <div class="vacancy-card-divider"></div>
-
-        <div class="vacancy-card-body">
-            {% if analysis and analysis.resumen_analisis %}
-                <section class="analysis-summary">
-                    <h3>Resumen ejecutivo</h3>
-                    <p class="vacancy-analysis-text">{{ analysis.resumen_analisis }}</p>
-                </section>
-            {% elif analysis and analysis.justificacion_decision %}
-                <section class="analysis-summary">
-                    <h3>Resumen ejecutivo</h3>
-                    <p class="vacancy-analysis-text">{{ analysis.justificacion_decision }}</p>
-                </section>
-            {% endif %}
-
-            {% if analysis and analysis.skills_match %}
-                <div class="vacancy-skills">
-                    {% for skill in analysis.skills_match[:8] %}
-                        <span class="vacancy-skill">{{ skill }}</span>
-                    {% endfor %}
-                </div>
-            {% endif %}
-
-            {% if analysis %}
-                <div class="detail-grid analysis-meta-grid">
-                    {% if analysis.encaje_estrategico %}
-                        <article class="detail-card">
-                            <div class="detail-label">Encaje estrategico</div>
-                            <div class="detail-value">{{ analysis.encaje_estrategico }}</div>
-                        </article>
-                    {% endif %}
+            {% if analysis and (analysis.seniority_inferido or analysis.aspiracion_salarial_sugerida) %}
+                <div class="vacancy-inline-facts">
                     {% if analysis.seniority_inferido %}
-                        <article class="detail-card">
-                            <div class="detail-label">Seniority</div>
-                            <div class="detail-value">{{ analysis.seniority_inferido }}</div>
-                        </article>
+                        <span>{{ analysis.seniority_inferido }}</span>
                     {% endif %}
                     {% if analysis.aspiracion_salarial_sugerida %}
-                        <article class="detail-card">
-                            <div class="detail-label">Aspiracion sugerida</div>
-                            <div class="detail-value">{{ analysis.aspiracion_salarial_sugerida }}</div>
-                        </article>
+                        <span>{{ analysis.aspiracion_salarial_sugerida }}</span>
                     {% endif %}
                 </div>
+            {% endif %}
+        </div>
 
-                {% if analysis.fortalezas_principales or analysis.riesgos_principales or analysis.skills_gap or analysis.ajustes_cv_recomendados %}
-                    <div class="analysis-detail-grid">
+        <div class="vacancy-card-body">
+            {% if analysis %}
+                {% if analysis.fortalezas_principales or analysis.riesgos_principales %}
+                    <section class="analysis-priority-grid">
                         {% if analysis.fortalezas_principales %}
-                            <article class="detail-card">
-                                <div class="detail-label">Fortalezas principales</div>
+                            <article class="analysis-note analysis-note-positive">
+                                <div class="detail-label">Por que si</div>
                                 <ul class="detail-list">
                                     {% for item in analysis.fortalezas_principales[:4] %}
                                         <li>{{ item }}</li>
@@ -128,8 +99,8 @@
                             </article>
                         {% endif %}
                         {% if analysis.riesgos_principales %}
-                            <article class="detail-card">
-                                <div class="detail-label">Riesgos principales</div>
+                            <article class="analysis-note analysis-note-caution">
+                                <div class="detail-label">Ojo con esto</div>
                                 <ul class="detail-list">
                                     {% for item in analysis.riesgos_principales[:4] %}
                                         <li>{{ item }}</li>
@@ -137,25 +108,50 @@
                                 </ul>
                             </article>
                         {% endif %}
+                    </section>
+                {% endif %}
+
+                {% if analysis and analysis.resumen_analisis %}
+                    <section class="analysis-summary analysis-summary-compact">
+                        <h3>Resumen ejecutivo</h3>
+                        <p class="vacancy-analysis-text">{{ analysis.resumen_analisis }}</p>
+                    </section>
+                {% elif analysis and analysis.justificacion_decision %}
+                    <section class="analysis-summary analysis-summary-compact">
+                        <h3>Resumen ejecutivo</h3>
+                        <p class="vacancy-analysis-text">{{ analysis.justificacion_decision }}</p>
+                    </section>
+                {% endif %}
+
+                {% if analysis and analysis.skills_match %}
+                    <div class="vacancy-skills">
+                        {% for skill in analysis.skills_match[:8] %}
+                            <span class="vacancy-skill">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if analysis.skills_gap or analysis.ajustes_cv_recomendados %}
+                    <div class="analysis-detail-grid">
                         {% if analysis.skills_gap %}
-                            <article class="detail-card">
+                            <section class="analysis-block">
                                 <div class="detail-label">Skills faltantes</div>
                                 <ul class="detail-list">
                                     {% for item in analysis.skills_gap[:5] %}
                                         <li>{{ item }}</li>
                                     {% endfor %}
                                 </ul>
-                            </article>
+                            </section>
                         {% endif %}
                         {% if analysis.ajustes_cv_recomendados %}
-                            <article class="detail-card">
+                            <section class="analysis-block">
                                 <div class="detail-label">Ajustes CV recomendados</div>
                                 <ul class="detail-list">
                                     {% for item in analysis.ajustes_cv_recomendados[:5] %}
                                         <li>{{ item }}</li>
                                     {% endfor %}
                                 </ul>
-                            </article>
+                            </section>
                         {% endif %}
                     </div>
                 {% endif %}
@@ -168,7 +164,7 @@
                 </section>
             {% endif %}
 
-            <details class="description-disclosure vacancy-description" open>
+            <details class="description-disclosure vacancy-description">
                 <summary>Descripcion completa</summary>
                 <div class="vacancy-description-body">
                     <p>{{ selected_vacancy.descripcion }}</p>
