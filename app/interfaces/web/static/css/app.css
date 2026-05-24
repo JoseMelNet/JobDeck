@@ -694,13 +694,6 @@ a {
     color: #b91c1c;
 }
 
-.detail-header-badges {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
-}
-
 .analysis-detail-grid .detail-card {
     background: #ffffff;
 }
@@ -1028,15 +1021,31 @@ a {
 }
 
 .vacancy-card-header {
-    padding: 16px 18px 10px;
+    padding: 14px 18px 8px;
 }
 
 .vacancy-card-copy {
     min-width: 0;
 }
 
+.decision-top {
+    padding-bottom: 6px;
+}
+
+.decision-top-copy {
+    display: grid;
+    gap: 6px;
+}
+
+.decision-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .vacancy-card-title {
-    margin: 0 0 6px;
+    margin: 0;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1074,6 +1083,21 @@ a {
     color: var(--muted);
 }
 
+.decision-meta-line {
+    gap: 4px 10px;
+    font-size: 0.74rem;
+}
+
+.decision-meta-line span {
+    position: relative;
+}
+
+.decision-meta-line span + span::before {
+    content: "•";
+    margin-right: 10px;
+    color: #98a2b3;
+}
+
 .vacancy-card-actions {
     display: flex;
     gap: 6px;
@@ -1107,164 +1131,93 @@ a {
     background: #fff5f5;
 }
 
-.vacancy-score-strip {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 18px;
-    background: #f8fbff;
+.decision-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px 16px;
+    align-items: start;
+    padding: 14px 18px;
+    background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
     border-top: 1px solid var(--border);
+    border-bottom: 1px solid rgba(215, 223, 236, 0.75);
 }
 
-.vacancy-score-snapshot {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
+.decision-copy {
+    display: grid;
     gap: 8px;
+    min-width: 0;
+}
+
+.decision-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.decision-headline {
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.decision-headline.tone-green {
+    color: #166534;
+}
+
+.decision-headline.tone-amber {
+    color: #b45309;
+}
+
+.decision-headline.tone-red {
+    color: #b91c1c;
+}
+
+.decision-headline.tone-gray {
+    color: #4b5563;
+}
+
+.decision-support {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
     min-width: 0;
 }
 
 .opportunity-score-pill {
     min-width: auto;
     padding: 6px 10px;
-    font-size: 0.76rem;
+    font-size: 0.74rem;
 }
 
-.vacancy-score-inline {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 12px;
-    align-items: center;
-    padding: 0 18px 14px;
-    background: #f8fbff;
+.decision-support .soft-badge {
+    padding: 5px 9px;
+    font-size: 0.74rem;
+    font-weight: 600;
 }
 
-.vacancy-inline-facts {
-    display: flex;
-    flex-wrap: wrap;
+.decision-actions {
     justify-content: flex-end;
-    gap: 6px;
-    min-width: 0;
+    align-items: flex-start;
+    align-content: flex-start;
 }
 
-.vacancy-inline-facts span {
-    display: inline-flex;
-    align-items: center;
-    min-height: 24px;
-    padding: 0 9px;
-    border-radius: 999px;
-    background: #fff;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-size: 0.72rem;
-    font-weight: 700;
+.decision-actions .primary-action {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 0.78rem;
 }
 
-.vacancy-score-value {
-    flex-shrink: 0;
-}
-
-.vacancy-score-label {
-    margin-bottom: 4px;
-    font-size: 0.7rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-}
-
-.vacancy-score-number {
-    font-size: 1.9rem;
-    font-weight: 700;
-    line-height: 1;
-}
-
-.vacancy-score-number.tone-green,
-.vacancy-score-fill.tone-green,
-.vacancy-verdict.tone-green {
-    color: #166534;
-}
-
-.vacancy-score-number.tone-amber,
-.vacancy-score-fill.tone-amber,
-.vacancy-verdict.tone-amber {
-    color: #b45309;
-}
-
-.vacancy-score-number.tone-red,
-.vacancy-score-fill.tone-red,
-.vacancy-verdict.tone-red {
-    color: #b91c1c;
-}
-
-.vacancy-score-number.tone-gray,
-.vacancy-score-fill.tone-gray,
-.vacancy-verdict.tone-gray {
-    color: #4b5563;
-}
-
-.vacancy-score-gauge-block {
-    flex: 1;
-    min-width: 0;
-}
-
-.vacancy-score-scale {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 6px;
-    font-size: 0.72rem;
-    color: var(--muted);
-}
-
-.vacancy-score-gauge {
-    height: 5px;
-    background: #dbe3f0;
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.vacancy-score-fill {
-    height: 100%;
-    border-radius: 999px;
-    background: currentColor;
-}
-
-.vacancy-verdict {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px 10px;
-    border-radius: 10px;
-    font-size: 0.76rem;
-    font-weight: 700;
-    background: currentColor;
-    color: #fff;
-    white-space: nowrap;
-}
-
-.vacancy-verdict.tone-green {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.vacancy-verdict.tone-amber {
-    background: #fef3c7;
-    color: #b45309;
-}
-
-.vacancy-verdict.tone-red {
-    background: #fee2e2;
-    color: #b91c1c;
-}
-
-.vacancy-verdict.tone-gray {
-    background: #f3f4f6;
-    color: #4b5563;
+.decision-actions .danger-action,
+.decision-actions .secondary-link {
+    min-height: 32px;
+    font-size: 0.74rem;
 }
 
 .vacancy-card-body {
     display: grid;
-    gap: 12px;
+    gap: 10px;
     padding: 14px 18px 18px;
 }
 
@@ -1288,10 +1241,15 @@ a {
     font-weight: 700;
 }
 
+.decision-inline-section {
+    display: grid;
+    gap: 6px;
+}
+
 .vacancy-analysis-text {
     margin: 0;
     font-size: 0.86rem;
-    line-height: 1.6;
+    line-height: 1.55;
     color: #4b5563;
 }
 
@@ -1307,24 +1265,33 @@ a {
     gap: 10px;
 }
 
+.decision-evidence-grid {
+    gap: 8px;
+}
+
 .analysis-note {
-    padding: 12px 14px;
-    border-radius: 12px;
-    background: #fbfcfe;
-    border: 1px solid var(--border);
+    padding: 10px 0 0;
+    border-radius: 0;
+    background: transparent;
+    border: 0;
+    border-top: 1px solid var(--border);
+}
+
+.decision-evidence-card .detail-label {
+    margin-bottom: 2px;
 }
 
 .analysis-note-positive {
-    border-left: 3px solid #86efac;
+    border-top-color: #86efac;
 }
 
 .analysis-note-caution {
-    border-left: 3px solid #fca5a5;
+    border-top-color: #fca5a5;
 }
 
 .analysis-summary-compact {
     margin-top: 0;
-    padding: 0;
+    padding-top: 2px;
     border: 0;
     background: transparent;
 }
@@ -1338,7 +1305,7 @@ a {
 }
 
 .analysis-block {
-    padding-top: 10px;
+    padding-top: 8px;
     border-top: 1px solid var(--border);
 }
 
@@ -1356,7 +1323,7 @@ a {
 }
 
 .vacancy-description {
-    margin-top: 2px;
+    margin-top: 4px;
     border: 0;
     border-top: 1px solid var(--border);
     border-radius: 0;
@@ -1835,19 +1802,19 @@ a {
         padding-right: 12px;
     }
 
-    .vacancy-card-header,
-    .vacancy-score-strip {
+    .vacancy-card-header {
         flex-direction: column;
         align-items: start;
     }
 
-    .vacancy-card-actions {
-        width: 100%;
-        flex-wrap: wrap;
+    .decision-hero {
+        grid-template-columns: 1fr;
     }
 
-    .vacancy-score-gauge-block {
+    .vacancy-card-actions,
+    .decision-actions {
         width: 100%;
+        flex-wrap: wrap;
     }
 
     .record-header,

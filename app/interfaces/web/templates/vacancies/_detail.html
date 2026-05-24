@@ -1,47 +1,47 @@
 {% if selected_vacancy %}
     {% set analysis = selected_vacancy.analisis %}
     <section class="panel detail-sheet decision-panel">
-        <div class="vacancy-card-header">
-            <div class="vacancy-card-copy">
-                <div class="detail-header-badges">
+        <div class="vacancy-card-header decision-top">
+            <div class="vacancy-card-copy decision-top-copy">
+                <div class="decision-eyebrow">
                     <span class="status-badge status-{{ selected_vacancy.status_meta.tone }}">{{ selected_vacancy.status_meta.label }}</span>
-                    {% if selected_vacancy.has_application %}
-                        <span class="soft-badge">Ya esta en seguimiento</span>
-                    {% endif %}
-                    {% if analysis and analysis.seniority_inferido %}
-                        <span class="soft-badge">{{ analysis.seniority_inferido }}</span>
-                    {% endif %}
                 </div>
                 <h2 class="vacancy-card-title">
                     {{ selected_vacancy.empresa }} - {{ selected_vacancy.cargo }}
                 </h2>
-                <div class="vacancy-card-meta">
+                <div class="vacancy-card-meta decision-meta-line">
                     <span>{{ selected_vacancy.fecha_registro.strftime("%d/%m/%Y") if selected_vacancy.fecha_registro else "-" }}</span>
                     <span>{{ selected_vacancy.modalidad }}</span>
+                    {% if analysis and analysis.seniority_inferido %}
+                        <span>{{ analysis.seniority_inferido }}</span>
+                    {% endif %}
                     {% if analysis and analysis.salario_detectado %}
                         <span>{{ analysis.salario_detectado }}</span>
+                    {% endif %}
+                    {% if analysis and analysis.aspiracion_salarial_sugerida %}
+                        <span>{{ analysis.aspiracion_salarial_sugerida }}</span>
                     {% endif %}
                 </div>
             </div>
         </div>
 
-        <div class="vacancy-score-strip">
-            <div class="vacancy-score-snapshot">
-                <span class="analysis-pill opportunity-score-pill tone-{{ selected_vacancy.score_meta.tone }}">
-                    Score {{ selected_vacancy.score_meta.value if selected_vacancy.score_meta.value is not none else "-" }}
-                </span>
-                <span class="vacancy-verdict tone-{{ selected_vacancy.decision_meta.tone }}">
+        <section class="decision-hero">
+            <div class="decision-copy">
+                <div class="decision-label">Decision sugerida</div>
+                <div class="decision-headline tone-{{ selected_vacancy.decision_meta.tone }}">
                     {{ selected_vacancy.decision_meta.label }}
-                </span>
-                <span class="soft-badge">{{ selected_vacancy.affinity_meta.label }}</span>
-                {% if analysis and analysis.encaje_estrategico %}
-                    <span class="soft-badge">{{ analysis.encaje_estrategico }}</span>
-                {% endif %}
+                </div>
+                <div class="decision-support">
+                    <span class="analysis-pill opportunity-score-pill tone-{{ selected_vacancy.score_meta.tone }}">
+                        Score {{ selected_vacancy.score_meta.value if selected_vacancy.score_meta.value is not none else "-" }}
+                    </span>
+                    <span class="soft-badge">{{ selected_vacancy.affinity_meta.label }}</span>
+                    {% if analysis and analysis.encaje_estrategico %}
+                        <span class="soft-badge">{{ analysis.encaje_estrategico }}</span>
+                    {% endif %}
+                </div>
             </div>
-            <div class="vacancy-card-actions">
-                {% if selected_vacancy.link %}
-                    <a href="{{ selected_vacancy.link }}" target="_blank" rel="noreferrer" class="secondary-link vacancy-action-button">Abrir vacante</a>
-                {% endif %}
+            <div class="vacancy-card-actions decision-actions">
                 {% if not selected_vacancy.has_application %}
                     <form method="post" action="/app/vacancies/{{ selected_vacancy.id }}/interest">
                         <button class="primary-action vacancy-action-button" type="submit">Pasar a seguimiento</button>
@@ -56,40 +56,18 @@
                 {% else %}
                     <a class="primary-action vacancy-action-button" href="/app/applications">Ir a seguimiento</a>
                 {% endif %}
+                {% if selected_vacancy.link %}
+                    <a href="{{ selected_vacancy.link }}" target="_blank" rel="noreferrer" class="secondary-link vacancy-action-button">Abrir vacante</a>
+                {% endif %}
             </div>
-        </div>
-
-        <div class="vacancy-score-inline">
-            <div class="vacancy-score-gauge-block">
-                <div class="vacancy-score-scale">
-                    <span>0</span>
-                    <span>100</span>
-                </div>
-                <div class="vacancy-score-gauge">
-                    <div
-                        class="vacancy-score-fill tone-{{ selected_vacancy.score_meta.tone }}"
-                        style="width: {{ selected_vacancy.score_meta.value if selected_vacancy.score_meta.value is not none else 0 }}%;"
-                    ></div>
-                </div>
-            </div>
-            {% if analysis and (analysis.seniority_inferido or analysis.aspiracion_salarial_sugerida) %}
-                <div class="vacancy-inline-facts">
-                    {% if analysis.seniority_inferido %}
-                        <span>{{ analysis.seniority_inferido }}</span>
-                    {% endif %}
-                    {% if analysis.aspiracion_salarial_sugerida %}
-                        <span>{{ analysis.aspiracion_salarial_sugerida }}</span>
-                    {% endif %}
-                </div>
-            {% endif %}
-        </div>
+        </section>
 
         <div class="vacancy-card-body">
             {% if analysis %}
                 {% if analysis.fortalezas_principales or analysis.riesgos_principales %}
-                    <section class="analysis-priority-grid">
+                    <section class="analysis-priority-grid decision-evidence-grid">
                         {% if analysis.fortalezas_principales %}
-                            <article class="analysis-note analysis-note-positive">
+                            <article class="analysis-note analysis-note-positive decision-evidence-card">
                                 <div class="detail-label">Por que si</div>
                                 <ul class="detail-list">
                                     {% for item in analysis.fortalezas_principales[:4] %}
@@ -99,7 +77,7 @@
                             </article>
                         {% endif %}
                         {% if analysis.riesgos_principales %}
-                            <article class="analysis-note analysis-note-caution">
+                            <article class="analysis-note analysis-note-caution decision-evidence-card">
                                 <div class="detail-label">Ojo con esto</div>
                                 <ul class="detail-list">
                                     {% for item in analysis.riesgos_principales[:4] %}
@@ -108,6 +86,17 @@
                                 </ul>
                             </article>
                         {% endif %}
+                    </section>
+                {% endif %}
+
+                {% if analysis and analysis.skills_match %}
+                    <section class="decision-inline-section">
+                        <div class="detail-label">Skills que ya traes</div>
+                        <div class="vacancy-skills">
+                            {% for skill in analysis.skills_match[:8] %}
+                                <span class="vacancy-skill">{{ skill }}</span>
+                            {% endfor %}
+                        </div>
                     </section>
                 {% endif %}
 
@@ -121,14 +110,6 @@
                         <h3>Resumen ejecutivo</h3>
                         <p class="vacancy-analysis-text">{{ analysis.justificacion_decision }}</p>
                     </section>
-                {% endif %}
-
-                {% if analysis and analysis.skills_match %}
-                    <div class="vacancy-skills">
-                        {% for skill in analysis.skills_match[:8] %}
-                            <span class="vacancy-skill">{{ skill }}</span>
-                        {% endfor %}
-                    </div>
                 {% endif %}
 
                 {% if analysis.skills_gap or analysis.ajustes_cv_recomendados %}
