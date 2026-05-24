@@ -53,8 +53,13 @@
                         <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
                         <button class="danger-action vacancy-action-button" type="submit">Descartar</button>
                     </form>
-                {% else %}
-                    <a class="primary-action vacancy-action-button" href="/app/applications">Ir a seguimiento</a>
+                {% endif %}
+                {% if selected_vacancy.has_application %}
+                    {% if selected_vacancy.tracking_application_id %}
+                        <a class="secondary-link vacancy-action-button tracking-link" href="/app/applications?selected={{ selected_vacancy.tracking_application_id }}">Ver seguimiento</a>
+                    {% else %}
+                        <a class="secondary-link vacancy-action-button tracking-link" href="/app/applications">Ver seguimiento</a>
+                    {% endif %}
                 {% endif %}
                 {% if selected_vacancy.link %}
                     <a href="{{ selected_vacancy.link }}" target="_blank" rel="noreferrer" class="secondary-link vacancy-action-button">Abrir vacante</a>

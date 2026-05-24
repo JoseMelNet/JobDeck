@@ -251,6 +251,36 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertIn("Pasar a seguimiento", response.text)
 
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
+    def test_vacancy_detail_partial_uses_view_tracking_cta_for_existing_application(self, mock_build_items):
+        mock_build_items.return_value = [
+            {
+                "id": 25,
+                "empresa": "Empresa 25",
+                "cargo": "Cargo 25",
+                "modalidad": "Remoto",
+                "fecha_registro": date(2026, 4, 1),
+                "descripcion": "Descripcion 25",
+                "link": "https://example.com/vacancy/25",
+                "analisis": None,
+                "status_label": "En seguimiento",
+                "status_meta": {"tone": "blue", "label": "En seguimiento"},
+                "score_label": "Sin score",
+                "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
+                "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "has_application": True,
+                "tracking_application_id": 77,
+            }
+        ]
+
+        response = self.client.get("/app/vacancies/25/detail?q=data&view=Todas&page=3&page_size=10")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Ver seguimiento", response.text)
+        self.assertIn('href="/app/applications?selected=77"', response.text)
+        self.assertNotIn("Ir a seguimiento", response.text)
+
+    @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
     def test_vacancy_shell_partial_renders_workspace_with_detail_panel(self, mock_build_items):
         mock_build_items.return_value = [
             {
@@ -285,6 +315,7 @@ class WebVacanciesTests(unittest.TestCase):
         response = self.client.get("/app/vacancies/shell?selected=2&q=Empresa&view=Todas&page=1&page_size=20")
 
         self.assertEqual(response.status_code, 200)
+        self.assertIn('id="vacancies-shell"', response.text)
         self.assertIn('class="layout-two-columns workspace-shell inbox-workspace"', response.text)
         self.assertIn('id="vacancy-detail"', response.text)
         self.assertIn("Resumen ejecutivo", response.text)
@@ -320,6 +351,7 @@ class WebVacanciesTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertIn('id="vacancies-shell"', response.text)
         self.assertIn('class="workspace-toolbar"', response.text)
         self.assertIn('id="vacancy-detail"', response.text)
         self.assertNotIn("<!doctype html>", response.text.lower())
@@ -340,13 +372,14 @@ class WebVacanciesTests(unittest.TestCase):
         mock_analysis_repository.get_by_vacancy_ids.return_value = {
             1: {"score_total": 87},
         }
-        mock_application_repository.list_all.return_value = [{"vacante_id": 2}]
+        mock_application_repository.list_all.return_value = [{"id": 12, "vacante_id": 2}]
 
         result = vacancies_routes._build_vacancy_items()
 
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0]["status_label"], "Analizada")
         self.assertEqual(result[1]["status_label"], "En seguimiento")
+        self.assertEqual(result[1]["tracking_application_id"], 12)
         self.assertEqual(result[0]["score_meta"]["tone"], "green")
         mock_analysis_repository.get_by_vacancy_ids.assert_called_once_with([1, 2])
         mock_application_repository.list_all.assert_called_once()
@@ -408,3 +441,13 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertEqual(vacancies_routes._decision_meta({"decision_aplicacion": "Aplicar"})["tone"], "green")
         self.assertEqual(vacancies_routes._decision_meta({"decision_aplicacion": "Revisar mas a fondo"})["tone"], "amber")
         self.assertEqual(vacancies_routes._decision_meta({"decision_aplicacion": "No aplicar"})["tone"], "red")
+
+    def test_compact_decision_label_uses_short_copy_for_long_recommendation(self):
+        self.assertEqual(
+            vacancies_routes._compact_decision_label({"decision_aplicacion": "Aplicar si sobra tiempo"}),
+            "Si hay tiempo",
+        )
+        self.assertEqual(
+            vacancies_routes._compact_decision_label({"decision_aplicacion": "Aplicar sí o sí"}),
+            "Aplicar sí o sí",
+        )

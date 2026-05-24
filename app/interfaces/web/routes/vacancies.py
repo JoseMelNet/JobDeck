@@ -118,6 +118,31 @@ def _application_ids_with_tracking() -> set[int]:
     return {item["vacante_id"] for item in application_repository.list_all()}
 
 
+def _application_tracking_lookup() -> dict[int, int]:
+    return {
+        item["vacante_id"]: item["id"]
+        for item in application_repository.list_all()
+        if item.get("vacante_id") and item.get("id")
+    }
+
+
+def _compact_decision_label(analysis: dict | None) -> str:
+    if not analysis:
+        return "Pendiente de analisis"
+
+    decision = (analysis.get("decision_aplicacion") or "").strip()
+    lowered = decision.lower()
+    if not decision:
+        return "Pendiente de analisis"
+    if "aplicar si sobra tiempo" in lowered:
+        return "Si hay tiempo"
+    if "revis" in lowered or "evalu" in lowered:
+        return "Revisar"
+    if "no aplicar" in lowered or "descartar" in lowered or "rechazar" in lowered:
+        return "Descartar"
+    return decision
+
+
 def _build_vacancy_items(limit: int | None = None) -> list[dict]:
     vacancies = vacancy_repository.list_all()
     vacancies = [item for item in vacancies if not item.get("motivo_archivo")]
@@ -125,7 +150,8 @@ def _build_vacancy_items(limit: int | None = None) -> list[dict]:
     visible_vacancies = vacancies[:limit] if limit else vacancies
     vacancy_ids = [item["id"] for item in visible_vacancies]
     analyses_by_vacancy = analysis_repository.get_by_vacancy_ids(vacancy_ids)
-    tracked_vacancy_ids = _application_ids_with_tracking()
+    tracking_lookup = _application_tracking_lookup()
+    tracked_vacancy_ids = set(tracking_lookup)
     items = []
     for vacancy in visible_vacancies:
         analysis = analyses_by_vacancy.get(vacancy["id"])
@@ -144,7 +170,9 @@ def _build_vacancy_items(limit: int | None = None) -> list[dict]:
                 "score_meta": score_meta,
                 "affinity_meta": affinity_meta,
                 "decision_meta": decision_meta,
+                "decision_compact_label": _compact_decision_label(analysis),
                 "has_application": has_application,
+                "tracking_application_id": tracking_lookup.get(vacancy["id"]),
             }
         )
     return items
