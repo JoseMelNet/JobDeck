@@ -1,8 +1,8 @@
 {% if vacancies %}
     <div class="simple-table opportunity-list">
         <div class="list-section-label">
-            <span>Vacantes activas</span>
-            <span>{{ pagination.total_items }} en vista</span>
+            <span>Vacantes en vista</span>
+            <span>{{ pagination.total_items }}</span>
         </div>
         {% for item in vacancies %}
             <div
@@ -20,13 +20,6 @@
                     <div class="opportunity-main">
                         <div class="opportunity-topline">
                             <div class="primary-cell truncate-cell" title="{{ item.empresa }}">{{ item.empresa }}</div>
-                            <span class="opportunity-score tone-{{ item.score_meta.tone }}">
-                                {% if item.score_meta.value is not none %}
-                                    {{ item.score_meta.value }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </span>
                         </div>
                         <div class="opportunity-role-line">
                             <div class="opportunity-role" title="{{ item.cargo }}">{{ item.cargo }}</div>
@@ -41,11 +34,22 @@
                                     Pendiente de analisis
                                 {% endif %}
                             </span>
+                            <span class="opportunity-state state-{{ item.status_meta.tone }}">{{ item.status_meta.label }}</span>
                         </div>
                     </div>
-                    <div class="opportunity-signals">
-                        <span class="analysis-pill opportunity-decision tone-{{ item.decision_meta.tone }}">{{ item.decision_meta.label }}</span>
-                        <span class="status-badge status-{{ item.status_meta.tone }}">{{ item.status_meta.label }}</span>
+                    <div class="opportunity-side">
+                        <span class="opportunity-recommendation tone-{{ item.decision_meta.tone }}">
+                            <span class="opportunity-recommendation-label">
+                                {% if item.score_meta.value is not none %}
+                                    {{ item.decision_meta.label }}
+                                {% else %}
+                                    Pendiente de analisis
+                                {% endif %}
+                            </span>
+                            {% if item.score_meta.value is not none %}
+                                <span class="opportunity-recommendation-score">{{ item.score_meta.value }}</span>
+                            {% endif %}
+                        </span>
                     </div>
                 </a>
             </div>

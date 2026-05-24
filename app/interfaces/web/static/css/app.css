@@ -884,7 +884,7 @@ a {
 }
 
 .opportunity-list {
-    gap: 6px;
+    gap: 4px;
 }
 
 .list-section-label {
@@ -892,38 +892,38 @@ a {
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    padding: 0 2px 4px;
+    padding: 0 2px 6px;
     color: var(--muted);
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 .opportunity-list .table-row-shell {
-    border-radius: 12px;
-    background: rgba(251, 252, 254, 0.92);
+    border-radius: 10px;
+    border-color: rgba(215, 223, 236, 0.7);
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: none;
 }
 
 .opportunity-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
-    padding: 10px 12px;
+    padding: 9px 10px;
 }
 
 .opportunity-main {
     display: grid;
-    gap: 4px;
+    gap: 3px;
     min-width: 0;
 }
 
 .opportunity-topline {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
     min-width: 0;
 }
 
@@ -932,53 +932,131 @@ a {
 }
 
 .opportunity-role {
-    font-size: 0.84rem;
-    font-weight: 600;
-    line-height: 1.35;
-    color: #354158;
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.28;
+    color: #354158;
 }
 
 .opportunity-meta-line {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 4px 10px;
+    gap: 3px 8px;
     min-width: 0;
 }
 
 .opportunity-meta-line .secondary-cell {
     margin-top: 0;
-    font-size: 0.76rem;
-}
-
-.opportunity-score {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 32px;
-    min-height: 22px;
-    padding: 0 8px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid var(--border);
     font-size: 0.74rem;
-    font-weight: 700;
-    flex-shrink: 0;
 }
 
-.opportunity-signals {
+.opportunity-side {
     display: grid;
     justify-items: end;
-    gap: 6px;
+    align-items: center;
     min-width: 0;
 }
 
-.opportunity-decision {
-    font-size: 0.78rem;
+.opportunity-recommendation {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 180px;
     padding: 6px 9px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: right;
+}
+
+.opportunity-recommendation-label {
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.opportunity-recommendation-score {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    min-height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    color: currentColor;
+    font-size: 0.73rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.opportunity-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.opportunity-state::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.8;
+}
+
+.opportunity-state.state-blue {
+    color: #5473b7;
+}
+
+.opportunity-state.state-green {
+    color: #5d7c68;
+}
+
+.opportunity-state.state-gray {
+    color: #6b7280;
+}
+
+.opportunity-state.state-red {
+    color: #9f5d5d;
+}
+
+.opportunity-state.state-amber {
+    color: #9b7448;
+}
+
+.opportunity-state.state-violet {
+    color: #7563b8;
+}
+
+.opportunity-list .table-row-shell:hover {
+    border-color: rgba(191, 219, 254, 0.95);
+    background: #f8fbff;
+    transform: none;
+}
+
+.opportunity-list .table-row-shell.is-selected {
+    border-color: rgba(179, 201, 255, 0.95);
+    background: rgba(238, 244, 255, 0.92);
+    box-shadow: inset 2px 0 0 #1d4ed8;
+}
+
+.opportunity-list .primary-cell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .inline-detail-row {
