@@ -147,21 +147,15 @@
                 </section>
             {% endif %}
 
-            <section
-                class="description-disclosure vacancy-description vacancy-description-reader"
-                id="vacancy-description-{{ selected_vacancy.id }}"
-            >
-                <a
-                    class="vacancy-description-summary"
-                    href="/app/vacancies?selected={{ selected_vacancy.id }}&q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}#vacancy-description-{{ selected_vacancy.id }}"
-                >
+            <details class="description-disclosure vacancy-description vacancy-description-reader">
+                <summary class="vacancy-description-summary">
                     <span>Descripcion completa</span>
                     <span class="description-summary-note">Texto original de la vacante</span>
-                </a>
+                </summary>
                 <div class="vacancy-description-body vacancy-description-content">
                     <p class="vacancy-description-text">{{ selected_vacancy.descripcion or "Sin descripcion disponible." }}</p>
                 </div>
-            </section>
+            </details>
         </div>
     </section>
 {% else %}

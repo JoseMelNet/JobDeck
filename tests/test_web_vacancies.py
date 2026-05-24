@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import unittest
 from datetime import date
+from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -15,6 +16,12 @@ from app.interfaces.web.routes import vacancies as vacancies_routes
 class WebVacanciesTests(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(api.app)
+
+    def test_vacancy_description_css_uses_details_instead_of_target_reveal(self):
+        css = Path("app/interfaces/web/static/css/app.css").read_text(encoding="utf-8")
+
+        self.assertNotIn(".vacancy-description-reader:target", css)
+        self.assertIn(".vacancy-description-reader[open] .vacancy-description-summary::after", css)
 
     @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.vacancies._build_nav", return_value=[])
@@ -297,8 +304,13 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertIn("Descripcion completa", response.text)
         self.assertIn("Texto original de la vacante", response.text)
         self.assertIn("Descripcion 25", response.text)
-        self.assertIn('class="description-disclosure vacancy-description vacancy-description-reader"', response.text)
+        self.assertIn('<details class="description-disclosure vacancy-description vacancy-description-reader">', response.text)
+        self.assertIn('<summary class="vacancy-description-summary">', response.text)
         self.assertIn('class="vacancy-description-body vacancy-description-content"', response.text)
+        self.assertNotIn("#vacancy-description-25", response.text)
+        self.assertNotIn('href="/app/vacancies?selected=25', response.text)
+        self.assertNotIn("modal", response.text.lower())
+        self.assertNotIn("overlay", response.text.lower())
 
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
     def test_vacancy_detail_partial_uses_view_tracking_cta_for_existing_application(self, mock_build_items):
@@ -417,6 +429,9 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertNotIn('data-inline-detail="true"', response.text)
         self.assertIn("Descripcion completa", response.text)
         self.assertIn("Texto original de la vacante", response.text)
+        self.assertIn('<details class="description-disclosure vacancy-description vacancy-description-reader">', response.text)
+        self.assertIn('<summary class="vacancy-description-summary">', response.text)
+        self.assertNotIn("#vacancy-description-2", response.text)
 
     @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[{"label": "Aplicaciones", "value": 9}, {"label": "Rechazadas", "value": 2}])
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
