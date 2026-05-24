@@ -25,13 +25,17 @@
                             <div class="opportunity-role" title="{{ item.cargo }}">{{ item.cargo }}</div>
                         </div>
                         <div class="opportunity-meta-line">
-                            <span class="secondary-cell truncate-cell" title="{{ item.modalidad }}">{{ item.modalidad }}</span>
-                            <span class="secondary-cell">{{ item.fecha_registro.strftime("%d/%m/%Y") if item.fecha_registro else "-" }}</span>
+                            {% if item.modalidad_display %}
+                                <span class="secondary-cell truncate-cell" title="{{ item.modalidad_display }}">{{ item.modalidad_display }}</span>
+                            {% endif %}
+                            {% if item.fecha_registro %}
+                                <span class="secondary-cell">{{ item.fecha_registro.strftime("%d/%m/%Y") }}</span>
+                            {% endif %}
                             <span class="secondary-cell" title="{{ item.affinity_meta.label if item.score_meta.value is not none else 'Pendiente de analisis' }}">
                                 {% if item.score_meta.value is not none %}
                                     {{ item.affinity_meta.label }}
                                 {% else %}
-                                    Pendiente de analisis
+                                    Pendiente
                                 {% endif %}
                             </span>
                             <span class="opportunity-state state-{{ item.status_meta.tone }}">{{ item.status_meta.label }}</span>
@@ -39,14 +43,14 @@
                     </div>
                     <div class="opportunity-side">
                         <span
-                            class="opportunity-recommendation tone-{{ item.decision_visual_tone }}"
+                            class="opportunity-recommendation tone-{{ item.decision_visual_tone or item.score_meta.tone or item.decision_meta.tone or 'gray' }}"
                             aria-label="{{ item.decision_meta.label if item.score_meta.value is not none else 'Pendiente de analisis' }}"
                         >
                             <span
                                 class="opportunity-recommendation-label"
                                 title="{{ item.decision_meta.label if item.score_meta.value is not none else 'Pendiente de analisis' }}"
                             >
-                                {{ item.decision_compact_label }}
+                                {{ item.decision_compact_label or item.decision_meta.label or 'Pendiente' }}
                             </span>
                             {% if item.score_meta.value is not none %}
                                 <span class="opportunity-recommendation-score" title="Score {{ item.score_meta.value }}">{{ item.score_meta.value }}</span>

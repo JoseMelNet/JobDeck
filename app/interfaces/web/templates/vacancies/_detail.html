@@ -9,26 +9,20 @@
                 <h2 class="vacancy-card-title">
                     {{ selected_vacancy.empresa }} - {{ selected_vacancy.cargo }}
                 </h2>
-                <div class="vacancy-card-meta decision-meta-line">
-                    <span>{{ selected_vacancy.fecha_registro.strftime("%d/%m/%Y") if selected_vacancy.fecha_registro else "-" }}</span>
-                    <span>{{ selected_vacancy.modalidad }}</span>
-                    {% if analysis and analysis.seniority_inferido %}
-                        <span>{{ analysis.seniority_inferido }}</span>
-                    {% endif %}
-                    {% if analysis and analysis.salario_detectado %}
-                        <span>{{ analysis.salario_detectado }}</span>
-                    {% endif %}
-                    {% if analysis and analysis.aspiracion_salarial_sugerida %}
-                        <span>{{ analysis.aspiracion_salarial_sugerida }}</span>
-                    {% endif %}
-                </div>
+                {% if selected_vacancy.detail_meta_items %}
+                    <div class="vacancy-card-meta decision-meta-line">
+                        {% for item in selected_vacancy.detail_meta_items %}
+                            <span>{{ item }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
         </div>
 
         <section class="decision-hero">
             <div class="decision-copy">
                 <div class="decision-label">Decision sugerida</div>
-                <div class="decision-headline tone-{{ selected_vacancy.decision_visual_tone }}">
+                <div class="decision-headline tone-{{ selected_vacancy.decision_visual_tone or selected_vacancy.score_meta.tone or selected_vacancy.decision_meta.tone or 'gray' }}">
                     {{ selected_vacancy.decision_meta.label }}
                 </div>
                 <div class="decision-support">
@@ -70,7 +64,7 @@
             </div>
         </section>
 
-        <div class="vacancy-card-body">
+        <div class="vacancy-card-body decision-panel-body">
             {% if analysis %}
                 {% if analysis.fortalezas_principales or analysis.riesgos_principales %}
                     <section class="analysis-priority-grid decision-evidence-grid">
@@ -153,15 +147,21 @@
                 </section>
             {% endif %}
 
-            <details class="description-disclosure vacancy-description">
-                <summary>
+            <section
+                class="description-disclosure vacancy-description vacancy-description-reader"
+                id="vacancy-description-{{ selected_vacancy.id }}"
+            >
+                <a
+                    class="vacancy-description-summary"
+                    href="/app/vacancies?selected={{ selected_vacancy.id }}&q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}#vacancy-description-{{ selected_vacancy.id }}"
+                >
                     <span>Descripcion completa</span>
                     <span class="description-summary-note">Texto original de la vacante</span>
-                </summary>
-                <div class="vacancy-description-body">
+                </a>
+                <div class="vacancy-description-body vacancy-description-content">
                     <p class="vacancy-description-text">{{ selected_vacancy.descripcion or "Sin descripcion disponible." }}</p>
                 </div>
-            </details>
+            </section>
         </div>
     </section>
 {% else %}

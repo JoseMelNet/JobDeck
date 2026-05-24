@@ -80,6 +80,18 @@ def _keyword_tone(value: str | None, mapping: dict[str, str], default_label: str
     return {"tone": "gray", "label": normalized or default_label, "raw": normalized}
 
 
+def _clean_display_value(value, *, max_length: int | None = None) -> str | None:
+    if value is None:
+        return None
+
+    text = str(value).strip()
+    if not text or text.lower() in {"null", "none", "n/a", "na", "-"}:
+        return None
+    if max_length is not None and len(text) > max_length:
+        return None
+    return text
+
+
 def _affinity_meta(analysis: dict | None) -> dict:
     if not analysis:
         return {"tone": "gray", "label": "-", "raw": None}
@@ -130,18 +142,20 @@ def _application_tracking_lookup() -> dict[int, int]:
 
 def _compact_decision_label(analysis: dict | None) -> str:
     if not analysis:
-        return "Pendiente de analisis"
+        return "Pendiente"
 
     decision = (analysis.get("decision_aplicacion") or "").strip()
     lowered = decision.lower()
     if not decision:
-        return "Pendiente de analisis"
+        return "Pendiente"
+    if "aplicar sí o sí" in lowered or "aplicar si o si" in lowered:
+        return "Si"
     if "aplicar si sobra tiempo" in lowered:
         return "Si hay tiempo"
     if "revis" in lowered or "evalu" in lowered:
         return "Revisar"
     if "no aplicar" in lowered or "descartar" in lowered or "rechazar" in lowered:
-        return "Descartar"
+        return "No"
     return decision
 
 
@@ -154,6 +168,22 @@ def _build_context_bar(summary: dict, metrics: list[dict]) -> list[dict]:
         {"label": "Aplicaciones", "value": metric_lookup.get("Aplicaciones", 0)},
         {"label": "Rechazadas", "value": metric_lookup.get("Rechazadas", 0)},
     ]
+
+
+def _detail_meta_items(vacancy: dict, analysis: dict | None) -> list[str]:
+    values: list[str | None] = [
+        vacancy.get("fecha_registro").strftime("%d/%m/%Y") if vacancy.get("fecha_registro") else None,
+        _clean_display_value(vacancy.get("modalidad"), max_length=30),
+    ]
+    if analysis:
+        values.extend(
+            [
+                _clean_display_value(analysis.get("seniority_inferido"), max_length=40),
+                _clean_display_value(analysis.get("salario_detectado"), max_length=50),
+                _clean_display_value(analysis.get("aspiracion_salarial_sugerida"), max_length=50),
+            ]
+        )
+    return [value for value in values if value]
 
 
 def _build_vacancy_items(limit: int | None = None) -> list[dict]:
@@ -177,6 +207,8 @@ def _build_vacancy_items(limit: int | None = None) -> list[dict]:
             {
                 **vacancy,
                 "analisis": analysis,
+                "detail_meta_items": _detail_meta_items(vacancy, analysis),
+                "modalidad_display": _clean_display_value(vacancy.get("modalidad"), max_length=30),
                 "status_label": status_label,
                 "status_meta": STATUS_META[status_label],
                 "score_label": f"{score_meta['value']:.0f}" if score_meta["value"] is not None else "Sin analisis",

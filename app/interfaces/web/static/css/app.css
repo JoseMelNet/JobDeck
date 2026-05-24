@@ -876,6 +876,11 @@ a {
     min-width: 0;
 }
 
+.workspace-detail,
+#vacancy-detail {
+    min-height: 0;
+}
+
 .inbox-list-panel {
     padding: 14px 16px 16px;
 }
@@ -1097,6 +1102,8 @@ a {
 }
 
 .decision-panel {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
     padding: 0;
     overflow: hidden;
 }
@@ -1305,7 +1312,13 @@ a {
 .vacancy-card-body {
     display: grid;
     gap: 10px;
+    min-height: 0;
     padding: 14px 18px 18px;
+}
+
+.decision-panel-body {
+    min-height: 0;
+    overflow: visible;
 }
 
 .vacancy-skills {
@@ -1417,12 +1430,37 @@ a {
     background: transparent;
 }
 
-.vacancy-description > summary {
+.vacancy-description-summary {
     display: grid;
     gap: 2px;
+    width: 100%;
     padding: 12px 18px;
+    padding-right: 34px;
     background: transparent;
+    color: inherit;
+    cursor: pointer;
     font-size: 0.78rem;
+    font-weight: 700;
+    position: relative;
+    text-align: left;
+    text-decoration: none;
+}
+
+.vacancy-description-summary::-webkit-details-marker {
+    display: none;
+}
+
+.vacancy-description-summary::after {
+    content: "▾";
+    position: absolute;
+    right: 18px;
+    top: 14px;
+    color: #667085;
+    transition: transform 0.18s ease;
+}
+
+.vacancy-description-reader:target .vacancy-description-summary::after {
+    transform: rotate(180deg);
 }
 
 .description-summary-note {
@@ -1431,10 +1469,20 @@ a {
     font-weight: 500;
 }
 
-.vacancy-description > .vacancy-description-body {
-    max-height: 280px;
+.vacancy-description-content {
+    max-height: 320px;
+    min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 0 18px 16px;
+}
+
+.vacancy-description-reader:not(:target) .vacancy-description-content {
+    display: none;
+}
+
+.vacancy-description-reader:target .vacancy-description-content {
+    display: block;
 }
 
 .vacancy-description-text {

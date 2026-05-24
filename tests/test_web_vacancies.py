@@ -257,6 +257,8 @@ class WebVacanciesTests(unittest.TestCase):
         )
         self.assertIn('hx-target="#vacancies-shell"', response.text)
         self.assertIn('class="opportunity-recommendation tone-amber"', response.text)
+        self.assertIn("Si hay tiempo", response.text)
+        self.assertIn('title="Score 64">64</span>', response.text)
         self.assertIn('title="Aplicar si sobra tiempo"', response.text)
         self.assertIn('title="Score 64"', response.text)
         self.assertNotIn('opportunity-recommendation-score" title="Descartar"', response.text)
@@ -295,7 +297,8 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertIn("Descripcion completa", response.text)
         self.assertIn("Texto original de la vacante", response.text)
         self.assertIn("Descripcion 25", response.text)
-        self.assertIn('class="description-disclosure vacancy-description"', response.text)
+        self.assertIn('class="description-disclosure vacancy-description vacancy-description-reader"', response.text)
+        self.assertIn('class="vacancy-description-body vacancy-description-content"', response.text)
 
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
     def test_vacancy_detail_partial_uses_view_tracking_cta_for_existing_application(self, mock_build_items):
@@ -327,6 +330,43 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertIn('href="/app/applications?selected=77"', response.text)
         self.assertNotIn("Ir a seguimiento", response.text)
 
+    @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
+    def test_vacancy_detail_partial_hides_null_metadata_values(self, mock_build_items):
+        mock_build_items.return_value = [
+            {
+                "id": 31,
+                "empresa": "Empresa 31",
+                "cargo": "Cargo 31",
+                "modalidad": "Remoto",
+                "fecha_registro": date(2026, 4, 1),
+                "descripcion": "Descripcion 31",
+                "link": None,
+                "analisis": {
+                    "seniority_inferido": "null",
+                    "salario_detectado": "",
+                    "aspiracion_salarial_sugerida": None,
+                },
+                "detail_meta_items": ["01/04/2026", "Remoto"],
+                "status_label": "Analizada",
+                "status_meta": {"tone": "green", "label": "Analizada"},
+                "score_label": "70",
+                "score_meta": {"tone": "amber", "label": "70", "value": 70},
+                "affinity_meta": {"tone": "amber", "label": "Media", "raw": "Media"},
+                "decision_meta": {"tone": "amber", "label": "Revisar", "raw": "Revisar"},
+                "decision_visual_tone": "amber",
+                "decision_compact_label": "Revisar",
+                "has_application": False,
+            }
+        ]
+
+        response = self.client.get("/app/vacancies/31/detail")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("01/04/2026", response.text)
+        self.assertIn("Remoto", response.text)
+        self.assertNotIn(">null<", response.text)
+        self.assertNotIn(">None<", response.text)
+
     @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[{"label": "Aplicaciones", "value": 9}, {"label": "Rechazadas", "value": 2}])
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
     def test_vacancy_shell_partial_renders_workspace_with_detail_panel(self, mock_build_items, _mock_metrics):
@@ -350,6 +390,7 @@ class WebVacanciesTests(unittest.TestCase):
                     "ajustes_cv_recomendados": ["Destacar analitica"],
                     "encaje_estrategico": "Alto",
                 },
+                "detail_meta_items": ["01/04/2026", "Remoto"],
                 "status_label": "Analizada",
                 "status_meta": {"tone": "green", "label": "Analizada"},
                 "score_label": "88",
@@ -357,7 +398,7 @@ class WebVacanciesTests(unittest.TestCase):
                 "affinity_meta": {"tone": "green", "label": "Alta", "raw": "Alta"},
                 "decision_meta": {"tone": "green", "label": "Aplicar", "raw": "Aplicar"},
                 "decision_visual_tone": "green",
-                "decision_compact_label": "Aplicar",
+                "decision_compact_label": "Si",
                 "has_application": False,
             }
         ]
@@ -510,7 +551,11 @@ class WebVacanciesTests(unittest.TestCase):
         )
         self.assertEqual(
             vacancies_routes._compact_decision_label({"decision_aplicacion": "Aplicar sí o sí"}),
-            "Aplicar sí o sí",
+            "Si",
+        )
+        self.assertEqual(
+            vacancies_routes._compact_decision_label({"decision_aplicacion": "Descartar"}),
+            "No",
         )
 
     def test_decision_visual_tone_prefers_score_tone_when_available(self):
@@ -528,3 +573,9 @@ class WebVacanciesTests(unittest.TestCase):
             ),
             "red",
         )
+
+    def test_clean_display_value_filters_garbage(self):
+        self.assertIsNone(vacancies_routes._clean_display_value(None))
+        self.assertIsNone(vacancies_routes._clean_display_value("null"))
+        self.assertIsNone(vacancies_routes._clean_display_value(" "))
+        self.assertEqual(vacancies_routes._clean_display_value("Remoto"), "Remoto")
