@@ -2,50 +2,12 @@
 
 {% block content %}
 {% set page_header_title = "Inbox de Vacantes" %}
-{% set page_header_description = "Revisa, prioriza y decide sin salir del workspace." %}
+{% set page_header_description = none %}
 {% set page_header_copy_class = "page-header-copy" %}
+{% set page_header_compact = true %}
 {% include "components/_page_header.html" %}
 
-{% include "vacancies/_shell.html" %}
-<script>
-    (function () {
-        function focusSelectedInboxRow() {
-            const list = document.getElementById("vacancy-list");
-            if (!list) {
-                return;
-            }
-
-            const selectedRow = list.querySelector("[data-selected-row='true']");
-            const detail = list.querySelector("[data-inline-detail='true']");
-            if (!selectedRow || !detail) {
-                return;
-            }
-
-            const rowRect = selectedRow.getBoundingClientRect();
-            const detailRect = detail.getBoundingClientRect();
-            const topPadding = 124;
-            const bottomPadding = 40;
-            const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-            const isAboveViewport = rowRect.top < topPadding;
-            const isBelowViewport = detailRect.bottom > viewportHeight - bottomPadding;
-
-            if (!isAboveViewport && !isBelowViewport) {
-                return;
-            }
-
-            const desiredTop = Math.max(
-                0,
-                window.scrollY + rowRect.top - topPadding
-            );
-            window.scrollTo({ top: desiredTop, behavior: "smooth" });
-        }
-
-        document.addEventListener("DOMContentLoaded", focusSelectedInboxRow);
-        document.body.addEventListener("htmx:afterSwap", function (event) {
-            if (event.target && event.target.id === "vacancy-list") {
-                focusSelectedInboxRow();
-            }
-        });
-    })();
-</script>
+<div id="vacancies-shell">
+    {% include "vacancies/_shell.html" %}
+</div>
 {% endblock %}

@@ -84,6 +84,9 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertIn("Empresa 20", response.text)
         self.assertNotIn("Empresa 21", response.text)
         self.assertNotIn("Sin detalle", response.text)
+        self.assertIn('id="vacancies-shell"', response.text)
+        self.assertIn('id="vacancy-detail"', response.text)
+        self.assertIn("Empresa 1 - Cargo 1", response.text)
         mock_build_items.assert_called_once_with(limit=None)
 
     @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[])
@@ -177,10 +180,11 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertIn("Empresa 25", response.text)
         self.assertIn("Pagina 3 de 3", response.text)
         self.assertIn("Empresa 25 - Cargo 25", response.text)
-        self.assertIn('title="Cerrar"', response.text)
+        self.assertIn('id="vacancy-detail"', response.text)
+        self.assertNotIn('title="Cerrar"', response.text)
 
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
-    def test_vacancy_list_partial_renders_selected_inline_detail(self, mock_build_items):
+    def test_vacancy_list_partial_renders_workspace_rows_without_inline_detail(self, mock_build_items):
         mock_build_items.return_value = [
             {
                 "id": item_id,
@@ -206,12 +210,13 @@ class WebVacanciesTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('data-selected-row="true"', response.text)
-        self.assertIn('data-inline-detail="true"', response.text)
-        self.assertIn("Empresa 2 - Cargo 2", response.text)
+        self.assertNotIn('data-inline-detail="true"', response.text)
+        self.assertNotIn("Descripcion 2", response.text)
         self.assertIn(
-            'hx-get="/app/vacancies/list?q=Empresa&view=Todas&page=1&page_size=20"',
+            'hx-get="/app/vacancies?selected=2&q=Empresa&view=Todas&page=1&page_size=20"',
             response.text,
         )
+        self.assertIn('hx-target="#vacancies-shell"', response.text)
 
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
     def test_vacancy_detail_partial_preserves_query_view_and_pagination(self, mock_build_items):
@@ -239,14 +244,85 @@ class WebVacanciesTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Empresa 25 - Cargo 25", response.text)
-        self.assertIn(
-            'href="/app/vacancies?q=data&view=Todas&page=3&page_size=10"',
-            response.text,
+        self.assertIn('name="q" value="data"', response.text)
+        self.assertIn('name="view" value="Todas"', response.text)
+        self.assertIn('name="page" value="3"', response.text)
+        self.assertIn('name="page_size" value="10"', response.text)
+        self.assertIn("Pasar a seguimiento", response.text)
+
+    @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
+    def test_vacancy_shell_partial_renders_workspace_with_detail_panel(self, mock_build_items):
+        mock_build_items.return_value = [
+            {
+                "id": 2,
+                "empresa": "Empresa 2",
+                "cargo": "Cargo 2",
+                "modalidad": "Remoto",
+                "fecha_registro": date(2026, 4, 1),
+                "descripcion": "Descripcion 2",
+                "link": "https://example.com/vacancy",
+                "analisis": {
+                    "score_total": 88,
+                    "decision_aplicacion": "Aplicar",
+                    "afinidad_general": "Alta",
+                    "resumen_analisis": "Buen encaje general",
+                    "fortalezas_principales": ["SQL", "Python"],
+                    "skills_match": ["SQL", "Python"],
+                    "skills_gap": ["ETL"],
+                    "ajustes_cv_recomendados": ["Destacar analitica"],
+                    "encaje_estrategico": "Alto",
+                },
+                "status_label": "Analizada",
+                "status_meta": {"tone": "green", "label": "Analizada"},
+                "score_label": "88",
+                "score_meta": {"tone": "green", "label": "88", "value": 88},
+                "affinity_meta": {"tone": "green", "label": "Alta", "raw": "Alta"},
+                "decision_meta": {"tone": "green", "label": "Aplicar", "raw": "Aplicar"},
+                "has_application": False,
+            }
+        ]
+
+        response = self.client.get("/app/vacancies/shell?selected=2&q=Empresa&view=Todas&page=1&page_size=20")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('class="layout-two-columns workspace-shell inbox-workspace"', response.text)
+        self.assertIn('id="vacancy-detail"', response.text)
+        self.assertIn("Resumen ejecutivo", response.text)
+        self.assertIn("Buen encaje general", response.text)
+        self.assertIn("Pasar a seguimiento", response.text)
+        self.assertNotIn('data-inline-detail="true"', response.text)
+
+    @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
+    def test_vacancies_index_hx_request_returns_workspace_shell_only(self, mock_build_items):
+        mock_build_items.return_value = [
+            {
+                "id": 7,
+                "empresa": "Empresa 7",
+                "cargo": "Cargo 7",
+                "modalidad": "Remoto",
+                "fecha_registro": date(2026, 4, 1),
+                "descripcion": "Descripcion 7",
+                "link": None,
+                "analisis": None,
+                "status_label": "Registrada",
+                "status_meta": {"tone": "gray", "label": "Registrada"},
+                "score_label": "Sin score",
+                "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
+                "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "has_application": False,
+            }
+        ]
+
+        response = self.client.get(
+            "/app/vacancies?selected=7",
+            headers={"HX-Request": "true"},
         )
-        self.assertIn(
-            'hx-get="/app/vacancies/list?q=data&view=Todas&page=3&page_size=10"',
-            response.text,
-        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('class="workspace-toolbar"', response.text)
+        self.assertIn('id="vacancy-detail"', response.text)
+        self.assertNotIn("<!doctype html>", response.text.lower())
 
     @patch("app.interfaces.web.routes.vacancies.application_repository")
     @patch("app.interfaces.web.routes.vacancies.analysis_repository")

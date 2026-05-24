@@ -1,55 +1,47 @@
 {% if selected_vacancy %}
-    <section class="panel detail-sheet detail-sheet-inline vacancy-card-inline">
+    {% set analysis = selected_vacancy.analisis %}
+    <section class="panel detail-sheet decision-panel">
         <div class="vacancy-card-header">
             <div class="vacancy-card-copy">
+                <div class="detail-header-badges">
+                    <span class="status-badge status-{{ selected_vacancy.status_meta.tone }}">{{ selected_vacancy.status_meta.label }}</span>
+                    {% if selected_vacancy.has_application %}
+                        <span class="soft-badge">Ya esta en seguimiento</span>
+                    {% endif %}
+                    {% if analysis and analysis.seniority_inferido %}
+                        <span class="soft-badge">{{ analysis.seniority_inferido }}</span>
+                    {% endif %}
+                </div>
                 <h2 class="vacancy-card-title">
                     {{ selected_vacancy.empresa }} - {{ selected_vacancy.cargo }}
-                    {% if selected_vacancy.link %}
-                        <a href="{{ selected_vacancy.link }}" target="_blank" class="vacancy-link-icon" title="Abrir vacante">Abrir</a>
-                    {% endif %}
                 </h2>
                 <div class="vacancy-card-meta">
                     <span>{{ selected_vacancy.fecha_registro.strftime("%d/%m/%Y") if selected_vacancy.fecha_registro else "-" }}</span>
                     <span>{{ selected_vacancy.modalidad }}</span>
-                    <span class="status-badge status-{{ selected_vacancy.status_meta.tone }}">{{ selected_vacancy.status_meta.label }}</span>
+                    {% if analysis and analysis.salario_detectado %}
+                        <span>{{ analysis.salario_detectado }}</span>
+                    {% endif %}
                 </div>
             </div>
-            {% if not selected_vacancy.has_application %}
-                <div class="vacancy-card-actions">
+            <div class="vacancy-card-actions">
+                {% if selected_vacancy.link %}
+                    <a href="{{ selected_vacancy.link }}" target="_blank" rel="noreferrer" class="secondary-link vacancy-action-button">Abrir vacante</a>
+                {% endif %}
+                {% if not selected_vacancy.has_application %}
                     <form method="post" action="/app/vacancies/{{ selected_vacancy.id }}/interest">
-                        <button class="secondary-link vacancy-action-button" type="submit">Seguimiento</button>
+                        <button class="primary-action vacancy-action-button" type="submit">Pasar a seguimiento</button>
                     </form>
                     <form method="post" action="/app/vacancies/{{ selected_vacancy.id }}/discard">
                         <input type="hidden" name="q" value="{{ query }}">
                         <input type="hidden" name="view" value="{{ current_view }}">
                         <input type="hidden" name="page" value="{{ pagination.page }}">
                         <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
-                        <button class="secondary-link vacancy-action-button" type="submit">Descartar</button>
+                        <button class="danger-action vacancy-action-button" type="submit">Descartar</button>
                     </form>
-                    <a
-                        class="vacancy-close-button"
-                        href="/app/vacancies?q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                        hx-get="/app/vacancies/list?q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                        hx-target="#vacancy-list"
-                        hx-swap="innerHTML"
-                        hx-push-url="true"
-                        title="Cerrar"
-                    >×</a>
-                </div>
-            {% else %}
-                <div class="vacancy-card-actions">
-                    <a class="secondary-link vacancy-action-button" href="/app/applications">Seguimiento</a>
-                    <a
-                        class="vacancy-close-button"
-                        href="/app/vacancies?q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                        hx-get="/app/vacancies/list?q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                        hx-target="#vacancy-list"
-                        hx-swap="innerHTML"
-                        hx-push-url="true"
-                        title="Cerrar"
-                    >×</a>
-                </div>
-            {% endif %}
+                {% else %}
+                    <a class="primary-action vacancy-action-button" href="/app/applications">Ir a seguimiento</a>
+                {% endif %}
+            </div>
         </div>
 
         <div class="vacancy-card-divider"></div>
@@ -81,34 +73,111 @@
         <div class="vacancy-card-divider"></div>
 
         <div class="vacancy-card-body">
-            {% if selected_vacancy.analisis and selected_vacancy.analisis.skills_match %}
+            {% if analysis and analysis.resumen_analisis %}
+                <section class="analysis-summary">
+                    <h3>Resumen ejecutivo</h3>
+                    <p class="vacancy-analysis-text">{{ analysis.resumen_analisis }}</p>
+                </section>
+            {% elif analysis and analysis.justificacion_decision %}
+                <section class="analysis-summary">
+                    <h3>Resumen ejecutivo</h3>
+                    <p class="vacancy-analysis-text">{{ analysis.justificacion_decision }}</p>
+                </section>
+            {% endif %}
+
+            {% if analysis and analysis.skills_match %}
                 <div class="vacancy-skills">
-                    {% for skill in selected_vacancy.analisis.skills_match[:6] %}
+                    {% for skill in analysis.skills_match[:8] %}
                         <span class="vacancy-skill">{{ skill }}</span>
                     {% endfor %}
                 </div>
             {% endif %}
 
-            {% if selected_vacancy.analisis %}
-                <p class="vacancy-analysis-text">
-                    {{ selected_vacancy.analisis.resumen_analisis or selected_vacancy.analisis.justificacion_decision or "Sin resumen aun." }}
-                </p>
-            {% else %}
-                <p class="vacancy-analysis-text muted-note">
-                    Esta vacante aun no tiene analisis disponible.
-                </p>
-            {% endif %}
-        </div>
+            {% if analysis %}
+                <div class="detail-grid analysis-meta-grid">
+                    {% if analysis.encaje_estrategico %}
+                        <article class="detail-card">
+                            <div class="detail-label">Encaje estrategico</div>
+                            <div class="detail-value">{{ analysis.encaje_estrategico }}</div>
+                        </article>
+                    {% endif %}
+                    {% if analysis.seniority_inferido %}
+                        <article class="detail-card">
+                            <div class="detail-label">Seniority</div>
+                            <div class="detail-value">{{ analysis.seniority_inferido }}</div>
+                        </article>
+                    {% endif %}
+                    {% if analysis.aspiracion_salarial_sugerida %}
+                        <article class="detail-card">
+                            <div class="detail-label">Aspiracion sugerida</div>
+                            <div class="detail-value">{{ analysis.aspiracion_salarial_sugerida }}</div>
+                        </article>
+                    {% endif %}
+                </div>
 
-        <details class="description-disclosure vacancy-description">
-            <summary>Descripcion completa</summary>
-            <div class="vacancy-description-body">
-                <p>{{ selected_vacancy.descripcion }}</p>
-            </div>
-        </details>
+                {% if analysis.fortalezas_principales or analysis.riesgos_principales or analysis.skills_gap or analysis.ajustes_cv_recomendados %}
+                    <div class="analysis-detail-grid">
+                        {% if analysis.fortalezas_principales %}
+                            <article class="detail-card">
+                                <div class="detail-label">Fortalezas principales</div>
+                                <ul class="detail-list">
+                                    {% for item in analysis.fortalezas_principales[:4] %}
+                                        <li>{{ item }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </article>
+                        {% endif %}
+                        {% if analysis.riesgos_principales %}
+                            <article class="detail-card">
+                                <div class="detail-label">Riesgos principales</div>
+                                <ul class="detail-list">
+                                    {% for item in analysis.riesgos_principales[:4] %}
+                                        <li>{{ item }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </article>
+                        {% endif %}
+                        {% if analysis.skills_gap %}
+                            <article class="detail-card">
+                                <div class="detail-label">Skills faltantes</div>
+                                <ul class="detail-list">
+                                    {% for item in analysis.skills_gap[:5] %}
+                                        <li>{{ item }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </article>
+                        {% endif %}
+                        {% if analysis.ajustes_cv_recomendados %}
+                            <article class="detail-card">
+                                <div class="detail-label">Ajustes CV recomendados</div>
+                                <ul class="detail-list">
+                                    {% for item in analysis.ajustes_cv_recomendados[:5] %}
+                                        <li>{{ item }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </article>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <section class="analysis-summary analysis-summary-empty">
+                    <h3>Analisis pendiente</h3>
+                    <p class="vacancy-analysis-text muted-note">
+                        Esta vacante aun no tiene analisis disponible.
+                    </p>
+                </section>
+            {% endif %}
+
+            <details class="description-disclosure vacancy-description" open>
+                <summary>Descripcion completa</summary>
+                <div class="vacancy-description-body">
+                    <p>{{ selected_vacancy.descripcion }}</p>
+                </div>
+            </details>
+        </div>
     </section>
 {% else %}
-    <section class="panel detail-sheet empty-panel detail-sheet-inline">
+    <section class="panel detail-sheet decision-panel empty-panel">
         <h3>Sin detalle</h3>
         <p>Selecciona una vacante para ver su analisis y decidir si te interesa.</p>
     </section>

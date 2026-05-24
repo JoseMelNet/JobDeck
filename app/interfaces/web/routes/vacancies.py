@@ -276,7 +276,12 @@ def _build_inbox_context(
     filtered_items = _filter_vacancy_items(all_items, q=q, view=normalized_view)
     resolved_page = _resolve_page_for_selected(filtered_items, selected, normalized_page_size, page)
     items, pagination = _paginate_items(filtered_items, resolved_page, normalized_page_size)
-    selected_vacancy = next((item for item in items if item["id"] == selected), None) if selected else None
+    selected_vacancy = None
+    if items:
+        if selected is None:
+            selected_vacancy = items[0]
+        else:
+            selected_vacancy = next((item for item in items if item["id"] == selected), items[0])
     return {
         "vacancies": items,
         "selected_vacancy": selected_vacancy,
@@ -304,6 +309,12 @@ def vacancies_index(
     page_size: int = DEFAULT_PAGE_SIZE,
 ):
     context = _build_inbox_context(selected=selected, flash=flash, q=q, view=view, page=page, page_size=page_size)
+    if request.headers.get("HX-Request") == "true":
+        return templates.TemplateResponse(
+            request=request,
+            name="vacancies/_shell.html",
+            context={"request": request, **context},
+        )
     metrics = _build_metrics()
     metric_lookup = {item["label"]: item["value"] for item in metrics}
     return templates.TemplateResponse(
@@ -324,6 +335,24 @@ def vacancies_index(
             ],
             **context,
         },
+    )
+
+
+@router.get("/app/vacancies/shell", response_class=HTMLResponse)
+def vacancy_shell_partial(
+    request: Request,
+    selected: int | None = None,
+    flash: str | None = None,
+    q: str | None = None,
+    view: str = "Todas",
+    page: int = 1,
+    page_size: int = DEFAULT_PAGE_SIZE,
+):
+    context = _build_inbox_context(selected=selected, flash=flash, q=q, view=view, page=page, page_size=page_size)
+    return templates.TemplateResponse(
+        request=request,
+        name="vacancies/_shell.html",
+        context={"request": request, **context},
     )
 
 

@@ -10,15 +10,15 @@
         </div>
         {% for item in vacancies %}
             <div
-                class="table-row-shell{% if selected_vacancy and selected_vacancy.id == item.id %} is-selected{% endif %}"
+                class="table-row-shell opportunity-card{% if selected_vacancy and selected_vacancy.id == item.id %} is-selected{% endif %}"
                 {% if selected_vacancy and selected_vacancy.id == item.id %}data-selected-row="true"{% endif %}
             >
                 <a
                     class="table-row row-link"
                     href="/app/vacancies?selected={{ item.id }}&q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                    hx-get="/app/vacancies/list?selected={{ item.id }}&q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                    hx-target="#vacancy-list"
-                    hx-swap="innerHTML"
+                    hx-get="/app/vacancies?selected={{ item.id }}&q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
+                    hx-target="#vacancies-shell"
+                    hx-swap="outerHTML"
                     hx-push-url="true"
                 >
                     <div class="score-cell">
@@ -50,31 +50,15 @@
                     </div>
                     <div class="status-cell"><span class="status-badge status-{{ item.status_meta.tone }}">{{ item.status_meta.label }}</span></div>
                 </a>
-                <div class="row-quick-actions">
-                    {% if not item.has_application %}
-                        <form method="post" action="/app/vacancies/{{ item.id }}/discard">
-                            <input type="hidden" name="q" value="{{ query }}">
-                            <input type="hidden" name="view" value="{{ current_view }}">
-                            <input type="hidden" name="page" value="{{ pagination.page }}">
-                            <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
-                            <button type="submit" class="quick-action danger-action">Descartar</button>
-                        </form>
-                    {% endif %}
-                </div>
             </div>
-            {% if selected_vacancy and selected_vacancy.id == item.id %}
-                <div class="inline-detail-row" data-inline-detail="true">
-                    {% include "vacancies/_detail.html" %}
-                </div>
-            {% endif %}
         {% endfor %}
     </div>
     {% set pagination_prev_href = "/app/vacancies?q=%s&view=%s&page=%s&page_size=%s"|format(query, current_view, pagination.prev_page, pagination.page_size) %}
-    {% set pagination_prev_hx_get = "/app/vacancies/list?q=%s&view=%s&page=%s&page_size=%s"|format(query, current_view, pagination.prev_page, pagination.page_size) %}
+    {% set pagination_prev_hx_get = "/app/vacancies?q=%s&view=%s&page=%s&page_size=%s"|format(query, current_view, pagination.prev_page, pagination.page_size) %}
     {% set pagination_next_href = "/app/vacancies?q=%s&view=%s&page=%s&page_size=%s"|format(query, current_view, pagination.next_page, pagination.page_size) %}
-    {% set pagination_next_hx_get = "/app/vacancies/list?q=%s&view=%s&page=%s&page_size=%s"|format(query, current_view, pagination.next_page, pagination.page_size) %}
-    {% set pagination_hx_target = "#vacancy-list" %}
-    {% set pagination_hx_swap = "innerHTML" %}
+    {% set pagination_next_hx_get = "/app/vacancies?q=%s&view=%s&page=%s&page_size=%s"|format(query, current_view, pagination.next_page, pagination.page_size) %}
+    {% set pagination_hx_target = "#vacancies-shell" %}
+    {% set pagination_hx_swap = "outerHTML" %}
     {% set pagination_hx_push_url = "true" %}
     {% include "components/_pagination.html" %}
 {% else %}

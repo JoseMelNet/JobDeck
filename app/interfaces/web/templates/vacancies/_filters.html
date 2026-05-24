@@ -3,9 +3,9 @@
         class="filter-form filter-form-compact"
         method="get"
         action="/app/vacancies"
-        hx-get="/app/vacancies/list"
-        hx-target="#vacancy-list"
-        hx-swap="innerHTML"
+        hx-get="/app/vacancies"
+        hx-target="#vacancies-shell"
+        hx-swap="outerHTML"
         hx-push-url="true"
     >
         <label>

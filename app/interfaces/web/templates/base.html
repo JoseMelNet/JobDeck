@@ -9,12 +9,14 @@
 </head>
 <body>
     <header class="shell-header">
-        <div class="shell-brand">
-            <div class="shell-title">CVs Optimizator</div>
-            <div class="shell-subtitle">Vacantes, analisis y seguimiento</div>
-        </div>
+        <a href="/app/vacancies" class="shell-brand-link">
+            <div class="shell-brand">
+                <div class="shell-title">CVs Optimizator</div>
+                <div class="shell-subtitle">Vacantes, analisis y seguimiento</div>
+            </div>
+        </a>
         <div class="shell-nav-group">
-            <nav class="shell-nav">
+            <nav class="shell-nav" aria-label="Navegacion principal">
                 {% for item in nav_items if item.href != "/app/vacancies/new" %}
                     <a href="{{ item.href }}" class="nav-link{% if item.active %} is-active{% endif %}">{{ item.label }}</a>
                 {% endfor %}
