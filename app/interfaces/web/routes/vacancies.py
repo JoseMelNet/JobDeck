@@ -114,8 +114,10 @@ def _decision_meta(analysis: dict | None) -> dict:
     return {"tone": tone, "label": decision.strip(), "raw": decision.strip()}
 
 
-def _application_ids_with_tracking() -> set[int]:
-    return {item["vacante_id"] for item in application_repository.list_all()}
+def _decision_visual_tone(score_meta: dict, decision_meta: dict) -> str:
+    if score_meta.get("value") is not None:
+        return score_meta["tone"]
+    return decision_meta["tone"]
 
 
 def _application_tracking_lookup() -> dict[int, int]:
@@ -141,6 +143,17 @@ def _compact_decision_label(analysis: dict | None) -> str:
     if "no aplicar" in lowered or "descartar" in lowered or "rechazar" in lowered:
         return "Descartar"
     return decision
+
+
+def _build_context_bar(summary: dict, metrics: list[dict]) -> list[dict]:
+    metric_lookup = {item["label"]: item["value"] for item in metrics}
+    return [
+        {"label": "Vacantes visibles", "value": summary["total"]},
+        {"label": "Analizadas", "value": summary["analizadas"]},
+        {"label": "En seguimiento", "value": summary["seguimiento"]},
+        {"label": "Aplicaciones", "value": metric_lookup.get("Aplicaciones", 0)},
+        {"label": "Rechazadas", "value": metric_lookup.get("Rechazadas", 0)},
+    ]
 
 
 def _build_vacancy_items(limit: int | None = None) -> list[dict]:
@@ -170,6 +183,7 @@ def _build_vacancy_items(limit: int | None = None) -> list[dict]:
                 "score_meta": score_meta,
                 "affinity_meta": affinity_meta,
                 "decision_meta": decision_meta,
+                "decision_visual_tone": _decision_visual_tone(score_meta, decision_meta),
                 "decision_compact_label": _compact_decision_label(analysis),
                 "has_application": has_application,
                 "tracking_application_id": tracking_lookup.get(vacancy["id"]),
@@ -297,6 +311,7 @@ def _build_inbox_context(
     view: str,
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
+    metrics: list[dict] | None = None,
 ) -> dict:
     normalized_view = view if view in INBOX_VIEWS else "Todas"
     normalized_page_size = _normalize_page_size(page_size)
@@ -323,6 +338,14 @@ def _build_inbox_context(
             "analizadas": sum(1 for item in filtered_items if item["analisis"]),
             "seguimiento": sum(1 for item in filtered_items if item["has_application"]),
         },
+        "context_bar": _build_context_bar(
+            {
+                "total": len(filtered_items),
+                "analizadas": sum(1 for item in filtered_items if item["analisis"]),
+                "seguimiento": sum(1 for item in filtered_items if item["has_application"]),
+            },
+            metrics or [],
+        ),
     }
 
 
@@ -336,15 +359,22 @@ def vacancies_index(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
 ):
-    context = _build_inbox_context(selected=selected, flash=flash, q=q, view=view, page=page, page_size=page_size)
+    metrics = _build_metrics()
+    context = _build_inbox_context(
+        selected=selected,
+        flash=flash,
+        q=q,
+        view=view,
+        page=page,
+        page_size=page_size,
+        metrics=metrics,
+    )
     if request.headers.get("HX-Request") == "true":
         return templates.TemplateResponse(
             request=request,
             name="vacancies/_shell.html",
             context={"request": request, **context},
         )
-    metrics = _build_metrics()
-    metric_lookup = {item["label"]: item["value"] for item in metrics}
     return templates.TemplateResponse(
         request=request,
         name="vacancies/index.html",
@@ -354,13 +384,6 @@ def vacancies_index(
             "nav_items": _build_nav("vacancies"),
             "metrics": metrics,
             "hide_global_metrics": True,
-            "context_bar": [
-                {"label": "Vacantes visibles", "value": context["summary"]["total"]},
-                {"label": "Analizadas", "value": context["summary"]["analizadas"]},
-                {"label": "En seguimiento", "value": context["summary"]["seguimiento"]},
-                {"label": "Aplicaciones", "value": metric_lookup.get("Aplicaciones", 0)},
-                {"label": "Rechazadas", "value": metric_lookup.get("Rechazadas", 0)},
-            ],
             **context,
         },
     )
@@ -376,7 +399,15 @@ def vacancy_shell_partial(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
 ):
-    context = _build_inbox_context(selected=selected, flash=flash, q=q, view=view, page=page, page_size=page_size)
+    context = _build_inbox_context(
+        selected=selected,
+        flash=flash,
+        q=q,
+        view=view,
+        page=page,
+        page_size=page_size,
+        metrics=_build_metrics(),
+    )
     return templates.TemplateResponse(
         request=request,
         name="vacancies/_shell.html",

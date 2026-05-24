@@ -187,23 +187,62 @@ class WebVacanciesTests(unittest.TestCase):
     def test_vacancy_list_partial_renders_workspace_rows_without_inline_detail(self, mock_build_items):
         mock_build_items.return_value = [
             {
-                "id": item_id,
-                "empresa": f"Empresa {item_id}",
-                "cargo": f"Cargo {item_id}",
+                "id": 1,
+                "empresa": "Empresa 1",
+                "cargo": "Cargo 1",
                 "modalidad": "Remoto",
                 "fecha_registro": date(2026, 4, 1),
-                "descripcion": f"Descripcion {item_id}",
+                "descripcion": "Descripcion 1",
+                "link": None,
+                "analisis": {"score_total": 43, "decision_aplicacion": "Descartar"},
+                "status_label": "Analizada",
+                "status_meta": {"tone": "green", "label": "Analizada"},
+                "score_label": "43",
+                "score_meta": {"tone": "red", "label": "43", "value": 43},
+                "affinity_meta": {"tone": "red", "label": "Baja", "raw": "Baja"},
+                "decision_meta": {"tone": "red", "label": "Descartar", "raw": "Descartar"},
+                "decision_visual_tone": "red",
+                "decision_compact_label": "Descartar",
+                "has_application": False,
+            },
+            {
+                "id": 2,
+                "empresa": "Empresa 2",
+                "cargo": "Cargo 2",
+                "modalidad": "Remoto",
+                "fecha_registro": date(2026, 4, 1),
+                "descripcion": "Descripcion 2",
+                "link": None,
+                "analisis": {"score_total": 64, "decision_aplicacion": "Aplicar si sobra tiempo"},
+                "status_label": "Analizada",
+                "status_meta": {"tone": "green", "label": "Analizada"},
+                "score_label": "64",
+                "score_meta": {"tone": "amber", "label": "64", "value": 64},
+                "affinity_meta": {"tone": "amber", "label": "Media", "raw": "Media"},
+                "decision_meta": {"tone": "green", "label": "Aplicar si sobra tiempo", "raw": "Aplicar si sobra tiempo"},
+                "decision_visual_tone": "amber",
+                "decision_compact_label": "Si hay tiempo",
+                "has_application": False,
+            },
+            {
+                "id": 3,
+                "empresa": "Empresa 3",
+                "cargo": "Cargo 3",
+                "modalidad": "Remoto",
+                "fecha_registro": date(2026, 4, 1),
+                "descripcion": "Descripcion 3",
                 "link": None,
                 "analisis": None,
-                "status_label": "Registrada",
-                "status_meta": {"tone": "gray", "label": "Registrada"},
+                "status_label": "Sin analizar",
+                "status_meta": {"tone": "gray", "label": "Sin analizar"},
                 "score_label": "Sin score",
                 "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
                 "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
                 "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_visual_tone": "gray",
+                "decision_compact_label": "Pendiente de analisis",
                 "has_application": False,
-            }
-            for item_id in range(1, 4)
+            },
         ]
 
         response = self.client.get("/app/vacancies/list?selected=2&q=Empresa&view=Todas&page=1&page_size=20")
@@ -217,6 +256,10 @@ class WebVacanciesTests(unittest.TestCase):
             response.text,
         )
         self.assertIn('hx-target="#vacancies-shell"', response.text)
+        self.assertIn('class="opportunity-recommendation tone-amber"', response.text)
+        self.assertIn('title="Aplicar si sobra tiempo"', response.text)
+        self.assertIn('title="Score 64"', response.text)
+        self.assertNotIn('opportunity-recommendation-score" title="Descartar"', response.text)
 
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
     def test_vacancy_detail_partial_preserves_query_view_and_pagination(self, mock_build_items):
@@ -249,6 +292,10 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertIn('name="page" value="3"', response.text)
         self.assertIn('name="page_size" value="10"', response.text)
         self.assertIn("Pasar a seguimiento", response.text)
+        self.assertIn("Descripcion completa", response.text)
+        self.assertIn("Texto original de la vacante", response.text)
+        self.assertIn("Descripcion 25", response.text)
+        self.assertIn('class="description-disclosure vacancy-description"', response.text)
 
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
     def test_vacancy_detail_partial_uses_view_tracking_cta_for_existing_application(self, mock_build_items):
@@ -280,8 +327,9 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertIn('href="/app/applications?selected=77"', response.text)
         self.assertNotIn("Ir a seguimiento", response.text)
 
+    @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[{"label": "Aplicaciones", "value": 9}, {"label": "Rechazadas", "value": 2}])
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
-    def test_vacancy_shell_partial_renders_workspace_with_detail_panel(self, mock_build_items):
+    def test_vacancy_shell_partial_renders_workspace_with_detail_panel(self, mock_build_items, _mock_metrics):
         mock_build_items.return_value = [
             {
                 "id": 2,
@@ -308,6 +356,8 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "green", "label": "88", "value": 88},
                 "affinity_meta": {"tone": "green", "label": "Alta", "raw": "Alta"},
                 "decision_meta": {"tone": "green", "label": "Aplicar", "raw": "Aplicar"},
+                "decision_visual_tone": "green",
+                "decision_compact_label": "Aplicar",
                 "has_application": False,
             }
         ]
@@ -318,13 +368,18 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertIn('id="vacancies-shell"', response.text)
         self.assertIn('class="layout-two-columns workspace-shell inbox-workspace"', response.text)
         self.assertIn('id="vacancy-detail"', response.text)
+        self.assertIn("Vacantes visibles", response.text)
+        self.assertIn("Aplicaciones", response.text)
         self.assertIn("Resumen ejecutivo", response.text)
         self.assertIn("Buen encaje general", response.text)
         self.assertIn("Pasar a seguimiento", response.text)
         self.assertNotIn('data-inline-detail="true"', response.text)
+        self.assertIn("Descripcion completa", response.text)
+        self.assertIn("Texto original de la vacante", response.text)
 
+    @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[{"label": "Aplicaciones", "value": 9}, {"label": "Rechazadas", "value": 2}])
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
-    def test_vacancies_index_hx_request_returns_workspace_shell_only(self, mock_build_items):
+    def test_vacancies_index_hx_request_returns_workspace_shell_only(self, mock_build_items, _mock_metrics):
         mock_build_items.return_value = [
             {
                 "id": 7,
@@ -341,6 +396,8 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
                 "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
                 "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_visual_tone": "gray",
+                "decision_compact_label": "Pendiente de analisis",
                 "has_application": False,
             }
         ]
@@ -353,8 +410,12 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="vacancies-shell"', response.text)
         self.assertIn('class="workspace-toolbar"', response.text)
+        self.assertIn("Vacantes visibles", response.text)
+        self.assertIn("Aplicaciones", response.text)
         self.assertIn('id="vacancy-detail"', response.text)
         self.assertNotIn("<!doctype html>", response.text.lower())
+        self.assertIn("Filtrar", response.text)
+        self.assertNotIn(">Aplicar</button>", response.text)
 
     @patch("app.interfaces.web.routes.vacancies.application_repository")
     @patch("app.interfaces.web.routes.vacancies.analysis_repository")
@@ -450,4 +511,20 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertEqual(
             vacancies_routes._compact_decision_label({"decision_aplicacion": "Aplicar sí o sí"}),
             "Aplicar sí o sí",
+        )
+
+    def test_decision_visual_tone_prefers_score_tone_when_available(self):
+        self.assertEqual(
+            vacancies_routes._decision_visual_tone(
+                {"tone": "amber", "value": 64},
+                {"tone": "green", "label": "Aplicar si sobra tiempo"},
+            ),
+            "amber",
+        )
+        self.assertEqual(
+            vacancies_routes._decision_visual_tone(
+                {"tone": "gray", "value": None},
+                {"tone": "red", "label": "Descartar"},
+            ),
+            "red",
         )

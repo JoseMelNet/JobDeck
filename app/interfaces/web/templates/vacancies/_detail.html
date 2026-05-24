@@ -28,11 +28,14 @@
         <section class="decision-hero">
             <div class="decision-copy">
                 <div class="decision-label">Decision sugerida</div>
-                <div class="decision-headline tone-{{ selected_vacancy.decision_meta.tone }}">
+                <div class="decision-headline tone-{{ selected_vacancy.decision_visual_tone }}">
                     {{ selected_vacancy.decision_meta.label }}
                 </div>
                 <div class="decision-support">
-                    <span class="analysis-pill opportunity-score-pill tone-{{ selected_vacancy.score_meta.tone }}">
+                    <span
+                        class="analysis-pill opportunity-score-pill tone-{{ selected_vacancy.score_meta.tone }}"
+                        title="Score {{ selected_vacancy.score_meta.value if selected_vacancy.score_meta.value is not none else '-' }}"
+                    >
                         Score {{ selected_vacancy.score_meta.value if selected_vacancy.score_meta.value is not none else "-" }}
                     </span>
                     <span class="soft-badge">{{ selected_vacancy.affinity_meta.label }}</span>
@@ -151,9 +154,12 @@
             {% endif %}
 
             <details class="description-disclosure vacancy-description">
-                <summary>Descripcion completa</summary>
+                <summary>
+                    <span>Descripcion completa</span>
+                    <span class="description-summary-note">Texto original de la vacante</span>
+                </summary>
                 <div class="vacancy-description-body">
-                    <p>{{ selected_vacancy.descripcion }}</p>
+                    <p class="vacancy-description-text">{{ selected_vacancy.descripcion or "Sin descripcion disponible." }}</p>
                 </div>
             </details>
         </div>

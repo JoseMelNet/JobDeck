@@ -39,12 +39,17 @@
                     </div>
                     <div class="opportunity-side">
                         <span
-                            class="opportunity-recommendation tone-{{ item.decision_meta.tone }}"
-                            title="{{ item.decision_meta.label if item.score_meta.value is not none else 'Pendiente de analisis' }}"
+                            class="opportunity-recommendation tone-{{ item.decision_visual_tone }}"
+                            aria-label="{{ item.decision_meta.label if item.score_meta.value is not none else 'Pendiente de analisis' }}"
                         >
-                            <span class="opportunity-recommendation-label">{{ item.decision_compact_label }}</span>
+                            <span
+                                class="opportunity-recommendation-label"
+                                title="{{ item.decision_meta.label if item.score_meta.value is not none else 'Pendiente de analisis' }}"
+                            >
+                                {{ item.decision_compact_label }}
+                            </span>
                             {% if item.score_meta.value is not none %}
-                                <span class="opportunity-recommendation-score">{{ item.score_meta.value }}</span>
+                                <span class="opportunity-recommendation-score" title="Score {{ item.score_meta.value }}">{{ item.score_meta.value }}</span>
                             {% endif %}
                         </span>
                     </div>
