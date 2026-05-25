@@ -221,7 +221,7 @@ def _build_tracking_context(
     paged_applications = [
         {
             **item,
-            "compact_follow_up_signal": pick_compact_follow_up_signal(item["follow_up_signals"]),
+            "compact_follow_up_signal": pick_compact_follow_up_signal(item, item["follow_up_signals"]),
         }
         for item in paged_applications
     ]

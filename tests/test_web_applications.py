@@ -89,7 +89,32 @@ class WebApplicationsTests(unittest.TestCase):
         )
 
         self.assertEqual(signals[0]["label"], "Lleva tiempo pendiente")
-        self.assertEqual(pick_compact_follow_up_signal(signals)["label"], "Lleva tiempo pendiente")
+        self.assertEqual(
+            pick_compact_follow_up_signal(
+                _application_item(1, status="Pending", application_date=date(2026, 5, 10)),
+                signals,
+            )["label"],
+            "Lleva tiempo pendiente",
+        )
+
+    def test_pending_generic_signal_is_not_used_as_compact_rail_signal(self):
+        application = _application_item(1, status="Pending", application_date=date(2026, 5, 24))
+        signals = build_follow_up_signals(application, today=date(2026, 5, 25))
+
+        compact_signal = pick_compact_follow_up_signal(application, signals)
+
+        self.assertIsNotNone(compact_signal)
+        self.assertNotEqual(compact_signal["label"], "Pendiente por aplicar")
+        self.assertIn(compact_signal["label"], {"Sin notas", "Sin contacto"})
+
+    def test_applied_keeps_useful_compact_signal_when_available(self):
+        application = _application_item(1, status="Applied", notes="  ", application_date=date(2026, 5, 1))
+        signals = build_follow_up_signals(application, today=date(2026, 5, 25))
+
+        self.assertEqual(
+            pick_compact_follow_up_signal(application, signals)["label"],
+            "Lleva tiempo aplicada",
+        )
 
     def test_old_applied_signal_uses_applied_threshold(self):
         signals = build_follow_up_signals(
@@ -372,6 +397,24 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn("Role Pending", response.text)
         self.assertIn("Pendiente por aplicar", response.text)
         self.assertIn("Lleva tiempo pendiente", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_pending_rail_hides_redundant_pending_compact_signal_but_detail_keeps_full_signal(self, mock_repository):
+        mock_repository.list_all.return_value = [
+            _application_item(1, status="Pending", company="ACME Pending", role="Role Pending", application_date=date(2026, 5, 24)),
+        ]
+
+        response = self.client.get("/app/applications?state=Pending&page=1&page_size=20")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('class="status-badge status-gray">Pendiente por aplicar</span>', response.text)
+        self.assertIn('class="application-rail-signal">', response.text)
+        self.assertNotIn(
+            '<div class="application-rail-signal">\n                                            <span class="status-badge status-blue">\n                                                Pendiente por aplicar',
+            response.text,
+        )
+        self.assertIn("Senales de seguimiento", response.text)
+        self.assertIn('<span class="status-badge status-blue">Pendiente por aplicar</span>', response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_list_filtered_state_renders_single_group(self, mock_repository):

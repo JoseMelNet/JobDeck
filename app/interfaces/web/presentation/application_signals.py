@@ -104,7 +104,22 @@ def build_follow_up_signals(application: dict, *, today: date | None = None) -> 
     return signals
 
 
-def pick_compact_follow_up_signal(signals: list[dict]) -> dict | None:
+def pick_compact_follow_up_signal(application: dict, signals: list[dict]) -> dict | None:
+    current_status = application.get("estado")
+
+    if current_status == "Pending":
+        non_redundant_signal = next(
+            (
+                signal
+                for signal in signals
+                if signal.get("compact") and signal.get("label") != "Pendiente por aplicar"
+            ),
+            None,
+        )
+        if non_redundant_signal is not None:
+            return non_redundant_signal
+        return None
+
     return next((signal for signal in signals if signal.get("compact")), None)
 
 
