@@ -252,10 +252,27 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn("ACME Rejected", response.text)
         self.assertIn("Lleva tiempo pendiente", response.text)
         self.assertIn("Lleva tiempo aplicada", response.text)
+        self.assertIn("Seguimiento desde", response.text)
         self.assertIn('class="application-rail-id">#2</span>', response.text)
         self.assertIn("/app/applications?selected=2&q=acme&state=Todos&page=1&page_size=20", response.text)
         self.assertNotIn(">ID<", response.text)
         self.assertNotIn(">Empresa<", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_pending_rail_uses_neutral_tracking_date_copy_instead_of_aplicada(self, mock_repository):
+        mock_repository.list_all.return_value = [
+            _application_item(1, status="Pending", company="ACME Pending", role="Role Pending"),
+        ]
+
+        response = self.client.get("/app/applications/shell?state=Pending&page=1&page_size=20")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Seguimiento desde", response.text)
+        self.assertNotIn('<span class="application-rail-date-label">Aplicada</span>', response.text)
+        self.assertIn("ACME Pending", response.text)
+        self.assertIn("Role Pending", response.text)
+        self.assertIn("Pendiente por aplicar", response.text)
+        self.assertIn("Lleva tiempo pendiente", response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_list_filtered_state_renders_single_group(self, mock_repository):

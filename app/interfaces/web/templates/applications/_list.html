@@ -33,7 +33,7 @@
                                         </div>
                                     {% endif %}
                                     <div class="application-rail-meta">
-                                        <span class="application-rail-date-label">{% if item.fecha_aplicacion %}Aplicada{% else %}Registrada{% endif %}</span>
+                                        <span class="application-rail-date-label">Seguimiento desde</span>
                                         <span class="secondary-cell">{% if item.fecha_aplicacion %}{{ item.fecha_aplicacion.strftime("%d/%m/%Y") }}{% elif item.fecha_registro %}{{ item.fecha_registro.strftime("%d/%m/%Y") }}{% else %}-{% endif %}</span>
                                         {% if item.modalidad %}
                                             <span class="secondary-cell">{{ item.modalidad }}</span>
