@@ -39,11 +39,20 @@ analyze_vacancy_use_case = AnalyzeVacancyUseCase(
 register_application_use_case = RegisterApplicationUseCase(application_repository)
 
 STATUS_META = {
+    "Descartada": {"tone": "gray", "label": "Descartada"},
     "En seguimiento": {"tone": "blue", "label": "En seguimiento"},
     "Analizada": {"tone": "green", "label": "Analizada"},
     "Sin analizar": {"tone": "gray", "label": "Sin analizar"},
 }
-INBOX_VIEWS = [DEFAULT_INBOX_VIEW, "Todas", "Recientes", "Analizadas", "Sin analizar", "En seguimiento"]
+INBOX_VIEWS = [
+    DEFAULT_INBOX_VIEW,
+    "Todas",
+    "Recientes",
+    "Analizadas",
+    "Sin analizar",
+    "En seguimiento",
+    "Descartadas",
+]
 ANALYSIS_TONE_DEFAULT = {"tone": "gray", "label": "Sin analisis"}
 DECISION_TONE_MAP = {
     "apply_strong": "green",
@@ -291,9 +300,14 @@ def _detail_meta_items(vacancy: dict, analysis: dict | None) -> list[str]:
     return [value for value in values if value]
 
 
-def _build_vacancy_items(limit: int | None = None) -> list[dict]:
+def _uses_archived_universe(view: str) -> bool:
+    return view == "Descartadas"
+
+
+def _build_vacancy_items(limit: int | None = None, *, include_archived: bool = False) -> list[dict]:
     vacancies = vacancy_repository.list_all()
-    vacancies = [item for item in vacancies if not item.get("motivo_archivo")]
+    if not include_archived:
+        vacancies = [item for item in vacancies if not item.get("motivo_archivo")]
     vacancies = sorted(vacancies, key=lambda item: item.get("fecha_registro") or "", reverse=True)
     visible_vacancies = vacancies[:limit] if limit else vacancies
     vacancy_ids = [item["id"] for item in visible_vacancies]
@@ -304,7 +318,12 @@ def _build_vacancy_items(limit: int | None = None) -> list[dict]:
     for vacancy in visible_vacancies:
         analysis = analyses_by_vacancy.get(vacancy["id"])
         has_application = vacancy["id"] in tracked_vacancy_ids
-        status_label = "En seguimiento" if has_application else ("Analizada" if analysis else "Sin analizar")
+        if vacancy.get("motivo_archivo"):
+            status_label = "Descartada"
+        elif has_application:
+            status_label = "En seguimiento"
+        else:
+            status_label = "Analizada" if analysis else "Sin analizar"
         decision_signal = _build_decision_signal(analysis)
         score_meta = _score_meta(analysis)
         affinity_meta = _affinity_meta(analysis)
@@ -343,6 +362,11 @@ def _filter_vacancy_items(items: list[dict], *, q: str | None, view: str) -> lis
             for item in items
             if needle in item["empresa"].lower() or needle in item["cargo"].lower()
         ]
+
+    if view == "Descartadas":
+        return [item for item in items if item.get("motivo_archivo")]
+
+    items = [item for item in items if not item.get("motivo_archivo")]
 
     if view == "Todas":
         return items
@@ -391,8 +415,8 @@ def _paginate_items(items: list[dict], page: int, page_size: int) -> tuple[list[
     }
 
 
-def _selected_vacancy(selected_id: int | None) -> dict | None:
-    items = _build_vacancy_items(limit=None)
+def _selected_vacancy(selected_id: int | None, *, include_archived: bool = False) -> dict | None:
+    items = _build_vacancy_items(limit=None, include_archived=include_archived)
     if not items:
         return None
     if selected_id is None:
@@ -401,7 +425,11 @@ def _selected_vacancy(selected_id: int | None) -> dict | None:
 
 
 def _next_visible_vacancy_id(current_id: int, *, q: str | None, view: str) -> int | None:
-    items = _filter_vacancy_items(_build_vacancy_items(limit=None), q=q, view=view)
+    items = _filter_vacancy_items(
+        _build_vacancy_items(limit=None, include_archived=_uses_archived_universe(view)),
+        q=q,
+        view=view,
+    )
     if not items:
         return None
     for item in items:
@@ -442,6 +470,10 @@ def _flash_message(flash: str | None) -> tuple[str, str] | None:
         return ("info", "Vacante registrada. El analisis se omitio porque no hay perfil activo.")
     if flash == "vacancy_analysis_failed":
         return ("warning", "Vacante registrada, pero el analisis no pudo completarse.")
+    if flash == "interest_created":
+        return ("success", "Vacante enviada a Seguimiento. Continua con la siguiente oportunidad.")
+    if flash == "already_tracking":
+        return ("info", "La vacante ya estaba en Seguimiento.")
     if flash == "interest_error":
         return ("warning", "No se pudo enviar la vacante a Seguimiento.")
     if flash == "vacancy_discarded":
@@ -462,8 +494,12 @@ def _build_inbox_context(
 ) -> dict:
     normalized_view = view if view in INBOX_VIEWS else DEFAULT_INBOX_VIEW
     normalized_page_size = _normalize_page_size(page_size)
-    all_items = _build_vacancy_items(limit=None)
-    filtered_items = _filter_vacancy_items(all_items, q=q, view=normalized_view)
+    source_items = _build_vacancy_items(
+        limit=None,
+        include_archived=_uses_archived_universe(normalized_view),
+    )
+    active_items = [item for item in source_items if not item.get("motivo_archivo")]
+    filtered_items = _filter_vacancy_items(source_items, q=q, view=normalized_view)
     resolved_page = _resolve_page_for_selected(filtered_items, selected, normalized_page_size, page)
     items, pagination = _paginate_items(filtered_items, resolved_page, normalized_page_size)
     selected_vacancy = None
@@ -483,13 +519,13 @@ def _build_inbox_context(
         "summary": {
             "total": len(filtered_items),
             "analizadas": sum(1 for item in filtered_items if item["analisis"]),
-            "seguimiento": sum(1 for item in all_items if item["has_application"]),
+            "seguimiento": sum(1 for item in active_items if item["has_application"]),
         },
         "context_bar": _build_context_bar(
             {
                 "total": len(filtered_items),
                 "analizadas": sum(1 for item in filtered_items if item["analisis"]),
-                "seguimiento": sum(1 for item in all_items if item["has_application"]),
+                "seguimiento": sum(1 for item in active_items if item["has_application"]),
             },
             metrics or [],
         ),
@@ -621,7 +657,8 @@ def vacancy_create(
 
 @router.get("/app/vacancies/{vacancy_id}/detail", response_class=HTMLResponse)
 def vacancy_detail_partial(request: Request, vacancy_id: int):
-    vacancy = _selected_vacancy(vacancy_id)
+    current_view = request.query_params.get("view", DEFAULT_INBOX_VIEW)
+    vacancy = _selected_vacancy(vacancy_id, include_archived=_uses_archived_universe(current_view))
     return templates.TemplateResponse(
         request=request,
         name="vacancies/_detail.html",
@@ -629,7 +666,7 @@ def vacancy_detail_partial(request: Request, vacancy_id: int):
             "request": request,
             "selected_vacancy": vacancy,
             "query": request.query_params.get("q", ""),
-            "current_view": request.query_params.get("view", DEFAULT_INBOX_VIEW),
+            "current_view": current_view,
             "pagination": {
                 "page": int(request.query_params.get("page", "1")),
                 "page_size": int(request.query_params.get("page_size", str(DEFAULT_PAGE_SIZE))),
@@ -656,12 +693,25 @@ def vacancy_list_partial(
 
 
 @router.post("/app/vacancies/{vacancy_id}/interest")
-def mark_vacancy_as_interesting(vacancy_id: int):
+def mark_vacancy_as_interesting(
+    vacancy_id: int,
+    q: str | None = Form(default=None),
+    view: str = Form(default=DEFAULT_INBOX_VIEW),
+    page: int = Form(default=1),
+    page_size: int = Form(default=DEFAULT_PAGE_SIZE),
+):
     existing = application_repository.list_by_vacancy(vacancy_id)
     if existing:
-        application_id = existing[0]["id"]
+        next_selected = _next_visible_vacancy_id(vacancy_id, q=q, view=view)
         return RedirectResponse(
-            url=f"/app/applications?selected={application_id}&flash=already_tracking",
+            url=_build_inbox_url(
+                selected=next_selected,
+                flash="already_tracking",
+                q=q,
+                view=view,
+                page=page,
+                page_size=page_size,
+            ),
             status_code=303,
         )
 
@@ -675,12 +725,30 @@ def mark_vacancy_as_interesting(vacancy_id: int):
         notas="Marcada desde Inbox web como vacante de interes.",
     )
     if result["success"]:
+        next_selected = _next_visible_vacancy_id(vacancy_id, q=q, view=view)
         return RedirectResponse(
-            url=f"/app/applications?selected={result['id']}&flash=interest_created",
+            url=_build_inbox_url(
+                selected=next_selected,
+                flash="interest_created",
+                q=q,
+                view=view,
+                page=page,
+                page_size=page_size,
+            ),
             status_code=303,
         )
 
-    return RedirectResponse(url="/app/vacancies?flash=interest_error", status_code=303)
+    return RedirectResponse(
+        url=_build_inbox_url(
+            selected=vacancy_id,
+            flash="interest_error",
+            q=q,
+            view=view,
+            page=page,
+            page_size=page_size,
+        ),
+        status_code=303,
+    )
 
 
 @router.post("/app/vacancies/{vacancy_id}/discard")

@@ -24,12 +24,16 @@ def _vacancy_item(
     role: str | None = None,
     analysis: dict | None = None,
     has_application: bool = False,
+    archived_reason: str | None = None,
 ) -> dict:
     score_meta = vacancies_routes._score_meta(analysis)
     affinity_meta = vacancies_routes._affinity_meta(analysis)
     decision_meta = vacancies_routes._decision_meta(analysis)
     decision_signal = vacancies_routes._build_decision_signal(analysis)
-    status_label = "En seguimiento" if has_application else ("Analizada" if analysis else "Sin analizar")
+    if archived_reason:
+        status_label = "Descartada"
+    else:
+        status_label = "En seguimiento" if has_application else ("Analizada" if analysis else "Sin analizar")
     return {
         "id": item_id,
         "empresa": company or f"Empresa {item_id}",
@@ -52,6 +56,7 @@ def _vacancy_item(
         "decision_compact_label": decision_signal["decision_compact_label"],
         "has_application": has_application,
         "tracking_application_id": 900 + item_id if has_application else None,
+        "motivo_archivo": archived_reason,
     }
 
 
@@ -137,7 +142,7 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertIn('id="vacancies-shell"', response.text)
         self.assertIn('id="vacancy-detail"', response.text)
         self.assertIn("Empresa 1 - Cargo 1", response.text)
-        mock_build_items.assert_called_once_with(limit=None)
+        mock_build_items.assert_called_once_with(limit=None, include_archived=False)
 
     @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.vacancies._build_nav", return_value=[])
@@ -285,6 +290,59 @@ class WebVacanciesTests(unittest.TestCase):
     @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.vacancies._build_nav", return_value=[])
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
+    def test_inbox_en_seguimiento_view_keeps_only_tracking_items(self, mock_build_items, _mock_nav, _mock_metrics):
+        mock_build_items.return_value = [
+            _vacancy_item(1, company="Pendiente 1", analysis=None),
+            _vacancy_item(2, company="Tracking 2", analysis={"score_total": 64, "decision_aplicacion": "Aplicar si sobra tiempo"}, has_application=True),
+            _vacancy_item(3, company="Tracking 3", analysis={"score_total": 40, "decision_aplicacion": "Descartar"}, has_application=True),
+        ]
+
+        response = self.client.get("/app/vacancies?view=En+seguimiento")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("Pendiente 1", response.text)
+        self.assertIn("Tracking 2", response.text)
+        self.assertIn("Tracking 3", response.text)
+        self.assertIn('option value="En seguimiento" selected', response.text)
+
+    @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.vacancies._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
+    def test_inbox_descartadas_view_shows_archived_items(self, mock_build_items, _mock_nav, _mock_metrics):
+        mock_build_items.return_value = [
+            _vacancy_item(1, company="Activa 1", analysis=None),
+            _vacancy_item(2, company="Descartada 2", analysis={"score_total": 43, "decision_aplicacion": "Descartar"}, archived_reason="Otro"),
+            _vacancy_item(3, company="Descartada 3", analysis=None, archived_reason="Salario no acorde"),
+        ]
+
+        response = self.client.get("/app/vacancies?view=Descartadas")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("Activa 1", response.text)
+        self.assertIn("Descartada 2", response.text)
+        self.assertIn("Descartada 3", response.text)
+        self.assertIn('option value="Descartadas" selected', response.text)
+
+    @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.vacancies._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
+    def test_inbox_todas_view_keeps_archived_items_out(self, mock_build_items, _mock_nav, _mock_metrics):
+        mock_build_items.return_value = [
+            _vacancy_item(1, company="Activa 1", analysis=None),
+            _vacancy_item(2, company="Tracking 2", analysis={"score_total": 64, "decision_aplicacion": "Aplicar si sobra tiempo"}, has_application=True),
+            _vacancy_item(3, company="Descartada 3", analysis=None, archived_reason="Otro"),
+        ]
+
+        response = self.client.get("/app/vacancies?view=Todas")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Activa 1", response.text)
+        self.assertIn("Tracking 2", response.text)
+        self.assertNotIn("Descartada 3", response.text)
+
+    @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.vacancies._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
     def test_inbox_pending_selected_tracking_item_falls_back_to_first_visible_pending(
         self,
         mock_build_items,
@@ -345,6 +403,29 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertIn("Empresa 25", response.text)
         self.assertNotIn("Empresa 1", response.text)
         self.assertIn("Empresa 21 - Cargo 21", response.text)
+
+    @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.vacancies._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
+    def test_inbox_pending_empty_state_does_not_break_when_no_pending_items(
+        self,
+        mock_build_items,
+        _mock_nav,
+        _mock_metrics,
+    ):
+        mock_build_items.return_value = [
+            _vacancy_item(1, company="Tracking 1", analysis=None, has_application=True),
+            _vacancy_item(2, company="Tracking 2", analysis={"score_total": 64, "decision_aplicacion": "Aplicar si sobra tiempo"}, has_application=True),
+            _vacancy_item(3, company="Descartada 3", analysis=None, archived_reason="Otro"),
+        ]
+
+        response = self.client.get("/app/vacancies")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("No hay vacantes que coincidan con los filtros actuales.", response.text)
+        self.assertIn("Sin detalle", response.text)
+        self.assertIn("Vacantes visibles", response.text)
+        self.assertIn('option value="Pendientes" selected', response.text)
 
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
     def test_vacancy_list_partial_renders_workspace_rows_without_inline_detail(self, mock_build_items):
@@ -545,6 +626,41 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertNotIn(">null<", response.text)
         self.assertNotIn(">None<", response.text)
 
+    @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
+    def test_vacancy_detail_partial_hides_interest_actions_for_archived_item(self, mock_build_items):
+        mock_build_items.return_value = [
+            {
+                "id": 41,
+                "empresa": "Empresa 41",
+                "cargo": "Cargo 41",
+                "modalidad": "Remoto",
+                "fecha_registro": date(2026, 4, 1),
+                "descripcion": "Descripcion 41",
+                "link": None,
+                "motivo_archivo": "Otro",
+                "analisis": None,
+                "detail_meta_items": ["01/04/2026", "Remoto"],
+                "status_label": "Descartada",
+                "status_meta": {"tone": "gray", "label": "Descartada"},
+                "score_label": "Sin analisis",
+                "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
+                "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_signal": _mock_decision_signal(None),
+                "decision_visual_tone": "gray",
+                "decision_compact_label": "Pendiente",
+                "has_application": False,
+                "tracking_application_id": None,
+            }
+        ]
+
+        response = self.client.get("/app/vacancies/41/detail?view=Descartadas")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("Pasar a seguimiento", response.text)
+        self.assertNotIn("Descartar", response.text)
+        self.assertIn("Descripcion completa", response.text)
+
     @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[{"label": "Aplicaciones", "value": 9}, {"label": "Rechazadas", "value": 2}])
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
     def test_vacancy_shell_partial_renders_workspace_with_detail_panel(self, mock_build_items, _mock_metrics):
@@ -731,6 +847,28 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertEqual(result[0]["id"], 1)
         self.assertEqual(result[0]["status_label"], "Sin analizar")
 
+    @patch("app.interfaces.web.routes.vacancies.application_repository")
+    @patch("app.interfaces.web.routes.vacancies.analysis_repository")
+    @patch("app.interfaces.web.routes.vacancies.vacancy_repository")
+    def test_build_vacancy_items_can_include_archived_items_for_descartadas_view(
+        self,
+        mock_vacancy_repository,
+        mock_analysis_repository,
+        mock_application_repository,
+    ):
+        mock_vacancy_repository.list_all.return_value = [
+            {"id": 1, "empresa": "A", "cargo": "Role A", "modalidad": "Remoto", "fecha_registro": date(2026, 4, 2), "motivo_archivo": None},
+            {"id": 2, "empresa": "B", "cargo": "Role B", "modalidad": "Presencial", "fecha_registro": date(2026, 4, 1), "motivo_archivo": "Otro"},
+        ]
+        mock_analysis_repository.get_by_vacancy_ids.return_value = {}
+        mock_application_repository.list_all.return_value = []
+
+        result = vacancies_routes._build_vacancy_items(include_archived=True)
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[1]["id"], 2)
+        self.assertEqual(result[1]["status_label"], "Descartada")
+
     @patch("app.interfaces.web.routes.vacancies._next_visible_vacancy_id", return_value=9)
     @patch("app.interfaces.web.routes.vacancies.vacancy_repository")
     def test_discard_vacancy_redirects_back_to_inbox_with_next_selected(
@@ -752,6 +890,74 @@ class WebVacanciesTests(unittest.TestCase):
             "/app/vacancies?selected=9&flash=vacancy_discarded&q=data&view=Todas&page=2&page_size=10",
         )
         mock_vacancy_repository.archive.assert_called_once_with(7, "Otro")
+
+    @patch("app.interfaces.web.routes.vacancies._next_visible_vacancy_id", return_value=9)
+    @patch("app.interfaces.web.routes.vacancies.register_application_use_case")
+    @patch("app.interfaces.web.routes.vacancies.application_repository")
+    def test_interest_vacancy_redirects_back_to_inbox_with_next_selected(
+        self,
+        mock_application_repository,
+        mock_register_application_use_case,
+        _mock_next_visible,
+    ):
+        mock_application_repository.list_by_vacancy.return_value = []
+        mock_register_application_use_case.execute.return_value = {"success": True, "id": 101}
+
+        response = self.client.post(
+            "/app/vacancies/7/interest",
+            data={"q": "data", "view": "Pendientes", "page": "2", "page_size": "10"},
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(
+            response.headers["location"],
+            "/app/vacancies?selected=9&flash=interest_created&q=data&page=2&page_size=10",
+        )
+        mock_application_repository.list_by_vacancy.assert_called_once_with(7)
+
+    @patch("app.interfaces.web.routes.vacancies._next_visible_vacancy_id", return_value=8)
+    @patch("app.interfaces.web.routes.vacancies.application_repository")
+    def test_interest_vacancy_existing_application_redirects_back_to_inbox(
+        self,
+        mock_application_repository,
+        _mock_next_visible,
+    ):
+        mock_application_repository.list_by_vacancy.return_value = [{"id": 77}]
+
+        response = self.client.post(
+            "/app/vacancies/7/interest",
+            data={"q": "data", "view": "Pendientes", "page": "2", "page_size": "10"},
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(
+            response.headers["location"],
+            "/app/vacancies?selected=8&flash=already_tracking&q=data&page=2&page_size=10",
+        )
+
+    @patch("app.interfaces.web.routes.vacancies.register_application_use_case")
+    @patch("app.interfaces.web.routes.vacancies.application_repository")
+    def test_interest_vacancy_error_returns_to_inbox_with_same_selected(
+        self,
+        mock_application_repository,
+        mock_register_application_use_case,
+    ):
+        mock_application_repository.list_by_vacancy.return_value = []
+        mock_register_application_use_case.execute.return_value = {"success": False, "id": None}
+
+        response = self.client.post(
+            "/app/vacancies/7/interest",
+            data={"q": "data", "view": "Pendientes", "page": "2", "page_size": "10"},
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(
+            response.headers["location"],
+            "/app/vacancies?selected=7&flash=interest_error&q=data&page=2&page_size=10",
+        )
 
     def test_score_meta_maps_thresholds_to_expected_tones(self):
         self.assertEqual(vacancies_routes._score_meta({"score_total": 88})["tone"], "green")
@@ -832,6 +1038,10 @@ class WebVacanciesTests(unittest.TestCase):
             vacancies_routes._compact_decision_label({"decision_aplicacion": "Descartar"}),
             "No",
         )
+
+    def test_inbox_views_include_descartadas(self):
+        self.assertIn("Descartadas", vacancies_routes.INBOX_VIEWS)
+        self.assertEqual(vacancies_routes.DEFAULT_INBOX_VIEW, "Pendientes")
 
     def test_clean_display_value_filters_garbage(self):
         self.assertIsNone(vacancies_routes._clean_display_value(None))

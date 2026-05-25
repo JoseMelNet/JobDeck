@@ -40,8 +40,12 @@
                 </div>
             </div>
             <div class="vacancy-card-actions decision-actions">
-                {% if not selected_vacancy.has_application %}
+                {% if not selected_vacancy.has_application and not selected_vacancy.motivo_archivo %}
                     <form method="post" action="/app/vacancies/{{ selected_vacancy.id }}/interest">
+                        <input type="hidden" name="q" value="{{ query }}">
+                        <input type="hidden" name="view" value="{{ current_view }}">
+                        <input type="hidden" name="page" value="{{ pagination.page }}">
+                        <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
                         <button class="primary-action vacancy-action-button" type="submit">Pasar a seguimiento</button>
                     </form>
                     <form method="post" action="/app/vacancies/{{ selected_vacancy.id }}/discard">
