@@ -119,7 +119,8 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("ACME 25", response.text)
         self.assertIn("Pagina 3 de 3", response.text)
-        self.assertIn("ACME 25 - Role 25", response.text)
+        self.assertIn('<h2>ACME 25</h2>', response.text)
+        self.assertIn('class="application-role">Role 25</p>', response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_shell_uses_system_filter_button_and_preserves_shell_target(self, mock_repository):
@@ -142,11 +143,33 @@ class WebApplicationsTests(unittest.TestCase):
         response = self.client.get("/app/applications/25/detail?q=acme&state=Todos&page=3&page_size=10")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("ACME 25 - Role 25", response.text)
+        self.assertIn('<h2>ACME 25</h2>', response.text)
+        self.assertIn('class="application-role">Role 25</p>', response.text)
         self.assertIn('value="acme"', response.text)
         self.assertIn('value="Todos"', response.text)
         self.assertIn('value="3"', response.text)
         self.assertIn('value="10"', response.text)
+
+    @patch("app.interfaces.web.routes.applications._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.applications._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_panel_prioritizes_operational_sections(self, mock_repository, _mock_nav, _mock_metrics):
+        item = _application_item(7, company="ACME", role="Data Analyst")
+        item["nombre_recruiter"] = "Ada"
+        item["notas"] = "Pendiente de confirmar recruiter."
+        mock_repository.list_all.return_value = [item]
+
+        response = self.client.get("/app/applications")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Accion principal", response.text)
+        self.assertIn("Informacion de la aplicacion", response.text)
+        self.assertIn("Contacto", response.text)
+        self.assertIn("Notas", response.text)
+        self.assertIn("Editar seguimiento", response.text)
+        self.assertIn('class="primary-action application-primary-button"', response.text)
+        self.assertIn('class="stack-form compact-form application-edit-form"', response.text)
+        self.assertLess(response.text.index("Accion principal"), response.text.index("Editar seguimiento"))
 
     @patch("app.interfaces.web.routes.applications._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.applications._build_nav", return_value=[])
@@ -170,6 +193,7 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertNotIn("Paso a entrevista", response.text)
         self.assertNotIn("Recibi oferta", response.text)
         self.assertNotIn("Marcar rechazada", response.text)
+        self.assertIn("Editar seguimiento", response.text)
 
     @patch("app.interfaces.web.routes.applications._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.applications._build_nav", return_value=[])
@@ -263,7 +287,8 @@ class WebApplicationsTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Los datos de la aplicacion fueron actualizados.", response.text)
-        self.assertIn("ACME 15 - Role 15", response.text)
+        self.assertIn('<h2>ACME 15</h2>', response.text)
+        self.assertIn('class="application-role">Role 15</p>', response.text)
         self.assertIn("/app/applications?selected=15&q=acme&state=Pending&page=2&page_size=10", response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
@@ -308,7 +333,8 @@ class WebApplicationsTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("La aplicacion fue eliminada.", response.text)
-        self.assertIn("ACME 8 - Role 8", response.text)
+        self.assertIn('<h2>ACME 8</h2>', response.text)
+        self.assertIn('class="application-role">Role 8</p>', response.text)
         self.assertIn("/app/applications?selected=8&q=acme&state=Pending&page=1&page_size=10", response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")

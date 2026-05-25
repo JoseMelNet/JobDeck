@@ -435,6 +435,17 @@ a {
     font: inherit;
 }
 
+.stack-form .secondary-action {
+    background: #e8f0fe;
+    color: #1d4ed8;
+    box-shadow: none;
+}
+
+.stack-form .secondary-action:hover {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
 /* Layer 6: Shared tables, rows, details and status states */
 .simple-table {
     display: grid;
@@ -1519,6 +1530,126 @@ a {
     align-self: start;
 }
 
+.application-detail-sheet {
+    display: grid;
+    gap: 18px;
+}
+
+.application-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 18px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+}
+
+.application-title-block {
+    min-width: 0;
+}
+
+.application-title-block h2 {
+    margin: 4px 0 0;
+    font-size: 1.28rem;
+}
+
+.application-role {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 0.98rem;
+    line-height: 1.5;
+}
+
+.application-header-meta {
+    display: grid;
+    gap: 8px;
+    justify-items: start;
+    min-width: 0;
+}
+
+.application-header-meta .muted-note {
+    margin: 0;
+    max-width: 260px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.application-callout {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid #dbeafe;
+    background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+}
+
+.application-section {
+    display: grid;
+    gap: 12px;
+}
+
+.application-section-heading {
+    display: grid;
+    gap: 4px;
+}
+
+.application-section-heading h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.application-section-heading p,
+.application-terminal-note {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.55;
+}
+
+.application-primary-actions,
+.application-secondary-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.application-primary-button {
+    min-width: 180px;
+}
+
+.application-info-grid,
+.application-contact-grid {
+    margin-bottom: 0;
+}
+
+.application-inline-link {
+    min-height: 36px;
+    padding: 0 12px;
+}
+
+.application-notes-card,
+.application-edit-form {
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: #fbfcfe;
+}
+
+.application-notes-card p {
+    margin: 0;
+    line-height: 1.65;
+}
+
+.application-edit-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.application-danger-zone {
+    padding-top: 6px;
+    border-top: 1px dashed var(--border);
+}
+
 /* Layer 9: Shared helpers and feedback */
 .pill-group {
     display: flex;
@@ -1901,6 +2032,14 @@ a {
         align-items: start;
     }
 
+    .application-detail-header {
+        flex-direction: column;
+    }
+
+    .application-header-meta .muted-note {
+        max-width: none;
+    }
+
     .kpi-strip {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -1911,6 +2050,7 @@ a {
     .filter-form,
     .layout-two-columns,
     .detail-grid,
+    .application-edit-grid,
     .profile-grid,
     .grid-two,
     .grid-three,

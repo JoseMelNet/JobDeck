@@ -1,79 +1,107 @@
 {% if selected_application %}
-    <section class="panel">
-        <div class="page-header">
-            <div>
-                <h2>{{ selected_application.empresa }} - {{ selected_application.cargo }}</h2>
-                <p><span class="status-badge status-{{ selected_application.status_meta.tone }}">{{ selected_application.status_meta.label }}</span></p>
+    {% set current_status = selected_application.estado %}
+    <section class="panel application-detail-sheet">
+        <header class="application-detail-header">
+            <div class="application-title-block">
+                <div class="detail-label">Seguimiento</div>
+                <h2>{{ selected_application.empresa }}</h2>
+                <p class="application-role">{{ selected_application.cargo }}</p>
             </div>
-        </div>
-        <div class="detail-grid">
-            <article class="detail-card">
-                <div class="detail-label">Fecha</div>
-                <div class="detail-value">{% if selected_application.fecha_aplicacion %}{{ selected_application.fecha_aplicacion.strftime("%d/%m/%Y") }}{% else %}-{% endif %}</div>
-            </article>
-            <article class="detail-card">
-                <div class="detail-label">Modalidad</div>
-                <div class="detail-value">{{ selected_application.modalidad }}</div>
-            </article>
-            <article class="detail-card">
-                <div class="detail-label">Link</div>
-                <div class="detail-value">
-                    {% if selected_application.link %}
-                        <a href="{{ selected_application.link }}" target="_blank">Abrir</a>
-                    {% else %}
-                        -
-                    {% endif %}
-                </div>
-            </article>
-        </div>
-        <div class="description-block">
-            <h3>Notas</h3>
-            <p>{{ selected_application.notas or "Sin notas aun." }}</p>
-        </div>
-        <div class="description-block">
-            <h3>Acciones de seguimiento</h3>
-            {% if selected_application.estado in terminal_states %}
-                <p>Esta aplicacion ya esta en un estado terminal. Solo puedes ajustar sus datos si hace falta.</p>
+            <div class="application-header-meta">
+                <span class="status-badge status-{{ selected_application.status_meta.tone }}">{{ selected_application.status_meta.label }}</span>
+                {% if current_status in terminal_states %}
+                    <p class="muted-note">Estado terminal. Puedes dejar registro final o ajustar los datos si hace falta.</p>
+                {% else %}
+                    <p class="muted-note">Usa la accion principal para registrar el siguiente avance del proceso.</p>
+                {% endif %}
+            </div>
+        </header>
+
+        <section class="application-callout">
+            <div class="application-section-heading">
+                <h3>Accion principal</h3>
+                {% if current_status == "Pending" %}
+                    <p>Confirma cuando ya enviaste la aplicacion y deja el resto de cambios para despues.</p>
+                {% elif current_status == "Applied" %}
+                    <p>Registra el siguiente avance visible del proceso para mantener el seguimiento al dia.</p>
+                {% elif current_status == "Technical Test" %}
+                    <p>La prueba tecnica ya quedo registrada. Actualiza el resultado cuando el proceso avance.</p>
+                {% elif current_status == "In Interview" %}
+                    <p>La entrevista ya esta en curso. Marca el siguiente hito cuando tengas una respuesta.</p>
+                {% elif current_status == "Open Offer" %}
+                    <p>La oferta ya esta registrada. Usa la edicion secundaria para cerrar o documentar el resultado.</p>
+                {% else %}
+                    <p>Esta aplicacion ya esta cerrada y no muestra acciones rapidas adicionales.</p>
+                {% endif %}
+            </div>
+
+            {% if current_status in terminal_states %}
+                <p class="application-terminal-note">No hay transiciones rapidas disponibles para este estado terminal.</p>
             {% else %}
-                <div class="action-grid">
-                    {% if selected_application.estado == "Pending" %}
+                <div class="application-primary-actions">
+                    {% if current_status == "Pending" %}
                         <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
                             <input type="hidden" name="q" value="{{ query }}">
                             <input type="hidden" name="state" value="{{ current_state }}">
                             <input type="hidden" name="page" value="{{ pagination.page }}">
                             <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
                             <input type="hidden" name="target_state" value="Applied">
-                            <button type="submit">Ya aplique</button>
+                            <button type="submit" class="primary-action application-primary-button">Ya aplique</button>
                         </form>
-                    {% endif %}
-                    {% if selected_application.estado in ["Pending", "Applied"] %}
+                    {% elif current_status == "Applied" %}
                         <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
                             <input type="hidden" name="q" value="{{ query }}">
                             <input type="hidden" name="state" value="{{ current_state }}">
                             <input type="hidden" name="page" value="{{ pagination.page }}">
                             <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
                             <input type="hidden" name="target_state" value="Technical Test">
-                            <button type="submit">Paso a prueba tecnica</button>
+                            <button type="submit" class="primary-action application-primary-button">Paso a prueba tecnica</button>
                         </form>
-                        <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
-                            <input type="hidden" name="q" value="{{ query }}">
-                            <input type="hidden" name="state" value="{{ current_state }}">
-                            <input type="hidden" name="page" value="{{ pagination.page }}">
-                            <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
-                            <input type="hidden" name="target_state" value="In Interview">
-                            <button type="submit">Paso a entrevista</button>
-                        </form>
-                    {% endif %}
-                    {% if selected_application.estado in ["Applied", "Technical Test", "In Interview"] %}
+                    {% elif current_status == "In Interview" %}
                         <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
                             <input type="hidden" name="q" value="{{ query }}">
                             <input type="hidden" name="state" value="{{ current_state }}">
                             <input type="hidden" name="page" value="{{ pagination.page }}">
                             <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
                             <input type="hidden" name="target_state" value="Open Offer">
-                            <button type="submit">Recibi oferta</button>
+                            <button type="submit" class="primary-action application-primary-button">Recibi oferta</button>
                         </form>
                     {% endif %}
+                </div>
+
+                <div class="application-secondary-actions action-grid">
+                    {% if current_status in ["Pending", "Applied"] %}
+                        {% if current_status != "Technical Test" and current_status != "Applied" %}
+                            <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
+                                <input type="hidden" name="q" value="{{ query }}">
+                                <input type="hidden" name="state" value="{{ current_state }}">
+                                <input type="hidden" name="page" value="{{ pagination.page }}">
+                                <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
+                                <input type="hidden" name="target_state" value="Technical Test">
+                                <button type="submit" class="secondary-action">Paso a prueba tecnica</button>
+                            </form>
+                        {% endif %}
+                        <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
+                            <input type="hidden" name="q" value="{{ query }}">
+                            <input type="hidden" name="state" value="{{ current_state }}">
+                            <input type="hidden" name="page" value="{{ pagination.page }}">
+                            <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
+                            <input type="hidden" name="target_state" value="In Interview">
+                            <button type="submit" class="secondary-action">Paso a entrevista</button>
+                        </form>
+                    {% endif %}
+
+                    {% if current_status in ["Applied", "Technical Test"] %}
+                        <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
+                            <input type="hidden" name="q" value="{{ query }}">
+                            <input type="hidden" name="state" value="{{ current_state }}">
+                            <input type="hidden" name="page" value="{{ pagination.page }}">
+                            <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
+                            <input type="hidden" name="target_state" value="Open Offer">
+                            <button type="submit" class="secondary-action">Recibi oferta</button>
+                        </form>
+                    {% endif %}
+
                     <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
                         <input type="hidden" name="q" value="{{ query }}">
                         <input type="hidden" name="state" value="{{ current_state }}">
@@ -84,45 +112,111 @@
                     </form>
                 </div>
             {% endif %}
-        </div>
+        </section>
 
-        <div class="description-block">
-            <h3>Editar datos</h3>
-            <form class="stack-form compact-form" method="post" action="/app/applications/{{ selected_application.id }}/update" hx-post="/app/applications/{{ selected_application.id }}/update" hx-target="#applications-shell" hx-swap="outerHTML">
+        <section class="application-section">
+            <div class="application-section-heading">
+                <h3>Informacion de la aplicacion</h3>
+                <p>Referencia rapida para continuar el seguimiento sin abrir otra vista.</p>
+            </div>
+            <div class="detail-grid application-info-grid">
+                <article class="detail-card">
+                    <div class="detail-label">Fecha</div>
+                    <div class="detail-value">{% if selected_application.fecha_aplicacion %}{{ selected_application.fecha_aplicacion.strftime("%d/%m/%Y") }}{% else %}-{% endif %}</div>
+                </article>
+                <article class="detail-card">
+                    <div class="detail-label">Modalidad</div>
+                    <div class="detail-value">{{ selected_application.modalidad }}</div>
+                </article>
+                <article class="detail-card">
+                    <div class="detail-label">Link</div>
+                    <div class="detail-value">
+                        {% if selected_application.link %}
+                            <a class="secondary-link application-inline-link" href="{{ selected_application.link }}" target="_blank" rel="noreferrer">Abrir vacante</a>
+                        {% else %}
+                            Sin link disponible
+                        {% endif %}
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="application-section">
+            <div class="application-section-heading">
+                <h3>Contacto</h3>
+                <p>Datos del recruiter o del contacto que necesitas para retomar la conversacion.</p>
+            </div>
+            <div class="detail-grid application-contact-grid">
+                <article class="detail-card">
+                    <div class="detail-label">Recruiter</div>
+                    <div class="detail-value">{{ selected_application.nombre_recruiter or "Sin recruiter registrado" }}</div>
+                </article>
+                <article class="detail-card">
+                    <div class="detail-label">Email</div>
+                    <div class="detail-value">{{ selected_application.email_recruiter or "Sin email registrado" }}</div>
+                </article>
+                <article class="detail-card">
+                    <div class="detail-label">Telefono</div>
+                    <div class="detail-value">{{ selected_application.telefono_recruiter or "Sin telefono registrado" }}</div>
+                </article>
+            </div>
+        </section>
+
+        <section class="application-section">
+            <div class="application-section-heading">
+                <h3>Notas</h3>
+                <p>Resumen libre del estado actual y de cualquier contexto importante del proceso.</p>
+            </div>
+            <div class="application-notes-card">
+                <p>{{ selected_application.notas or "Sin notas aun." }}</p>
+            </div>
+        </section>
+
+        <section class="application-section">
+            <div class="application-section-heading">
+                <h3>Editar seguimiento</h3>
+                <p>Usa esta seccion para mantener contacto, notas y estado al dia sin quitar foco al panel operativo.</p>
+            </div>
+            <form class="stack-form compact-form application-edit-form" method="post" action="/app/applications/{{ selected_application.id }}/update" hx-post="/app/applications/{{ selected_application.id }}/update" hx-target="#applications-shell" hx-swap="outerHTML">
                 <input type="hidden" name="q" value="{{ query }}">
                 <input type="hidden" name="state" value="{{ current_state }}">
                 <input type="hidden" name="page" value="{{ pagination.page }}">
                 <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
-                <label>
-                    <span>Estado</span>
-                    <select name="estado">
-                        {% for status in all_statuses %}
-                            <option value="{{ status }}"{% if status == selected_application.estado %} selected{% endif %}>{{ status_labels.get(status, status) }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-                <label>
-                    <span>Nombre recruiter</span>
-                    <input type="text" name="nombre_recruiter" value="{{ selected_application.nombre_recruiter or '' }}">
-                </label>
-                <label>
-                    <span>Email</span>
-                    <input type="text" name="email_recruiter" value="{{ selected_application.email_recruiter or '' }}">
-                </label>
-                <label>
-                    <span>Telefono</span>
-                    <input type="text" name="telefono_recruiter" value="{{ selected_application.telefono_recruiter or '' }}">
-                </label>
+                <div class="application-edit-grid">
+                    <label>
+                        <span>Estado</span>
+                        <select name="estado">
+                            {% for status in all_statuses %}
+                                <option value="{{ status }}"{% if status == selected_application.estado %} selected{% endif %}>{{ status_labels.get(status, status) }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>
+                        <span>Nombre recruiter</span>
+                        <input type="text" name="nombre_recruiter" value="{{ selected_application.nombre_recruiter or '' }}">
+                    </label>
+                    <label>
+                        <span>Email</span>
+                        <input type="text" name="email_recruiter" value="{{ selected_application.email_recruiter or '' }}">
+                    </label>
+                    <label>
+                        <span>Telefono</span>
+                        <input type="text" name="telefono_recruiter" value="{{ selected_application.telefono_recruiter or '' }}">
+                    </label>
+                </div>
                 <label>
                     <span>Notas</span>
-                    <textarea name="notas" rows="6">{{ selected_application.notas or '' }}</textarea>
+                    <textarea name="notas" rows="5">{{ selected_application.notas or '' }}</textarea>
                 </label>
-                <button type="submit">Guardar cambios</button>
+                <button type="submit" class="secondary-action">Guardar cambios</button>
             </form>
-        </div>
+        </section>
 
-        <div class="description-block">
-            <h3>Eliminar</h3>
+        <section class="application-section application-danger-zone">
+            <div class="application-section-heading">
+                <h3>Eliminar</h3>
+                <p>Accion terciaria. Solo usala si el registro ya no debe permanecer en seguimiento.</p>
+            </div>
             <form method="post" action="/app/applications/{{ selected_application.id }}/delete" hx-post="/app/applications/{{ selected_application.id }}/delete" hx-target="#applications-shell" hx-swap="outerHTML">
                 <input type="hidden" name="q" value="{{ query }}">
                 <input type="hidden" name="state" value="{{ current_state }}">
@@ -130,7 +224,7 @@
                 <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
                 <button type="submit" class="tertiary-action">Eliminar aplicacion</button>
             </form>
-        </div>
+        </section>
     </section>
 {% else %}
     <section class="panel empty-panel">
