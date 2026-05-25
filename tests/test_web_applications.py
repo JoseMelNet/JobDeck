@@ -152,6 +152,26 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn("ACME", response.text)
         self.assertIn("Pendiente por aplicar", response.text)
 
+    @patch("app.interfaces.web.routes.applications._build_metrics", return_value=[{"label": "Aplicaciones", "value": 42}])
+    @patch("app.interfaces.web.routes.applications._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_index_uses_compact_header_and_hides_global_metrics(
+        self,
+        mock_repository,
+        _mock_nav,
+        _mock_metrics,
+    ):
+        mock_repository.list_all.return_value = [_application_item(7, company="ACME", role="Data Analyst")]
+
+        response = self.client.get("/app/applications")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('<section class="page-header page-header-compact">', response.text)
+        self.assertIn("<h1>Seguimiento</h1>", response.text)
+        self.assertNotIn("Control simple de vacantes", response.text)
+        self.assertNotIn('class="kpi-strip"', response.text)
+        self.assertIn('id="applications-shell"', response.text)
+
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_update_status_hx_returns_shell_with_flash(self, mock_repository):
         mock_repository.update_status.return_value = {"success": True}

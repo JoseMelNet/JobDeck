@@ -245,6 +245,7 @@ def applications_index(
             "active_nav": "applications",
             "nav_items": _build_nav("applications"),
             "metrics": _build_metrics(),
+            "hide_global_metrics": True,
             **context,
         },
     )
