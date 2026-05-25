@@ -1,11 +1,13 @@
 <div id="applications-shell">
-    {% if flash_message %}
-        {% set flash_tone = flash_message[0] %}
-        {% set flash_text = flash_message[1] %}
-        {% include "components/_flash.html" %}
-    {% endif %}
+    <section class="workspace-toolbar">
+        {% if flash_message %}
+            {% set flash_tone = flash_message[0] %}
+            {% set flash_text = flash_message[1] %}
+            {% include "components/_flash.html" %}
+        {% endif %}
 
-    {% include "applications/_filters.html" %}
+        {% include "applications/_filters.html" %}
+    </section>
 
     <section class="layout-two-columns">
         <section class="panel application-list-panel">

@@ -250,10 +250,18 @@ class WebApplicationsTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="applications-shell"', response.text)
+        self.assertIn('class="workspace-toolbar"', response.text)
+        self.assertIn('class="filter-form filter-form-compact"', response.text)
+        self.assertIn('method="get"', response.text)
+        self.assertIn('action="/app/applications"', response.text)
+        self.assertIn('name="q"', response.text)
+        self.assertIn('name="state"', response.text)
+        self.assertIn('name="page_size"', response.text)
         self.assertIn('class="secondary-action filter-submit"', response.text)
         self.assertIn('hx-target="#applications-shell"', response.text)
         self.assertIn('hx-swap="outerHTML"', response.text)
         self.assertIn('hx-push-url="true"', response.text)
+        self.assertIn('hx-get="/app/applications/shell"', response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_shell_selected_item_a_renders_matching_detail_and_selection(self, mock_repository):
