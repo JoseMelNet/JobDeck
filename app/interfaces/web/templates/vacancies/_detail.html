@@ -1,5 +1,6 @@
 {% if selected_vacancy %}
     {% set analysis = selected_vacancy.analisis %}
+    {% set signal = selected_vacancy.decision_signal %}
     <section class="panel detail-sheet decision-panel">
         <div class="vacancy-card-header decision-top">
             <div class="vacancy-card-copy decision-top-copy">
@@ -22,15 +23,15 @@
         <section class="decision-hero">
             <div class="decision-copy">
                 <div class="decision-label">Decision sugerida</div>
-                <div class="decision-headline tone-{{ selected_vacancy.decision_visual_tone or selected_vacancy.score_meta.tone or selected_vacancy.decision_meta.tone or 'gray' }}">
-                    {{ selected_vacancy.decision_meta.label }}
+                <div class="decision-headline tone-{{ signal.display_tone or 'gray' }}">
+                    {{ signal.decision_label }}
                 </div>
                 <div class="decision-support">
                     <span
-                        class="analysis-pill opportunity-score-pill tone-{{ selected_vacancy.score_meta.tone }}"
-                        title="Score {{ selected_vacancy.score_meta.value if selected_vacancy.score_meta.value is not none else '-' }}"
+                        class="analysis-pill opportunity-score-pill tone-{{ signal.score_tone }}"
+                        title="{{ signal.score_title }}"
                     >
-                        Score {{ selected_vacancy.score_meta.value if selected_vacancy.score_meta.value is not none else "-" }}
+                        Score {{ signal.score_label if signal.score is not none else "-" }}
                     </span>
                     <span class="soft-badge">{{ selected_vacancy.affinity_meta.label }}</span>
                     {% if analysis and analysis.encaje_estrategico %}

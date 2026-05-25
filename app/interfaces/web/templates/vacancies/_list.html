@@ -5,6 +5,7 @@
             <span>{{ pagination.total_items }}</span>
         </div>
         {% for item in vacancies %}
+            {% set signal = item.decision_signal %}
             <div
                 class="table-row-shell opportunity-card{% if selected_vacancy and selected_vacancy.id == item.id %} is-selected{% endif %}"
                 {% if selected_vacancy and selected_vacancy.id == item.id %}data-selected-row="true"{% endif %}
@@ -43,17 +44,17 @@
                     </div>
                     <div class="opportunity-side">
                         <span
-                            class="opportunity-recommendation tone-{{ item.decision_visual_tone or item.score_meta.tone or item.decision_meta.tone or 'gray' }}"
-                            aria-label="{{ item.decision_meta.label if item.score_meta.value is not none else 'Pendiente de analisis' }}"
+                            class="opportunity-recommendation tone-{{ signal.display_tone or 'gray' }}"
+                            aria-label="{{ signal.aria_label }}"
                         >
                             <span
                                 class="opportunity-recommendation-label"
-                                title="{{ item.decision_meta.label if item.score_meta.value is not none else 'Pendiente de analisis' }}"
+                                title="{{ signal.title }}"
                             >
-                                {{ item.decision_compact_label or item.decision_meta.label or 'Pendiente' }}
+                                {{ signal.decision_compact_label }}
                             </span>
-                            {% if item.score_meta.value is not none %}
-                                <span class="opportunity-recommendation-score" title="Score {{ item.score_meta.value }}">{{ item.score_meta.value }}</span>
+                            {% if signal.score is not none %}
+                                <span class="opportunity-recommendation-score" title="{{ signal.score_title }}">{{ signal.score_label }}</span>
                             {% endif %}
                         </span>
                     </div>

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+import unicodedata
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -43,6 +44,21 @@ STATUS_META = {
 }
 INBOX_VIEWS = ["Todas", "Recientes", "Analizadas", "En seguimiento", "Sin analizar"]
 ANALYSIS_TONE_DEFAULT = {"tone": "gray", "label": "Sin analisis"}
+DECISION_TONE_MAP = {
+    "apply_strong": "green",
+    "apply_later": "amber",
+    "discard": "red",
+    "unknown": "gray",
+}
+COHERENCE_LABELS = {
+    "aligned": "Coherente",
+    "cautious_high_score": "Score alto con decision cauta",
+    "cautious_discard": "Score competitivo con descarte",
+    "optimistic_low_score": "Decision optimista con score bajo",
+    "missing_score": "Decision sin score",
+    "missing_decision": "Score sin decision",
+    "unknown_decision": "Decision desconocida",
+}
 
 
 def _safe_score(value) -> float | None:
@@ -52,20 +68,135 @@ def _safe_score(value) -> float | None:
         return None
 
 
-def _score_meta(analysis: dict | None) -> dict:
-    if not analysis:
-        return {**ANALYSIS_TONE_DEFAULT, "value": None}
+def _normalize_text(value: str | None) -> str:
+    if not value:
+        return ""
 
-    score = _safe_score(analysis.get("score_total"))
+    collapsed = " ".join(str(value).strip().split())
+    normalized = unicodedata.normalize("NFKD", collapsed)
+    return "".join(char for char in normalized if not unicodedata.combining(char)).lower()
+
+
+def _score_band(score: float | None) -> str:
     if score is None:
-        return {**ANALYSIS_TONE_DEFAULT, "value": None}
+        return "unknown"
     if score >= 80:
-        tone = "green"
-    elif score >= 60:
-        tone = "amber"
+        return "high"
+    if score >= 60:
+        return "medium"
+    return "low"
+
+
+def _score_tone(score_band: str) -> str:
+    return {
+        "high": "green",
+        "medium": "amber",
+        "low": "red",
+        "unknown": "gray",
+    }.get(score_band, "gray")
+
+
+def _normalize_decision(decision: str | None) -> tuple[str | None, str]:
+    cleaned = _clean_display_value(decision)
+    normalized = _normalize_text(cleaned)
+    if not cleaned:
+        return None, "unknown"
+    if "aplicar si sobra tiempo" in normalized:
+        return cleaned, "apply_later"
+    if "aplicar si o si" in normalized:
+        return cleaned, "apply_strong"
+    if any(keyword in normalized for keyword in ("no aplicar", "descartar", "rechazar")):
+        return cleaned, "discard"
+    if any(keyword in normalized for keyword in ("revis", "evalu", "consider")):
+        return cleaned, "apply_later"
+    if any(keyword in normalized for keyword in ("aplicar", "prior", "avanz")):
+        return cleaned, "apply_strong"
+    return cleaned, "unknown"
+
+
+def _coherence_status(score_band: str, decision_normalized: str, *, has_decision: bool) -> str:
+    if not has_decision and score_band != "unknown":
+        return "missing_decision"
+    if has_decision and score_band == "unknown":
+        return "missing_score"
+    if decision_normalized == "unknown":
+        return "unknown_decision"
+    if decision_normalized == "apply_later" and score_band == "high":
+        return "cautious_high_score"
+    if decision_normalized == "discard" and score_band in {"high", "medium"}:
+        return "cautious_discard"
+    if decision_normalized == "apply_strong" and score_band == "low":
+        return "optimistic_low_score"
+    return "aligned"
+
+
+def _build_decision_signal(analysis: dict | None) -> dict:
+    score = _safe_score(analysis.get("score_total")) if analysis else None
+    score_value = round(score) if score is not None else None
+    score_band = _score_band(score)
+    score_tone = _score_tone(score_band)
+    score_label = f"{score_value:.0f}" if score_value is not None else "-"
+    decision_raw, decision_normalized = _normalize_decision(
+        analysis.get("decision_aplicacion") if analysis else None
+    )
+
+    if decision_normalized == "apply_strong":
+        decision_label = decision_raw or "Aplicar si o si"
+        decision_compact_label = "Si"
+    elif decision_normalized == "apply_later":
+        decision_label = decision_raw or "Aplicar si sobra tiempo"
+        decision_compact_label = "Si hay tiempo"
+    elif decision_normalized == "discard":
+        decision_label = decision_raw or "Descartar"
+        decision_compact_label = "No"
     else:
-        tone = "red"
-    return {"tone": tone, "label": "Score", "value": round(score)}
+        if decision_raw:
+            decision_label = decision_raw
+            decision_compact_label = "Sin decision"
+        else:
+            decision_label = "Pendiente de analisis" if not analysis else "Sin decision"
+            decision_compact_label = "Pendiente"
+
+    decision_tone = DECISION_TONE_MAP[decision_normalized]
+    coherence_status = _coherence_status(
+        score_band,
+        decision_normalized,
+        has_decision=bool(decision_raw),
+    )
+    score_title = f"Score {score_label}" if score_value is not None else "Score pendiente"
+    title_parts = [decision_label]
+    if score_value is not None:
+        title_parts.append(f"Score {score_label}")
+
+    return {
+        "score": score_value,
+        "score_label": score_label,
+        "score_band": score_band,
+        "score_tone": score_tone,
+        "decision_raw": decision_raw,
+        "decision_normalized": decision_normalized,
+        "decision_label": decision_label,
+        "decision_compact_label": decision_compact_label,
+        "decision_tone": decision_tone,
+        "display_tone": decision_tone,
+        "coherence_status": coherence_status,
+        "coherence_label": COHERENCE_LABELS[coherence_status],
+        "title": " · ".join(title_parts),
+        "aria_label": " · ".join(title_parts),
+        "score_title": score_title,
+    }
+
+
+def _score_meta(analysis: dict | None) -> dict:
+    signal = _build_decision_signal(analysis)
+    if signal["score"] is None:
+        return {**ANALYSIS_TONE_DEFAULT, "value": None, "band": "unknown"}
+    return {
+        "tone": signal["score_tone"],
+        "label": "Score",
+        "value": signal["score"],
+        "band": signal["score_band"],
+    }
 
 
 def _keyword_tone(value: str | None, mapping: dict[str, str], default_label: str) -> dict:
@@ -107,28 +238,16 @@ def _affinity_meta(analysis: dict | None) -> dict:
 
 
 def _decision_meta(analysis: dict | None) -> dict:
-    if not analysis:
-        return {"tone": "gray", "label": "-", "raw": None}
-
-    decision = analysis.get("decision_aplicacion")
-    if not decision:
-        return {"tone": "gray", "label": "-", "raw": None}
-
-    lowered = decision.strip().lower()
-    if "no aplicar" in lowered or "descartar" in lowered or "rechazar" in lowered:
-        tone = "red"
-    elif "revis" in lowered or "evalu" in lowered or "consider" in lowered:
-        tone = "amber"
-    elif "aplicar" in lowered or "prior" in lowered or "avanz" in lowered:
-        tone = "green"
-    else:
-        tone = "gray"
-    return {"tone": tone, "label": decision.strip(), "raw": decision.strip()}
+    signal = _build_decision_signal(analysis)
+    return {
+        "tone": signal["decision_tone"],
+        "label": signal["decision_label"],
+        "raw": signal["decision_raw"],
+        "normalized": signal["decision_normalized"],
+    }
 
 
 def _decision_visual_tone(score_meta: dict, decision_meta: dict) -> str:
-    if score_meta.get("value") is not None:
-        return score_meta["tone"]
     return decision_meta["tone"]
 
 
@@ -141,22 +260,7 @@ def _application_tracking_lookup() -> dict[int, int]:
 
 
 def _compact_decision_label(analysis: dict | None) -> str:
-    if not analysis:
-        return "Pendiente"
-
-    decision = (analysis.get("decision_aplicacion") or "").strip()
-    lowered = decision.lower()
-    if not decision:
-        return "Pendiente"
-    if "aplicar sí o sí" in lowered or "aplicar si o si" in lowered:
-        return "Si"
-    if "aplicar si sobra tiempo" in lowered:
-        return "Si hay tiempo"
-    if "revis" in lowered or "evalu" in lowered:
-        return "Revisar"
-    if "no aplicar" in lowered or "descartar" in lowered or "rechazar" in lowered:
-        return "No"
-    return decision
+    return _build_decision_signal(analysis)["decision_compact_label"]
 
 
 def _build_context_bar(summary: dict, metrics: list[dict]) -> list[dict]:
@@ -200,6 +304,7 @@ def _build_vacancy_items(limit: int | None = None) -> list[dict]:
         analysis = analyses_by_vacancy.get(vacancy["id"])
         has_application = vacancy["id"] in tracked_vacancy_ids
         status_label = "En seguimiento" if has_application else ("Analizada" if analysis else "Sin analizar")
+        decision_signal = _build_decision_signal(analysis)
         score_meta = _score_meta(analysis)
         affinity_meta = _affinity_meta(analysis)
         decision_meta = _decision_meta(analysis)
@@ -215,8 +320,9 @@ def _build_vacancy_items(limit: int | None = None) -> list[dict]:
                 "score_meta": score_meta,
                 "affinity_meta": affinity_meta,
                 "decision_meta": decision_meta,
-                "decision_visual_tone": _decision_visual_tone(score_meta, decision_meta),
-                "decision_compact_label": _compact_decision_label(analysis),
+                "decision_signal": decision_signal,
+                "decision_visual_tone": decision_signal["display_tone"],
+                "decision_compact_label": decision_signal["decision_compact_label"],
                 "has_application": has_application,
                 "tracking_application_id": tracking_lookup.get(vacancy["id"]),
             }

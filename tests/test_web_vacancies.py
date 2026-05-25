@@ -13,6 +13,10 @@ import api
 from app.interfaces.web.routes import vacancies as vacancies_routes
 
 
+def _mock_decision_signal(analysis: dict | None) -> dict:
+    return vacancies_routes._build_decision_signal(analysis)
+
+
 class WebVacanciesTests(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(api.app)
@@ -77,6 +81,7 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
                 "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
                 "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_signal": _mock_decision_signal(None),
                 "has_application": False,
             }
             for item_id in range(1, 26)
@@ -114,6 +119,7 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
                 "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
                 "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_signal": _mock_decision_signal(None),
                 "has_application": False,
             }
             for item_id in range(1, 26)
@@ -145,6 +151,7 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
                 "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
                 "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_signal": _mock_decision_signal(None),
                 "has_application": False,
             }
             for item_id in range(1, 26)
@@ -176,6 +183,7 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
                 "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
                 "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_signal": _mock_decision_signal(None),
                 "has_application": False,
             }
             for item_id in range(1, 26)
@@ -208,6 +216,7 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "red", "label": "43", "value": 43},
                 "affinity_meta": {"tone": "red", "label": "Baja", "raw": "Baja"},
                 "decision_meta": {"tone": "red", "label": "Descartar", "raw": "Descartar"},
+                "decision_signal": _mock_decision_signal({"score_total": 43, "decision_aplicacion": "Descartar"}),
                 "decision_visual_tone": "red",
                 "decision_compact_label": "Descartar",
                 "has_application": False,
@@ -227,6 +236,9 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "amber", "label": "64", "value": 64},
                 "affinity_meta": {"tone": "amber", "label": "Media", "raw": "Media"},
                 "decision_meta": {"tone": "green", "label": "Aplicar si sobra tiempo", "raw": "Aplicar si sobra tiempo"},
+                "decision_signal": _mock_decision_signal(
+                    {"score_total": 64, "decision_aplicacion": "Aplicar si sobra tiempo"}
+                ),
                 "decision_visual_tone": "amber",
                 "decision_compact_label": "Si hay tiempo",
                 "has_application": False,
@@ -246,6 +258,7 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
                 "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
                 "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_signal": _mock_decision_signal(None),
                 "decision_visual_tone": "gray",
                 "decision_compact_label": "Pendiente de analisis",
                 "has_application": False,
@@ -266,7 +279,7 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertIn('class="opportunity-recommendation tone-amber"', response.text)
         self.assertIn("Si hay tiempo", response.text)
         self.assertIn('title="Score 64">64</span>', response.text)
-        self.assertIn('title="Aplicar si sobra tiempo"', response.text)
+        self.assertIn('title="Aplicar si sobra tiempo · Score 64"', response.text)
         self.assertIn('title="Score 64"', response.text)
         self.assertNotIn('opportunity-recommendation-score" title="Descartar"', response.text)
 
@@ -288,6 +301,7 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
                 "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
                 "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_signal": _mock_decision_signal(None),
                 "has_application": False,
             }
         ]
@@ -330,6 +344,7 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
                 "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
                 "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_signal": _mock_decision_signal(None),
                 "has_application": True,
                 "tracking_application_id": 77,
             }
@@ -365,6 +380,9 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "amber", "label": "70", "value": 70},
                 "affinity_meta": {"tone": "amber", "label": "Media", "raw": "Media"},
                 "decision_meta": {"tone": "amber", "label": "Revisar", "raw": "Revisar"},
+                "decision_signal": _mock_decision_signal(
+                    {"score_total": 70, "decision_aplicacion": "Revisar"}
+                ),
                 "decision_visual_tone": "amber",
                 "decision_compact_label": "Revisar",
                 "has_application": False,
@@ -409,6 +427,7 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "green", "label": "88", "value": 88},
                 "affinity_meta": {"tone": "green", "label": "Alta", "raw": "Alta"},
                 "decision_meta": {"tone": "green", "label": "Aplicar", "raw": "Aplicar"},
+                "decision_signal": _mock_decision_signal({"score_total": 88, "decision_aplicacion": "Aplicar"}),
                 "decision_visual_tone": "green",
                 "decision_compact_label": "Si",
                 "has_application": False,
@@ -435,6 +454,46 @@ class WebVacanciesTests(unittest.TestCase):
 
     @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[{"label": "Aplicaciones", "value": 9}, {"label": "Rechazadas", "value": 2}])
     @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
+    def test_vacancy_detail_panel_uses_decision_tone_instead_of_score_tone(self, mock_build_items, _mock_metrics):
+        analysis = {
+            "score_total": 88,
+            "decision_aplicacion": "Aplicar si sobra tiempo",
+            "afinidad_general": "Alta",
+            "resumen_analisis": "Buen encaje, pero no prioritario",
+        }
+        mock_build_items.return_value = [
+            {
+                "id": 8,
+                "empresa": "Empresa 8",
+                "cargo": "Cargo 8",
+                "modalidad": "Remoto",
+                "fecha_registro": date(2026, 4, 1),
+                "descripcion": "Descripcion 8",
+                "link": None,
+                "analisis": analysis,
+                "detail_meta_items": ["01/04/2026", "Remoto"],
+                "status_label": "Analizada",
+                "status_meta": {"tone": "green", "label": "Analizada"},
+                "score_label": "88",
+                "score_meta": {"tone": "green", "label": "88", "value": 88},
+                "affinity_meta": {"tone": "green", "label": "Alta", "raw": "Alta"},
+                "decision_meta": {"tone": "amber", "label": "Aplicar si sobra tiempo", "raw": "Aplicar si sobra tiempo"},
+                "decision_signal": _mock_decision_signal(analysis),
+                "decision_visual_tone": "amber",
+                "decision_compact_label": "Si hay tiempo",
+                "has_application": False,
+            }
+        ]
+
+        response = self.client.get("/app/vacancies/shell?selected=8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('class="decision-headline tone-amber"', response.text)
+        self.assertIn("Aplicar si sobra tiempo", response.text)
+        self.assertIn('class="analysis-pill opportunity-score-pill tone-green"', response.text)
+
+    @patch("app.interfaces.web.routes.vacancies._build_metrics", return_value=[{"label": "Aplicaciones", "value": 9}, {"label": "Rechazadas", "value": 2}])
+    @patch("app.interfaces.web.routes.vacancies._build_vacancy_items")
     def test_vacancies_index_hx_request_returns_workspace_shell_only(self, mock_build_items, _mock_metrics):
         mock_build_items.return_value = [
             {
@@ -452,6 +511,7 @@ class WebVacanciesTests(unittest.TestCase):
                 "score_meta": {"tone": "gray", "label": "Sin analisis", "value": None},
                 "affinity_meta": {"tone": "gray", "label": "-", "raw": None},
                 "decision_meta": {"tone": "gray", "label": "-", "raw": None},
+                "decision_signal": _mock_decision_signal(None),
                 "decision_visual_tone": "gray",
                 "decision_compact_label": "Pendiente de analisis",
                 "has_application": False,
@@ -550,6 +610,7 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertEqual(vacancies_routes._score_meta({"score_total": 68})["tone"], "amber")
         self.assertEqual(vacancies_routes._score_meta({"score_total": 42})["tone"], "red")
         self.assertEqual(vacancies_routes._score_meta(None)["tone"], "gray")
+        self.assertEqual(vacancies_routes._score_meta(None)["band"], "unknown")
 
     def test_affinity_and_decision_meta_map_to_expected_tones(self):
         self.assertEqual(vacancies_routes._affinity_meta({"afinidad_general": "Alta"})["tone"], "green")
@@ -559,7 +620,58 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertEqual(vacancies_routes._decision_meta({"decision_aplicacion": "Revisar mas a fondo"})["tone"], "amber")
         self.assertEqual(vacancies_routes._decision_meta({"decision_aplicacion": "No aplicar"})["tone"], "red")
 
-    def test_compact_decision_label_uses_short_copy_for_long_recommendation(self):
+    def test_decision_signal_maps_apply_strong_to_green(self):
+        signal = vacancies_routes._build_decision_signal(
+            {"score_total": 93, "decision_aplicacion": "Aplicar sí o sí"}
+        )
+
+        self.assertEqual(signal["decision_normalized"], "apply_strong")
+        self.assertEqual(signal["decision_compact_label"], "Si")
+        self.assertEqual(signal["display_tone"], "green")
+        self.assertEqual(signal["score_tone"], "green")
+
+    def test_decision_signal_keeps_apply_later_amber_even_with_high_score(self):
+        signal = vacancies_routes._build_decision_signal(
+            {"score_total": 85, "decision_aplicacion": "Aplicar si sobra tiempo"}
+        )
+
+        self.assertEqual(signal["decision_compact_label"], "Si hay tiempo")
+        self.assertEqual(signal["decision_tone"], "amber")
+        self.assertEqual(signal["display_tone"], "amber")
+        self.assertEqual(signal["score_tone"], "green")
+        self.assertEqual(signal["coherence_status"], "cautious_high_score")
+
+    def test_decision_signal_keeps_discard_red_even_with_medium_score(self):
+        signal = vacancies_routes._build_decision_signal(
+            {"score_total": 64, "decision_aplicacion": "Descartar"}
+        )
+
+        self.assertEqual(signal["decision_compact_label"], "No")
+        self.assertEqual(signal["display_tone"], "red")
+        self.assertEqual(signal["score_tone"], "amber")
+        self.assertEqual(signal["coherence_status"], "cautious_discard")
+
+    def test_decision_signal_handles_missing_score_with_existing_decision(self):
+        signal = vacancies_routes._build_decision_signal(
+            {"decision_aplicacion": "Aplicar sí o sí"}
+        )
+
+        self.assertEqual(signal["display_tone"], "green")
+        self.assertEqual(signal["score_band"], "unknown")
+        self.assertEqual(signal["coherence_status"], "missing_score")
+
+    def test_decision_signal_handles_unknown_decision_with_existing_score(self):
+        signal = vacancies_routes._build_decision_signal(
+            {"score_total": 77, "decision_aplicacion": "Tal vez luego"}
+        )
+
+        self.assertEqual(signal["decision_normalized"], "unknown")
+        self.assertEqual(signal["display_tone"], "gray")
+        self.assertEqual(signal["score_tone"], "amber")
+        self.assertEqual(signal["coherence_status"], "unknown_decision")
+        self.assertEqual(signal["decision_compact_label"], "Sin decision")
+
+    def test_compact_decision_label_uses_normalized_contract(self):
         self.assertEqual(
             vacancies_routes._compact_decision_label({"decision_aplicacion": "Aplicar si sobra tiempo"}),
             "Si hay tiempo",
@@ -571,22 +683,6 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertEqual(
             vacancies_routes._compact_decision_label({"decision_aplicacion": "Descartar"}),
             "No",
-        )
-
-    def test_decision_visual_tone_prefers_score_tone_when_available(self):
-        self.assertEqual(
-            vacancies_routes._decision_visual_tone(
-                {"tone": "amber", "value": 64},
-                {"tone": "green", "label": "Aplicar si sobra tiempo"},
-            ),
-            "amber",
-        )
-        self.assertEqual(
-            vacancies_routes._decision_visual_tone(
-                {"tone": "gray", "value": None},
-                {"tone": "red", "label": "Descartar"},
-            ),
-            "red",
         )
 
     def test_clean_display_value_filters_garbage(self):
