@@ -137,6 +137,41 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn('hx-push-url="true"', response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_list_groups_current_page_by_status_and_keeps_selection_links(self, mock_repository):
+        mock_repository.list_all.return_value = [
+            _application_item(1, status="Pending", company="ACME Pending", role="Role Pending"),
+            _application_item(2, status="Applied", company="ACME Applied", role="Role Applied"),
+            _application_item(3, status="Rejected", company="ACME Rejected", role="Role Rejected"),
+        ]
+
+        response = self.client.get("/app/applications/shell?selected=2&q=acme&state=Todos&page=1&page_size=20")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('class="application-rail"', response.text)
+        self.assertIn('class="list-section-label application-group-heading"', response.text)
+        self.assertIn("ACME Pending", response.text)
+        self.assertIn("ACME Applied", response.text)
+        self.assertIn("ACME Rejected", response.text)
+        self.assertIn('class="application-rail-id">#2</span>', response.text)
+        self.assertIn("/app/applications?selected=2&q=acme&state=Todos&page=1&page_size=20", response.text)
+        self.assertNotIn(">ID<", response.text)
+        self.assertNotIn(">Empresa<", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_list_filtered_state_renders_single_group(self, mock_repository):
+        mock_repository.list_all.return_value = [
+            _application_item(1, status="Pending", company="ACME Pending", role="Role Pending"),
+            _application_item(2, status="Applied", company="ACME Applied", role="Role Applied"),
+        ]
+
+        response = self.client.get("/app/applications/shell?state=Applied&page=1&page_size=20")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("ACME Applied", response.text)
+        self.assertNotIn("ACME Pending", response.text)
+        self.assertEqual(response.text.count('class="list-section-label application-group-heading"'), 1)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_detail_partial_preserves_state_query_and_pagination(self, mock_repository):
         mock_repository.list_all.return_value = [_application_item(item_id) for item_id in range(1, 26)]
 
