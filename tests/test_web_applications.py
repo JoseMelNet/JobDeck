@@ -229,10 +229,49 @@ class WebApplicationsTests(unittest.TestCase):
         response = self.client.get("/app/applications/shell?q=acme&state=Todos&page=1&page_size=20")
 
         self.assertEqual(response.status_code, 200)
+        self.assertIn('id="applications-shell"', response.text)
         self.assertIn('class="secondary-action filter-submit"', response.text)
         self.assertIn('hx-target="#applications-shell"', response.text)
         self.assertIn('hx-swap="outerHTML"', response.text)
         self.assertIn('hx-push-url="true"', response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_shell_selected_item_a_renders_matching_detail_and_selection(self, mock_repository):
+        mock_repository.list_all.return_value = [
+            _application_item(1, status="Pending", company="ACME One", role="Role One"),
+            _application_item(2, status="Applied", company="ACME Two", role="Role Two"),
+        ]
+
+        response = self.client.get("/app/applications/shell?selected=1&state=Todos&page=1&page_size=20")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="applications-shell"', response.text)
+        self.assertIn("<h2>ACME One</h2>", response.text)
+        self.assertIn('class="application-role">Role One</p>', response.text)
+        self.assertIn(
+            'class="row-link application-rail-row application-row state-gray is-selected"',
+            response.text,
+        )
+        self.assertIn("/app/applications?selected=1&q=&state=Todos&page=1&page_size=20", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_shell_selected_item_b_renders_matching_detail_and_selection(self, mock_repository):
+        mock_repository.list_all.return_value = [
+            _application_item(1, status="Pending", company="ACME One", role="Role One"),
+            _application_item(2, status="Applied", company="ACME Two", role="Role Two"),
+        ]
+
+        response = self.client.get("/app/applications/shell?selected=2&state=Todos&page=1&page_size=20")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="applications-shell"', response.text)
+        self.assertIn("<h2>ACME Two</h2>", response.text)
+        self.assertIn('class="application-role">Role Two</p>', response.text)
+        self.assertIn(
+            'class="row-link application-rail-row application-row state-blue is-selected"',
+            response.text,
+        )
+        self.assertIn("/app/applications?selected=2&q=&state=Todos&page=1&page_size=20", response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_list_groups_current_page_by_status_and_keeps_selection_links(self, mock_repository):
