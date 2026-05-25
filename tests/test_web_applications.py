@@ -9,6 +9,10 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 import api
+from app.interfaces.web.presentation.application_signals import (
+    build_follow_up_signals,
+    pick_compact_follow_up_signal,
+)
 
 
 def _analysis_item(
@@ -37,6 +41,12 @@ def _application_item(
     status: str = "Pending",
     company: str | None = None,
     role: str | None = None,
+    notes: str = "",
+    recruiter: str | None = None,
+    email: str | None = None,
+    phone: str | None = None,
+    application_date: date | None = None,
+    registered_date: date | None = None,
 ) -> dict:
     return {
         "id": item_id,
@@ -45,13 +55,13 @@ def _application_item(
         "cargo": role or f"Role {item_id}",
         "modalidad": "Remoto",
         "link": "https://example.com",
-        "fecha_aplicacion": date(2026, 4, 1),
+        "fecha_aplicacion": application_date or date(2026, 4, 1),
         "estado": status,
-        "nombre_recruiter": None,
-        "email_recruiter": None,
-        "telefono_recruiter": None,
-        "notas": "",
-        "fecha_registro": date(2026, 4, 1),
+        "nombre_recruiter": recruiter,
+        "email_recruiter": email,
+        "telefono_recruiter": phone,
+        "notas": notes,
+        "fecha_registro": registered_date or date(2026, 4, 1),
     }
 
 
@@ -62,6 +72,70 @@ class WebApplicationsTests(unittest.TestCase):
         self.mock_analysis_repository = self.analysis_repository_patcher.start()
         self.mock_analysis_repository.get_by_vacancy_ids.return_value = {}
         self.addCleanup(self.analysis_repository_patcher.stop)
+
+    def test_pending_signal_includes_pending_por_aplicar_copy(self):
+        signals = build_follow_up_signals(
+            _application_item(1, status="Pending", application_date=date(2026, 5, 24)),
+            today=date(2026, 5, 25),
+        )
+
+        self.assertEqual(signals[0]["label"], "Pendiente por aplicar")
+        self.assertNotIn("Aplicada hace", " ".join(signal["label"] for signal in signals))
+
+    def test_old_pending_signal_prioritizes_lleva_tiempo_pendiente(self):
+        signals = build_follow_up_signals(
+            _application_item(1, status="Pending", application_date=date(2026, 5, 10)),
+            today=date(2026, 5, 25),
+        )
+
+        self.assertEqual(signals[0]["label"], "Lleva tiempo pendiente")
+        self.assertEqual(pick_compact_follow_up_signal(signals)["label"], "Lleva tiempo pendiente")
+
+    def test_old_applied_signal_uses_applied_threshold(self):
+        signals = build_follow_up_signals(
+            _application_item(1, status="Applied", application_date=date(2026, 5, 1)),
+            today=date(2026, 5, 25),
+        )
+
+        self.assertEqual(signals[0]["label"], "Lleva tiempo aplicada")
+
+    def test_technical_interview_and_offer_signals_use_expected_thresholds(self):
+        technical = build_follow_up_signals(
+            _application_item(1, status="Technical Test", application_date=date(2026, 5, 10)),
+            today=date(2026, 5, 25),
+        )
+        interview = build_follow_up_signals(
+            _application_item(2, status="In Interview", application_date=date(2026, 5, 10)),
+            today=date(2026, 5, 25),
+        )
+        offer = build_follow_up_signals(
+            _application_item(3, status="Open Offer", application_date=date(2026, 5, 10)),
+            today=date(2026, 5, 25),
+        )
+
+        self.assertEqual(technical[0]["label"], "Lleva tiempo en prueba tecnica")
+        self.assertEqual(interview[0]["label"], "Lleva tiempo en entrevista")
+        self.assertEqual(offer[0]["label"], "Lleva tiempo en oferta")
+
+    def test_missing_notes_and_contact_are_detected(self):
+        signals = build_follow_up_signals(
+            _application_item(1, status="Applied", notes="  "),
+            today=date(2026, 5, 25),
+        )
+
+        labels = [signal["label"] for signal in signals]
+        self.assertIn("Sin notas", labels)
+        self.assertIn("Sin contacto", labels)
+
+    def test_done_and_rejected_only_return_terminal_signal(self):
+        done_signals = build_follow_up_signals(_application_item(1, status="Done"), today=date(2026, 5, 25))
+        rejected_signals = build_follow_up_signals(
+            _application_item(2, status="Rejected"),
+            today=date(2026, 5, 25),
+        )
+
+        self.assertEqual(done_signals, [{"kind": "terminal", "label": "Terminal", "tone": "gray", "compact": False}])
+        self.assertEqual(rejected_signals, [{"kind": "terminal", "label": "Terminal", "tone": "gray", "compact": False}])
 
     @patch("app.interfaces.web.routes.applications._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.applications._build_nav", return_value=[])
@@ -176,6 +250,8 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn("ACME Pending", response.text)
         self.assertIn("ACME Applied", response.text)
         self.assertIn("ACME Rejected", response.text)
+        self.assertIn("Lleva tiempo pendiente", response.text)
+        self.assertIn("Lleva tiempo aplicada", response.text)
         self.assertIn('class="application-rail-id">#2</span>', response.text)
         self.assertIn("/app/applications?selected=2&q=acme&state=Todos&page=1&page_size=20", response.text)
         self.assertNotIn(">ID<", response.text)
@@ -222,6 +298,7 @@ class WebApplicationsTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Decision original", response.text)
+        self.assertIn("Senales de seguimiento", response.text)
         self.assertIn("Accion principal", response.text)
         self.assertIn("Informacion de la aplicacion", response.text)
         self.assertIn("Contacto", response.text)
@@ -315,6 +392,32 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn("Analisis original", response.text)
         self.assertIn("no tiene analisis original disponible", response.text)
         self.assertNotIn("Score 88", response.text)
+        self.assertIn("Senales de seguimiento", response.text)
+        self.assertIn("Lleva tiempo pendiente", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_list_shows_only_one_compact_signal_per_row(self, mock_repository):
+        mock_repository.list_all.return_value = [
+            _application_item(1, status="Pending", company="ACME Pending", role="Role Pending"),
+        ]
+
+        response = self.client.get("/app/applications/shell?selected=1&state=Todos&page=1&page_size=20")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.text.count('class="application-rail-signal"'), 1)
+        self.assertEqual(response.text.count("Lleva tiempo pendiente"), 2)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_terminal_detail_does_not_render_operational_missing_info_signals(self, mock_repository):
+        mock_repository.list_all.return_value = [_application_item(7, status="Done", company="ACME", role="Data Analyst")]
+
+        response = self.client.get("/app/applications?selected=7&state=Done")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Senales de seguimiento", response.text)
+        self.assertIn("Terminal", response.text)
+        self.assertNotIn('<span class="status-badge status-gray">Sin notas</span>', response.text)
+        self.assertNotIn('<span class="status-badge status-gray">Sin contacto</span>', response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_detail_handles_missing_score_or_decision_without_breaking(self, mock_repository):

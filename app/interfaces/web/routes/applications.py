@@ -12,6 +12,10 @@ from app.infrastructure.persistence.repositories.application_repository import (
     ApplicationRepository,
 )
 from app.infrastructure.persistence.repositories.analysis_repository import AnalysisRepository
+from app.interfaces.web.presentation.application_signals import (
+    build_follow_up_signals,
+    pick_compact_follow_up_signal,
+)
 from app.interfaces.web.presentation.decision_signal import _build_decision_signal
 from app.interfaces.web.routes.dashboard import _build_metrics, _build_nav
 from app.interfaces.web.templates import templates
@@ -189,6 +193,14 @@ def _build_tracking_context(
             **item,
             "original_analysis": analyses_by_vacancy.get(item.get("vacante_id")),
             "decision_signal": _build_decision_signal(analyses_by_vacancy.get(item.get("vacante_id"))),
+            "follow_up_signals": build_follow_up_signals(item),
+        }
+        for item in paged_applications
+    ]
+    paged_applications = [
+        {
+            **item,
+            "compact_follow_up_signal": pick_compact_follow_up_signal(item["follow_up_signals"]),
         }
         for item in paged_applications
     ]

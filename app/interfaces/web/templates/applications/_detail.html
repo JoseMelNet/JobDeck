@@ -89,6 +89,22 @@
             {% endif %}
         </section>
 
+        {% if selected_application.follow_up_signals %}
+            <section class="application-section">
+                <div class="application-section-heading">
+                    <h3>Senales de seguimiento</h3>
+                    <p>Indicadores descriptivos basados solo en el estado y los datos ya cargados en esta aplicacion.</p>
+                </div>
+                <div class="application-signals-card">
+                    <div class="application-signal-list">
+                        {% for signal in selected_application.follow_up_signals %}
+                            <span class="status-badge status-{{ signal.tone }}">{{ signal.label }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+
         <section class="application-callout">
             <div class="application-section-heading">
                 <h3>Accion principal</h3>

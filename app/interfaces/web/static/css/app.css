@@ -1616,6 +1616,16 @@ a {
     color: #354158;
 }
 
+.application-rail-signal {
+    display: flex;
+    align-items: center;
+}
+
+.application-rail-signal .status-badge {
+    padding: 4px 9px;
+    font-size: 0.73rem;
+}
+
 .application-rail-meta {
     display: flex;
     flex-wrap: wrap;
@@ -1729,6 +1739,19 @@ a {
 
 .application-origin-evidence {
     gap: 12px;
+}
+
+.application-signals-card {
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: #fbfcfe;
+}
+
+.application-signal-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .application-section {
