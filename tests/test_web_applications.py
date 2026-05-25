@@ -422,6 +422,8 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn("Editar seguimiento", response.text)
         self.assertIn('class="primary-action application-primary-button"', response.text)
         self.assertIn('class="stack-form compact-form application-edit-form"', response.text)
+        self.assertLess(response.text.index("Accion principal"), response.text.index("Decision original"))
+        self.assertLess(response.text.index("Senales de seguimiento"), response.text.index("Decision original"))
         self.assertLess(response.text.index("Accion principal"), response.text.index("Editar seguimiento"))
 
     @patch("app.interfaces.web.routes.applications.application_repository")

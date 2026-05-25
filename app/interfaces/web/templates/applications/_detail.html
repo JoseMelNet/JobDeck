@@ -19,92 +19,6 @@
             </div>
         </header>
 
-        <section class="application-section application-origin-section">
-            <div class="application-section-heading">
-                <h3>Decision original</h3>
-                <p>Resumen del analisis inicial que explico por que esta vacante entro a seguimiento.</p>
-            </div>
-
-            {% if original_analysis %}
-                <div class="application-origin-card">
-                    <div class="application-origin-hero">
-                        <div class="application-origin-copy">
-                            <div class="detail-label">Decision sugerida</div>
-                            <div class="decision-headline tone-{{ original_decision.display_tone or 'gray' }}">
-                                {{ original_decision.decision_label }}
-                            </div>
-                        </div>
-                        <div class="application-origin-pills">
-                            <span
-                                class="analysis-pill opportunity-score-pill tone-{{ original_decision.score_tone }}"
-                                title="{{ original_decision.score_title }}"
-                            >
-                                Score {{ original_decision.score_label if original_decision.score is not none else "-" }}
-                            </span>
-                            <span class="soft-badge">{{ original_decision.decision_compact_label }}</span>
-                        </div>
-                    </div>
-
-                    {% if original_analysis.justificacion_decision or original_analysis.resumen_analisis %}
-                        <section class="analysis-summary analysis-summary-compact application-origin-summary">
-                            <h3>Justificacion</h3>
-                            <p class="vacancy-analysis-text">
-                                {{ original_analysis.justificacion_decision or original_analysis.resumen_analisis }}
-                            </p>
-                        </section>
-                    {% endif %}
-
-                    {% if original_analysis.fortalezas_principales or original_analysis.riesgos_principales %}
-                        <section class="analysis-priority-grid application-origin-evidence">
-                            {% if original_analysis.fortalezas_principales %}
-                                <article class="analysis-note analysis-note-positive">
-                                    <div class="detail-label">Fortalezas</div>
-                                    <ul class="detail-list">
-                                        {% for item in original_analysis.fortalezas_principales[:4] %}
-                                            <li>{{ item }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                </article>
-                            {% endif %}
-                            {% if original_analysis.riesgos_principales %}
-                                <article class="analysis-note analysis-note-caution">
-                                    <div class="detail-label">Riesgos</div>
-                                    <ul class="detail-list">
-                                        {% for item in original_analysis.riesgos_principales[:4] %}
-                                            <li>{{ item }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                </article>
-                            {% endif %}
-                        </section>
-                    {% endif %}
-                </div>
-            {% else %}
-                <div class="application-origin-card application-origin-empty">
-                    <div class="detail-label">Analisis original</div>
-                    <p class="muted-note">
-                        Esta vacante no tiene analisis original disponible todavia.
-                    </p>
-                </div>
-            {% endif %}
-        </section>
-
-        {% if selected_application.follow_up_signals %}
-            <section class="application-section">
-                <div class="application-section-heading">
-                    <h3>Senales de seguimiento</h3>
-                    <p>Indicadores descriptivos basados solo en el estado y los datos ya cargados en esta aplicacion.</p>
-                </div>
-                <div class="application-signals-card">
-                    <div class="application-signal-list">
-                        {% for signal in selected_application.follow_up_signals %}
-                            <span class="status-badge status-{{ signal.tone }}">{{ signal.label }}</span>
-                        {% endfor %}
-                    </div>
-                </div>
-            </section>
-        {% endif %}
-
         <section class="application-callout">
             <div class="application-section-heading">
                 <h3>Accion principal</h3>
@@ -198,6 +112,92 @@
                         <input type="hidden" name="target_state" value="Rejected">
                         <button type="submit" class="secondary-action">Marcar rechazada</button>
                     </form>
+                </div>
+            {% endif %}
+        </section>
+
+        {% if selected_application.follow_up_signals %}
+            <section class="application-section">
+                <div class="application-section-heading">
+                    <h3>Senales de seguimiento</h3>
+                    <p>Indicadores descriptivos basados solo en el estado y los datos ya cargados en esta aplicacion.</p>
+                </div>
+                <div class="application-signals-card">
+                    <div class="application-signal-list">
+                        {% for signal in selected_application.follow_up_signals %}
+                            <span class="status-badge status-{{ signal.tone }}">{{ signal.label }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+
+        <section class="application-section application-origin-section">
+            <div class="application-section-heading">
+                <h3>Decision original</h3>
+                <p>Resumen del analisis inicial que explico por que esta vacante entro a seguimiento.</p>
+            </div>
+
+            {% if original_analysis %}
+                <div class="application-origin-card">
+                    <div class="application-origin-hero">
+                        <div class="application-origin-copy">
+                            <div class="detail-label">Decision sugerida</div>
+                            <div class="decision-headline tone-{{ original_decision.display_tone or 'gray' }}">
+                                {{ original_decision.decision_label }}
+                            </div>
+                        </div>
+                        <div class="application-origin-pills">
+                            <span
+                                class="analysis-pill opportunity-score-pill tone-{{ original_decision.score_tone }}"
+                                title="{{ original_decision.score_title }}"
+                            >
+                                Score {{ original_decision.score_label if original_decision.score is not none else "-" }}
+                            </span>
+                            <span class="soft-badge">{{ original_decision.decision_compact_label }}</span>
+                        </div>
+                    </div>
+
+                    {% if original_analysis.justificacion_decision or original_analysis.resumen_analisis %}
+                        <section class="analysis-summary analysis-summary-compact application-origin-summary">
+                            <h3>Justificacion</h3>
+                            <p class="vacancy-analysis-text">
+                                {{ original_analysis.justificacion_decision or original_analysis.resumen_analisis }}
+                            </p>
+                        </section>
+                    {% endif %}
+
+                    {% if original_analysis.fortalezas_principales or original_analysis.riesgos_principales %}
+                        <section class="analysis-priority-grid application-origin-evidence">
+                            {% if original_analysis.fortalezas_principales %}
+                                <article class="analysis-note analysis-note-positive">
+                                    <div class="detail-label">Fortalezas</div>
+                                    <ul class="detail-list">
+                                        {% for item in original_analysis.fortalezas_principales[:4] %}
+                                            <li>{{ item }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </article>
+                            {% endif %}
+                            {% if original_analysis.riesgos_principales %}
+                                <article class="analysis-note analysis-note-caution">
+                                    <div class="detail-label">Riesgos</div>
+                                    <ul class="detail-list">
+                                        {% for item in original_analysis.riesgos_principales[:4] %}
+                                            <li>{{ item }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </article>
+                            {% endif %}
+                        </section>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="application-origin-card application-origin-empty">
+                    <div class="detail-label">Analisis original</div>
+                    <p class="muted-note">
+                        Esta vacante no tiene analisis original disponible todavia.
+                    </p>
                 </div>
             {% endif %}
         </section>
