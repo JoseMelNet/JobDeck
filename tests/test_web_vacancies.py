@@ -10,6 +10,9 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 import api
+from app.interfaces.web.presentation.decision_signal import (
+    _build_decision_signal as build_shared_decision_signal,
+)
 from app.interfaces.web.routes import vacancies as vacancies_routes
 
 
@@ -983,6 +986,14 @@ class WebVacanciesTests(unittest.TestCase):
         self.assertEqual(signal["decision_compact_label"], "Si")
         self.assertEqual(signal["display_tone"], "green")
         self.assertEqual(signal["score_tone"], "green")
+
+    def test_inbox_route_reuses_shared_decision_signal_contract(self):
+        analysis = {"score_total": 88, "decision_aplicacion": "Aplicar si sobra tiempo"}
+
+        self.assertEqual(
+            vacancies_routes._build_decision_signal(analysis),
+            build_shared_decision_signal(analysis),
+        )
 
     def test_decision_signal_keeps_apply_later_amber_even_with_high_score(self):
         signal = vacancies_routes._build_decision_signal(

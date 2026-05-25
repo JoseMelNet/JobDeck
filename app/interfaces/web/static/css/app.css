@@ -1688,6 +1688,49 @@ a {
     background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
 }
 
+.application-origin-card {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid #dbeafe;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #fcfdff 0%, #f4f8ff 100%);
+}
+
+.application-origin-empty {
+    gap: 8px;
+}
+
+.application-origin-empty .muted-note {
+    margin: 0;
+}
+
+.application-origin-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 14px;
+}
+
+.application-origin-copy {
+    min-width: 0;
+}
+
+.application-origin-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.application-origin-summary {
+    margin: 0;
+}
+
+.application-origin-evidence {
+    gap: 12px;
+}
+
 .application-section {
     display: grid;
     gap: 12px;
@@ -2139,6 +2182,14 @@ a {
 
     .application-detail-header {
         flex-direction: column;
+    }
+
+    .application-origin-hero {
+        flex-direction: column;
+    }
+
+    .application-origin-pills {
+        justify-content: flex-start;
     }
 
     .application-header-meta .muted-note {

@@ -11,6 +11,26 @@ from fastapi.testclient import TestClient
 import api
 
 
+def _analysis_item(
+    *,
+    score_total=88,
+    decision_aplicacion="Aplicar si sobra tiempo",
+    justificacion_decision: str | None = None,
+    resumen_analisis: str | None = None,
+    fortalezas_principales: list[str] | None = None,
+    riesgos_principales: list[str] | None = None,
+) -> dict:
+    analysis = {
+        "score_total": score_total,
+        "decision_aplicacion": decision_aplicacion,
+        "justificacion_decision": justificacion_decision,
+        "resumen_analisis": resumen_analisis,
+        "fortalezas_principales": fortalezas_principales or [],
+        "riesgos_principales": riesgos_principales or [],
+    }
+    return analysis
+
+
 def _application_item(
     item_id: int,
     *,
@@ -38,6 +58,10 @@ def _application_item(
 class WebApplicationsTests(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(api.app)
+        self.analysis_repository_patcher = patch("app.interfaces.web.routes.applications.analysis_repository")
+        self.mock_analysis_repository = self.analysis_repository_patcher.start()
+        self.mock_analysis_repository.get_by_vacancy_ids.return_value = {}
+        self.addCleanup(self.analysis_repository_patcher.stop)
 
     @patch("app.interfaces.web.routes.applications._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.applications._build_nav", return_value=[])
@@ -197,6 +221,7 @@ class WebApplicationsTests(unittest.TestCase):
         response = self.client.get("/app/applications")
 
         self.assertEqual(response.status_code, 200)
+        self.assertIn("Decision original", response.text)
         self.assertIn("Accion principal", response.text)
         self.assertIn("Informacion de la aplicacion", response.text)
         self.assertIn("Contacto", response.text)
@@ -205,6 +230,104 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn('class="primary-action application-primary-button"', response.text)
         self.assertIn('class="stack-form compact-form application-edit-form"', response.text)
         self.assertLess(response.text.index("Accion principal"), response.text.index("Editar seguimiento"))
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_batches_visible_vacancy_analysis_queries(self, mock_repository):
+        mock_repository.list_all.return_value = [
+            _application_item(1, company="ACME 1"),
+            _application_item(2, company="ACME 2"),
+        ]
+        self.mock_analysis_repository.get_by_vacancy_ids.return_value = {
+            1: _analysis_item(score_total=93, decision_aplicacion="Aplicar si o si"),
+            2: _analysis_item(score_total=64, decision_aplicacion="Aplicar si sobra tiempo"),
+        }
+
+        response = self.client.get("/app/applications?page=1&page_size=20")
+
+        self.assertEqual(response.status_code, 200)
+        self.mock_analysis_repository.get_by_vacancy_ids.assert_called_once_with([1, 2])
+        self.mock_analysis_repository.get_by_vacancy_id.assert_not_called()
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_renders_original_decision_and_score(self, mock_repository):
+        mock_repository.list_all.return_value = [_application_item(7, company="ACME", role="Data Analyst")]
+        self.mock_analysis_repository.get_by_vacancy_ids.return_value = {
+            7: _analysis_item(
+                score_total=88,
+                decision_aplicacion="Aplicar si sobra tiempo",
+                justificacion_decision="Buen match tecnico y alcance realista.",
+            )
+        }
+
+        response = self.client.get("/app/applications?selected=7")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Decision original", response.text)
+        self.assertIn("Aplicar si sobra tiempo", response.text)
+        self.assertIn("Score 88", response.text)
+        self.assertIn("Buen match tecnico y alcance realista.", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_uses_resumen_when_justification_is_missing(self, mock_repository):
+        mock_repository.list_all.return_value = [_application_item(7, company="ACME", role="Data Analyst")]
+        self.mock_analysis_repository.get_by_vacancy_ids.return_value = {
+            7: _analysis_item(
+                score_total=74,
+                decision_aplicacion="Aplicar",
+                resumen_analisis="La vacante encaja con experiencia reciente.",
+            )
+        }
+
+        response = self.client.get("/app/applications?selected=7")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("La vacante encaja con experiencia reciente.", response.text)
+        self.assertIn("Justificacion", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_renders_original_strengths_and_risks(self, mock_repository):
+        mock_repository.list_all.return_value = [_application_item(7, company="ACME", role="Data Analyst")]
+        self.mock_analysis_repository.get_by_vacancy_ids.return_value = {
+            7: _analysis_item(
+                score_total=81,
+                decision_aplicacion="Aplicar",
+                fortalezas_principales=["SQL fuerte", "Python aplicado"],
+                riesgos_principales=["ETL no profundo"],
+            )
+        }
+
+        response = self.client.get("/app/applications?selected=7")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Fortalezas", response.text)
+        self.assertIn("SQL fuerte", response.text)
+        self.assertIn("Riesgos", response.text)
+        self.assertIn("ETL no profundo", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_shows_clean_fallback_when_analysis_is_missing(self, mock_repository):
+        mock_repository.list_all.return_value = [_application_item(7, company="ACME", role="Data Analyst")]
+        self.mock_analysis_repository.get_by_vacancy_ids.return_value = {}
+
+        response = self.client.get("/app/applications?selected=7")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Analisis original", response.text)
+        self.assertIn("no tiene analisis original disponible", response.text)
+        self.assertNotIn("Score 88", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_handles_missing_score_or_decision_without_breaking(self, mock_repository):
+        mock_repository.list_all.return_value = [_application_item(7, company="ACME", role="Data Analyst")]
+        self.mock_analysis_repository.get_by_vacancy_ids.return_value = {
+            7: _analysis_item(score_total=None, decision_aplicacion=None)
+        }
+
+        response = self.client.get("/app/applications?selected=7")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Sin decision", response.text)
+        self.assertIn("Score -", response.text)
 
     @patch("app.interfaces.web.routes.applications._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.applications._build_nav", return_value=[])

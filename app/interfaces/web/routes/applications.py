@@ -11,6 +11,8 @@ from app.domain.enums.application_status import APPLICATION_STATUSES
 from app.infrastructure.persistence.repositories.application_repository import (
     ApplicationRepository,
 )
+from app.infrastructure.persistence.repositories.analysis_repository import AnalysisRepository
+from app.interfaces.web.presentation.decision_signal import _build_decision_signal
 from app.interfaces.web.routes.dashboard import _build_metrics, _build_nav
 from app.interfaces.web.templates import templates
 
@@ -19,6 +21,7 @@ DEFAULT_PAGE_SIZE = 20
 PAGE_SIZE_OPTIONS = (10, 20, 50)
 
 application_repository = ApplicationRepository()
+analysis_repository = AnalysisRepository()
 FOLLOW_UP_STATES = [
     "Pending",
     "Applied",
@@ -173,6 +176,22 @@ def _build_tracking_context(
         applications = _filter_applications(applications, q=q, state=normalized_state)
     resolved_page = _resolve_page_for_selected(applications, selected, normalized_page_size, page)
     paged_applications, pagination = _paginate_items(applications, resolved_page, normalized_page_size)
+    visible_vacancy_ids = list(
+        dict.fromkeys(
+            item["vacante_id"]
+            for item in paged_applications
+            if item.get("vacante_id") is not None
+        )
+    )
+    analyses_by_vacancy = analysis_repository.get_by_vacancy_ids(visible_vacancy_ids)
+    paged_applications = [
+        {
+            **item,
+            "original_analysis": analyses_by_vacancy.get(item.get("vacante_id")),
+            "decision_signal": _build_decision_signal(analyses_by_vacancy.get(item.get("vacante_id"))),
+        }
+        for item in paged_applications
+    ]
 
     selected_application = None
     if paged_applications:
