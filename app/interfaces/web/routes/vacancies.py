@@ -24,6 +24,7 @@ from app.interfaces.web.templates import templates
 router = APIRouter(tags=["web-vacancies"])
 DEFAULT_PAGE_SIZE = 20
 PAGE_SIZE_OPTIONS = (10, 20, 50)
+DEFAULT_INBOX_VIEW = "Pendientes"
 
 vacancy_repository = VacancyRepository()
 application_repository = ApplicationRepository()
@@ -42,7 +43,7 @@ STATUS_META = {
     "Analizada": {"tone": "green", "label": "Analizada"},
     "Sin analizar": {"tone": "gray", "label": "Sin analizar"},
 }
-INBOX_VIEWS = ["Todas", "Recientes", "Analizadas", "En seguimiento", "Sin analizar"]
+INBOX_VIEWS = [DEFAULT_INBOX_VIEW, "Todas", "Recientes", "Analizadas", "Sin analizar", "En seguimiento"]
 ANALYSIS_TONE_DEFAULT = {"tone": "gray", "label": "Sin analisis"}
 DECISION_TONE_MAP = {
     "apply_strong": "green",
@@ -330,6 +331,10 @@ def _build_vacancy_items(limit: int | None = None) -> list[dict]:
     return items
 
 
+def _is_pending_inbox_item(item: dict) -> bool:
+    return not item["has_application"]
+
+
 def _filter_vacancy_items(items: list[dict], *, q: str | None, view: str) -> list[dict]:
     if q:
         needle = q.strip().lower()
@@ -339,14 +344,18 @@ def _filter_vacancy_items(items: list[dict], *, q: str | None, view: str) -> lis
             if needle in item["empresa"].lower() or needle in item["cargo"].lower()
         ]
 
-    if view == "Recientes":
-        items = items[:10]
-    elif view == "Analizadas":
-        items = [item for item in items if item["analisis"]]
-    elif view == "En seguimiento":
+    if view == "Todas":
+        return items
+    if view == "En seguimiento":
         items = [item for item in items if item["has_application"]]
-    elif view == "Sin analizar":
-        items = [item for item in items if not item["analisis"]]
+    else:
+        items = [item for item in items if _is_pending_inbox_item(item)]
+        if view == "Recientes":
+            items = items[:10]
+        elif view == "Analizadas":
+            items = [item for item in items if item["analisis"]]
+        elif view == "Sin analizar":
+            items = [item for item in items if not item["analisis"]]
     return items
 
 
@@ -406,7 +415,7 @@ def _build_inbox_url(
     selected: int | None = None,
     flash: str | None = None,
     q: str | None = None,
-    view: str = "Todas",
+    view: str = DEFAULT_INBOX_VIEW,
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
 ) -> str:
@@ -417,7 +426,7 @@ def _build_inbox_url(
         params.append(f"flash={flash}")
     if q:
         params.append(f"q={q}")
-    if view and view != "Todas":
+    if view and view != DEFAULT_INBOX_VIEW:
         params.append(f"view={view}")
     if page != 1:
         params.append(f"page={page}")
@@ -451,7 +460,7 @@ def _build_inbox_context(
     page_size: int = DEFAULT_PAGE_SIZE,
     metrics: list[dict] | None = None,
 ) -> dict:
-    normalized_view = view if view in INBOX_VIEWS else "Todas"
+    normalized_view = view if view in INBOX_VIEWS else DEFAULT_INBOX_VIEW
     normalized_page_size = _normalize_page_size(page_size)
     all_items = _build_vacancy_items(limit=None)
     filtered_items = _filter_vacancy_items(all_items, q=q, view=normalized_view)
@@ -474,13 +483,13 @@ def _build_inbox_context(
         "summary": {
             "total": len(filtered_items),
             "analizadas": sum(1 for item in filtered_items if item["analisis"]),
-            "seguimiento": sum(1 for item in filtered_items if item["has_application"]),
+            "seguimiento": sum(1 for item in all_items if item["has_application"]),
         },
         "context_bar": _build_context_bar(
             {
                 "total": len(filtered_items),
                 "analizadas": sum(1 for item in filtered_items if item["analisis"]),
-                "seguimiento": sum(1 for item in filtered_items if item["has_application"]),
+                "seguimiento": sum(1 for item in all_items if item["has_application"]),
             },
             metrics or [],
         ),
@@ -493,7 +502,7 @@ def vacancies_index(
     selected: int | None = None,
     flash: str | None = None,
     q: str | None = None,
-    view: str = "Todas",
+    view: str = DEFAULT_INBOX_VIEW,
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
 ):
@@ -533,7 +542,7 @@ def vacancy_shell_partial(
     selected: int | None = None,
     flash: str | None = None,
     q: str | None = None,
-    view: str = "Todas",
+    view: str = DEFAULT_INBOX_VIEW,
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
 ):
@@ -620,7 +629,7 @@ def vacancy_detail_partial(request: Request, vacancy_id: int):
             "request": request,
             "selected_vacancy": vacancy,
             "query": request.query_params.get("q", ""),
-            "current_view": request.query_params.get("view", "Todas"),
+            "current_view": request.query_params.get("view", DEFAULT_INBOX_VIEW),
             "pagination": {
                 "page": int(request.query_params.get("page", "1")),
                 "page_size": int(request.query_params.get("page_size", str(DEFAULT_PAGE_SIZE))),
@@ -634,7 +643,7 @@ def vacancy_list_partial(
     request: Request,
     selected: int | None = None,
     q: str | None = None,
-    view: str = "Todas",
+    view: str = DEFAULT_INBOX_VIEW,
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
 ):
@@ -678,7 +687,7 @@ def mark_vacancy_as_interesting(vacancy_id: int):
 def discard_vacancy(
     vacancy_id: int,
     q: str | None = Form(default=None),
-    view: str = Form(default="Todas"),
+    view: str = Form(default=DEFAULT_INBOX_VIEW),
     page: int = Form(default=1),
     page_size: int = Form(default=DEFAULT_PAGE_SIZE),
 ):
