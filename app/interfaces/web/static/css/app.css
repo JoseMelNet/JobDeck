@@ -1527,7 +1527,10 @@ a {
 }
 
 .application-detail-panel {
+    position: sticky;
+    top: 18px;
     align-self: start;
+    min-height: 0;
 }
 
 .application-rail {
@@ -1648,6 +1651,7 @@ a {
 .application-detail-sheet {
     display: grid;
     gap: 18px;
+    overflow-x: hidden;
 }
 
 .application-detail-header {
@@ -2267,6 +2271,10 @@ a {
     }
 
     #vacancy-detail {
+        position: static;
+    }
+
+    .application-detail-panel {
         position: static;
     }
 

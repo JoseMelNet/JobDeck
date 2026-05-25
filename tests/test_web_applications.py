@@ -280,6 +280,9 @@ class WebApplicationsTests(unittest.TestCase):
             'class="row-link application-rail-row application-row state-gray is-selected"',
             response.text,
         )
+        self.assertIn('id="application-detail"', response.text)
+        self.assertIn('class="application-detail-panel"', response.text)
+        self.assertIn('class="panel application-detail-sheet detail-sheet"', response.text)
         self.assertIn("/app/applications?selected=1&q=&state=Todos&page=1&page_size=20", response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
