@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import urlencode
+
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
@@ -23,8 +25,10 @@ FOLLOW_UP_STATES = [
     "Technical Test",
     "In Interview",
     "Open Offer",
+    "Done",
     "Rejected",
 ]
+TERMINAL_STATES = ("Done", "Rejected")
 
 STATUS_LABELS = {
     "Pending": "Pendiente por aplicar",
@@ -67,7 +71,13 @@ def _decorate_applications(applications: list[dict]) -> list[dict]:
     decorated = []
     for item in applications:
         meta = STATUS_META.get(item["estado"], {"tone": "gray", "label": item["estado"]})
-        decorated.append({**item, "status_meta": meta})
+        decorated.append(
+            {
+                **item,
+                "status_meta": meta,
+                "is_terminal": item["estado"] in TERMINAL_STATES,
+            }
+        )
     return decorated
 
 
@@ -86,6 +96,32 @@ def _filter_applications(applications: list[dict], q: str | None, state: str) ->
 
 def _normalize_page_size(page_size: int) -> int:
     return page_size if page_size in PAGE_SIZE_OPTIONS else DEFAULT_PAGE_SIZE
+
+
+def _build_applications_url(
+    *,
+    selected: int | None,
+    flash: str | None,
+    q: str | None,
+    state: str,
+    page: int,
+    page_size: int,
+) -> str:
+    params: list[tuple[str, str | int]] = []
+    if selected is not None:
+        params.append(("selected", selected))
+    if flash:
+        params.append(("flash", flash))
+    if q is not None:
+        params.append(("q", q))
+    params.extend(
+        [
+            ("state", state),
+            ("page", page),
+            ("page_size", page_size),
+        ]
+    )
+    return "/app/applications?" + urlencode(params)
 
 
 def _resolve_page_for_selected(items: list[dict], selected: int | None, page_size: int, requested_page: int) -> int:
@@ -150,6 +186,7 @@ def _build_tracking_context(
         "selected_application": selected_application,
         "flash_message": _build_flash_message(flash),
         "follow_up_states": FOLLOW_UP_STATES,
+        "terminal_states": TERMINAL_STATES,
         "all_statuses": list(APPLICATION_STATUSES),
         "status_labels": STATUS_LABELS,
         "query": q or "",
@@ -224,17 +261,36 @@ def update_application_status(
     target_state: str = Form(...),
     q: str | None = Form(default=None),
     state: str = Form(default="Todos"),
+    page: int = Form(default=1),
+    page_size: int = Form(default=DEFAULT_PAGE_SIZE),
 ):
     result = application_repository.update_status(application_id, target_state)
     flash = "status_updated" if result["success"] else "application_error"
     if request.headers.get("HX-Request") == "true":
-        context = _build_tracking_context(selected=application_id, flash=flash, q=q, state=state)
+        context = _build_tracking_context(
+            selected=application_id,
+            flash=flash,
+            q=q,
+            state=state,
+            page=page,
+            page_size=page_size,
+        )
         return templates.TemplateResponse(
             request=request,
             name="applications/_shell.html",
             context={"request": request, **context},
         )
-    return RedirectResponse(url=f"/app/applications?selected={application_id}&flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_applications_url(
+            selected=application_id,
+            flash=flash,
+            q=q,
+            state=state,
+            page=page,
+            page_size=page_size,
+        ),
+        status_code=303,
+    )
 
 
 @router.post("/app/applications/{application_id}/update")
@@ -248,6 +304,8 @@ def update_application_data(
     notas: str | None = Form(default=None),
     q: str | None = Form(default=None),
     state: str = Form(default="Todos"),
+    page: int = Form(default=1),
+    page_size: int = Form(default=DEFAULT_PAGE_SIZE),
 ):
     result = application_repository.update(
         application_id,
@@ -259,13 +317,30 @@ def update_application_data(
     )
     flash = "application_updated" if result["success"] else "application_error"
     if request.headers.get("HX-Request") == "true":
-        context = _build_tracking_context(selected=application_id, flash=flash, q=q, state=state)
+        context = _build_tracking_context(
+            selected=application_id,
+            flash=flash,
+            q=q,
+            state=state,
+            page=page,
+            page_size=page_size,
+        )
         return templates.TemplateResponse(
             request=request,
             name="applications/_shell.html",
             context={"request": request, **context},
         )
-    return RedirectResponse(url=f"/app/applications?selected={application_id}&flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_applications_url(
+            selected=application_id,
+            flash=flash,
+            q=q,
+            state=state,
+            page=page,
+            page_size=page_size,
+        ),
+        status_code=303,
+    )
 
 
 @router.post("/app/applications/{application_id}/delete")
@@ -274,16 +349,33 @@ def delete_application(
     application_id: int,
     q: str | None = Form(default=None),
     state: str = Form(default="Todos"),
+    page: int = Form(default=1),
+    page_size: int = Form(default=DEFAULT_PAGE_SIZE),
 ):
     result = application_repository.delete(application_id)
     flash = "application_deleted" if result["success"] else "application_error"
     if request.headers.get("HX-Request") == "true":
-        context = _build_tracking_context(selected=None, flash=flash, q=q, state=state)
+        context = _build_tracking_context(
+            selected=application_id,
+            flash=flash,
+            q=q,
+            state=state,
+            page=page,
+            page_size=page_size,
+        )
         return templates.TemplateResponse(
             request=request,
             name="applications/_shell.html",
             context={"request": request, **context},
         )
-    if result["success"]:
-        return RedirectResponse(url="/app/applications?flash=application_deleted", status_code=303)
-    return RedirectResponse(url=f"/app/applications?selected={application_id}&flash=application_error", status_code=303)
+    return RedirectResponse(
+        url=_build_applications_url(
+            selected=application_id,
+            flash=flash,
+            q=q,
+            state=state,
+            page=page,
+            page_size=page_size,
+        ),
+        status_code=303,
+    )

@@ -371,7 +371,8 @@ a {
 
 .action-grid button,
 .danger-action,
-.secondary-action {
+.secondary-action,
+.tertiary-action {
     min-height: 40px;
     padding: 0 14px;
     border: 0;
@@ -386,6 +387,17 @@ a {
 .secondary-action {
     background: #e8f0fe;
     color: #1d4ed8;
+}
+
+.tertiary-action {
+    background: #fff;
+    color: var(--muted);
+    border: 1px solid var(--border);
+}
+
+.tertiary-action:hover {
+    background: #f8fafc;
+    color: var(--text);
 }
 
 .danger-action {

@@ -32,46 +32,58 @@
         </div>
         <div class="description-block">
             <h3>Acciones de seguimiento</h3>
-            <div class="action-grid">
-                {% if selected_application.estado == "Pending" %}
+            {% if selected_application.estado in terminal_states %}
+                <p>Esta aplicacion ya esta en un estado terminal. Solo puedes ajustar sus datos si hace falta.</p>
+            {% else %}
+                <div class="action-grid">
+                    {% if selected_application.estado == "Pending" %}
+                        <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
+                            <input type="hidden" name="q" value="{{ query }}">
+                            <input type="hidden" name="state" value="{{ current_state }}">
+                            <input type="hidden" name="page" value="{{ pagination.page }}">
+                            <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
+                            <input type="hidden" name="target_state" value="Applied">
+                            <button type="submit">Ya aplique</button>
+                        </form>
+                    {% endif %}
+                    {% if selected_application.estado in ["Pending", "Applied"] %}
+                        <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
+                            <input type="hidden" name="q" value="{{ query }}">
+                            <input type="hidden" name="state" value="{{ current_state }}">
+                            <input type="hidden" name="page" value="{{ pagination.page }}">
+                            <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
+                            <input type="hidden" name="target_state" value="Technical Test">
+                            <button type="submit">Paso a prueba tecnica</button>
+                        </form>
+                        <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
+                            <input type="hidden" name="q" value="{{ query }}">
+                            <input type="hidden" name="state" value="{{ current_state }}">
+                            <input type="hidden" name="page" value="{{ pagination.page }}">
+                            <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
+                            <input type="hidden" name="target_state" value="In Interview">
+                            <button type="submit">Paso a entrevista</button>
+                        </form>
+                    {% endif %}
+                    {% if selected_application.estado in ["Applied", "Technical Test", "In Interview"] %}
+                        <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
+                            <input type="hidden" name="q" value="{{ query }}">
+                            <input type="hidden" name="state" value="{{ current_state }}">
+                            <input type="hidden" name="page" value="{{ pagination.page }}">
+                            <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
+                            <input type="hidden" name="target_state" value="Open Offer">
+                            <button type="submit">Recibi oferta</button>
+                        </form>
+                    {% endif %}
                     <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
                         <input type="hidden" name="q" value="{{ query }}">
                         <input type="hidden" name="state" value="{{ current_state }}">
-                        <input type="hidden" name="target_state" value="Applied">
-                        <button type="submit">Ya aplique</button>
-                    </form>
-                {% endif %}
-                {% if selected_application.estado in ["Pending", "Applied"] %}
-                    <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
-                        <input type="hidden" name="q" value="{{ query }}">
-                        <input type="hidden" name="state" value="{{ current_state }}">
-                        <input type="hidden" name="target_state" value="Technical Test">
-                        <button type="submit">Paso a prueba tecnica</button>
-                    </form>
-                    <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
-                        <input type="hidden" name="q" value="{{ query }}">
-                        <input type="hidden" name="state" value="{{ current_state }}">
-                        <input type="hidden" name="target_state" value="In Interview">
-                        <button type="submit">Paso a entrevista</button>
-                    </form>
-                {% endif %}
-                {% if selected_application.estado in ["Applied", "Technical Test", "In Interview"] %}
-                    <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
-                        <input type="hidden" name="q" value="{{ query }}">
-                        <input type="hidden" name="state" value="{{ current_state }}">
-                        <input type="hidden" name="target_state" value="Open Offer">
-                        <button type="submit">Recibi oferta</button>
-                    </form>
-                {% endif %}
-                {% if selected_application.estado != "Rejected" %}
-                    <form method="post" action="/app/applications/{{ selected_application.id }}/status" hx-post="/app/applications/{{ selected_application.id }}/status" hx-target="#applications-shell" hx-swap="outerHTML">
-                        <input type="hidden" name="q" value="{{ query }}">
-                        <input type="hidden" name="state" value="{{ current_state }}">
+                        <input type="hidden" name="page" value="{{ pagination.page }}">
+                        <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
                         <input type="hidden" name="target_state" value="Rejected">
                         <button type="submit" class="secondary-action">Marcar rechazada</button>
                     </form>
-                {% endif %}
-            </div>
+                </div>
+            {% endif %}
         </div>
 
         <div class="description-block">
@@ -79,6 +91,8 @@
             <form class="stack-form compact-form" method="post" action="/app/applications/{{ selected_application.id }}/update" hx-post="/app/applications/{{ selected_application.id }}/update" hx-target="#applications-shell" hx-swap="outerHTML">
                 <input type="hidden" name="q" value="{{ query }}">
                 <input type="hidden" name="state" value="{{ current_state }}">
+                <input type="hidden" name="page" value="{{ pagination.page }}">
+                <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
                 <label>
                     <span>Estado</span>
                     <select name="estado">
@@ -112,7 +126,9 @@
             <form method="post" action="/app/applications/{{ selected_application.id }}/delete" hx-post="/app/applications/{{ selected_application.id }}/delete" hx-target="#applications-shell" hx-swap="outerHTML">
                 <input type="hidden" name="q" value="{{ query }}">
                 <input type="hidden" name="state" value="{{ current_state }}">
-                <button type="submit" class="danger-action">Eliminar aplicacion</button>
+                <input type="hidden" name="page" value="{{ pagination.page }}">
+                <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
+                <button type="submit" class="tertiary-action">Eliminar aplicacion</button>
             </form>
         </div>
     </section>
