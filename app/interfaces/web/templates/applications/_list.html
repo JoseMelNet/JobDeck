@@ -17,7 +17,7 @@
                                 hx-get="/app/applications/shell?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
                                 hx-target="#applications-shell"
                                 hx-swap="outerHTML"
-                                hx-push-url="true"
+                                hx-push-url="/app/applications?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
                             >
                                 <div class="application-rail-main">
                                     <div class="application-rail-topline">
@@ -54,7 +54,7 @@
     {% set pagination_next_hx_get = "/app/applications/shell?q=%s&state=%s&page=%s&page_size=%s"|format(query, current_state, pagination.next_page, pagination.page_size) %}
     {% set pagination_hx_target = "#applications-shell" %}
     {% set pagination_hx_swap = "outerHTML" %}
-    {% set pagination_hx_push_url = "true" %}
+    {% set pagination_hx_push_url = "false" %}
     {% include "components/_pagination.html" %}
 {% else %}
     <div class="empty-panel">

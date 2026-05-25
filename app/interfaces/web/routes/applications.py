@@ -131,6 +131,27 @@ def _build_applications_url(
     return "/app/applications?" + urlencode(params)
 
 
+def _set_public_push_url(
+    response: HTMLResponse,
+    *,
+    selected: int | None,
+    flash: str | None,
+    q: str | None,
+    state: str,
+    page: int,
+    page_size: int,
+) -> HTMLResponse:
+    response.headers["HX-Push-Url"] = _build_applications_url(
+        selected=selected,
+        flash=flash,
+        q=q,
+        state=state,
+        page=page,
+        page_size=page_size,
+    )
+    return response
+
+
 def _resolve_page_for_selected(items: list[dict], selected: int | None, page_size: int, requested_page: int) -> int:
     if selected is None:
         return requested_page
@@ -262,10 +283,19 @@ def applications_shell_partial(
     page_size: int = DEFAULT_PAGE_SIZE,
 ):
     context = _build_tracking_context(selected=selected, flash=flash, q=q, state=state, page=page, page_size=page_size)
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request=request,
         name="applications/_shell.html",
         context={"request": request, **context},
+    )
+    return _set_public_push_url(
+        response,
+        selected=selected,
+        flash=flash,
+        q=q,
+        state=state,
+        page=page,
+        page_size=page_size,
     )
 
 
