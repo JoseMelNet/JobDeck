@@ -1983,6 +1983,54 @@ a {
 }
 
 /* Layer 11: Profile feature and CV preview */
+.profile-workspace {
+    display: grid;
+    gap: 18px;
+}
+
+.profile-section-nav {
+    display: grid;
+    gap: 12px;
+}
+
+.profile-section-nav-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.profile-section-link {
+    display: grid;
+    gap: 6px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: #fbfcfe;
+    color: inherit;
+    text-decoration: none;
+}
+
+.profile-section-link:hover {
+    border-color: #cbd5e1;
+    background: #f8fbff;
+}
+
+.profile-section-link.is-active {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    box-shadow: inset 0 0 0 1px #bfdbfe;
+}
+
+.profile-section-link-title {
+    font-weight: 700;
+}
+
+.profile-section-link-copy {
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
 .profile-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -2340,6 +2388,7 @@ a {
     .summary-strip,
     .context-strip,
     .profile-hint-grid,
+    .profile-section-nav-list,
     .filter-form,
     .layout-two-columns,
     .detail-grid,

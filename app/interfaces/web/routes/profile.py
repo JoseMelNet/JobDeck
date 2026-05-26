@@ -4,17 +4,23 @@ from __future__ import annotations
 
 from datetime import date
 from html import escape
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.infrastructure.persistence.repositories.profile_repository import ProfileRepository
+from app.interfaces.web.presentation.profile_view_model import (
+    ProfileSectionId,
+    build_profile_labor_contract,
+)
 from app.interfaces.web.routes.dashboard import _build_metrics, _build_nav
 from app.interfaces.web.templates import templates
 
 router = APIRouter(tags=["web-profile"])
 
 profile_repository = ProfileRepository()
+profile_labor_contract = build_profile_labor_contract()
 
 LEVEL_OPTIONS = ["Junior", "Mid", "Senior", "Lead"]
 MODALITY_OPTIONS = ["Remoto", "Hibrido", "Presencial"]
@@ -23,6 +29,14 @@ EDUCATION_LEVEL_OPTIONS = ["Tecnico", "Tecnologo", "Pregrado", "Especializacion"
 EDUCATION_STATUS_OPTIONS = ["En curso", "Completado", "Pausado"]
 COURSE_STATUS_OPTIONS = ["Planeado", "En curso", "Completado"]
 CERTIFICATION_STATUS_OPTIONS = ["Vigente", "Vencida", "En proceso"]
+PROFILE_SECTION_TEMPLATE_MAP = {
+    ProfileSectionId.SUMMARY.value: "profile/_summary_section.html",
+    ProfileSectionId.OBJECTIVE.value: "profile/_objective_section.html",
+    ProfileSectionId.SIGNALS.value: "profile/_signals_section.html",
+    ProfileSectionId.EVIDENCE.value: "profile/_evidence_section.html",
+    ProfileSectionId.CREDENTIALS.value: "profile/_credentials_section.html",
+    ProfileSectionId.OUTPUTS.value: "profile/_outputs_section.html",
+}
 
 
 def _build_flash_message(flash: str | None) -> tuple[str, str] | None:
@@ -77,6 +91,40 @@ def _fmt_month_year(value) -> str:
     if hasattr(value, "strftime"):
         return value.strftime("%m/%Y")
     return str(value)
+
+
+def _resolve_profile_section(section: str | None) -> str:
+    requested = (section or ProfileSectionId.SUMMARY.value).strip().lower()
+    valid_sections = {item.id.value for item in profile_labor_contract.sections}
+    if requested in valid_sections:
+        return requested
+    return ProfileSectionId.SUMMARY.value
+
+
+def _build_profile_url(*, section: str | None = None, flash: str | None = None, shell: bool = False) -> str:
+    params: list[tuple[str, str]] = []
+    resolved_section = _resolve_profile_section(section)
+    if resolved_section != ProfileSectionId.SUMMARY.value:
+        params.append(("section", resolved_section))
+    if flash:
+        params.append(("flash", flash))
+
+    base_path = "/app/profile/shell" if shell else "/app/profile"
+    return base_path + (f"?{urlencode(params)}" if params else "")
+
+
+def _build_profile_sections(active_section: str) -> list[dict[str, str | bool]]:
+    return [
+        {
+            "id": item.id.value,
+            "title": item.title,
+            "summary": item.summary,
+            "href": _build_profile_url(section=item.id.value),
+            "shell_href": _build_profile_url(section=item.id.value, shell=True),
+            "active": item.id.value == active_section,
+        }
+        for item in profile_labor_contract.sections
+    ]
 
 
 def _build_cv_preview(profile, skills, experiences, education, courses, certifications) -> str | None:
@@ -166,7 +214,7 @@ def _build_cv_preview(profile, skills, experiences, education, courses, certific
     return "".join(parts)
 
 
-def _build_profile_context(flash: str | None = None) -> dict:
+def _build_profile_context(flash: str | None = None, section: str | None = None) -> dict:
     profile = profile_repository.get_active_profile()
     perfil_id = profile["id"] if profile else None
 
@@ -178,6 +226,8 @@ def _build_profile_context(flash: str | None = None) -> dict:
     certifications = profile_repository.get_certifications(perfil_id) if perfil_id else []
 
     selected_modalities = _format_modalities(profile.get("modalidades_aceptadas")) if profile else []
+    active_section = _resolve_profile_section(section)
+    active_section_definition = next(item for item in profile_labor_contract.sections if item.id.value == active_section)
 
     return {
         "profile": profile,
@@ -197,11 +247,15 @@ def _build_profile_context(flash: str | None = None) -> dict:
         "course_status_options": COURSE_STATUS_OPTIONS,
         "certification_status_options": CERTIFICATION_STATUS_OPTIONS,
         "cv_preview_html": _build_cv_preview(profile, skills, experiences, education, courses, certifications),
+        "profile_sections": _build_profile_sections(active_section),
+        "active_profile_section": active_section_definition,
+        "active_profile_section_id": active_section,
+        "active_profile_section_template": PROFILE_SECTION_TEMPLATE_MAP[active_section],
     }
 
 
-def _render_profile_shell(request: Request, flash: str):
-    context = _build_profile_context(flash=flash)
+def _render_profile_shell(request: Request, flash: str, section: str | None = None):
+    context = _build_profile_context(flash=flash, section=section)
     return templates.TemplateResponse(
         request=request,
         name="profile/_shell.html",
@@ -280,13 +334,13 @@ def _render_profile_experiences_shell(request: Request, flash: str = "", include
 
 
 @router.get("/app/profile")
-def profile_index(request: Request, flash: str | None = None):
-    context = _build_profile_context(flash=flash)
+def profile_index(request: Request, flash: str | None = None, section: str | None = None):
+    context = _build_profile_context(flash=flash, section=section)
     return templates.TemplateResponse(
         request=request,
         name="profile/index.html",
         context={
-            "page_title": "Mi Perfil",
+            "page_title": "Perfil Laboral",
             "active_nav": "profile",
             "nav_items": _build_nav("profile"),
             "metrics": _build_metrics(),
@@ -296,8 +350,8 @@ def profile_index(request: Request, flash: str | None = None):
 
 
 @router.get("/app/profile/shell", response_class=HTMLResponse)
-def profile_shell_partial(request: Request, flash: str | None = None):
-    return _render_profile_shell(request, flash or "")
+def profile_shell_partial(request: Request, flash: str | None = None, section: str | None = None):
+    return _render_profile_shell(request, flash or "", section=section)
 
 
 @router.get("/app/profile/skills", response_class=HTMLResponse)
@@ -364,7 +418,10 @@ def save_profile(
     flash = "profile_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_basics_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.OBJECTIVE.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/skills")
@@ -383,7 +440,10 @@ def add_skill(
 
     if request.headers.get("HX-Request") == "true":
         return _render_profile_skills_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.SIGNALS.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/skills/{skill_id}/delete")
@@ -392,7 +452,10 @@ def delete_skill(request: Request, skill_id: int):
     flash = "skill_deleted" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_skills_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.SIGNALS.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/experiences")
@@ -429,7 +492,10 @@ def add_experience(
         flash = "experience_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_experiences_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.EVIDENCE.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/experiences/{experience_id}/update")
@@ -463,7 +529,10 @@ def update_experience(
     flash = "experience_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_experiences_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.EVIDENCE.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/experiences/{experience_id}/delete")
@@ -472,7 +541,10 @@ def delete_experience(request: Request, experience_id: int):
     flash = "experience_deleted" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_experiences_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.EVIDENCE.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/projects")
@@ -511,7 +583,10 @@ def add_project(
         flash = "project_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_projects_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.EVIDENCE.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/projects/{project_id}/update")
@@ -547,7 +622,10 @@ def update_project(
     flash = "project_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_projects_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.EVIDENCE.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/projects/{project_id}/delete")
@@ -556,7 +634,10 @@ def delete_project(request: Request, project_id: int):
     flash = "project_deleted" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_projects_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.EVIDENCE.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/education")
@@ -589,7 +670,10 @@ def add_education(
         flash = "education_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_formation_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.CREDENTIALS.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/education/{education_id}/delete")
@@ -598,7 +682,10 @@ def delete_education(request: Request, education_id: int):
     flash = "education_deleted" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_formation_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.CREDENTIALS.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/courses")
@@ -629,7 +716,10 @@ def add_course(
         flash = "course_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_formation_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.CREDENTIALS.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/courses/{course_id}/delete")
@@ -638,7 +728,10 @@ def delete_course(request: Request, course_id: int):
     flash = "course_deleted" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_formation_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.CREDENTIALS.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/certifications")
@@ -669,7 +762,10 @@ def add_certification(
         flash = "certification_saved" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_formation_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.CREDENTIALS.value, flash=flash),
+        status_code=303,
+    )
 
 
 @router.post("/app/profile/certifications/{certification_id}/delete")
@@ -678,5 +774,8 @@ def delete_certification(request: Request, certification_id: int):
     flash = "certification_deleted" if result["success"] else "profile_error"
     if request.headers.get("HX-Request") == "true":
         return _render_profile_formation_shell(request, flash, include_oob=True)
-    return RedirectResponse(url=f"/app/profile?flash={flash}", status_code=303)
+    return RedirectResponse(
+        url=_build_profile_url(section=ProfileSectionId.CREDENTIALS.value, flash=flash),
+        status_code=303,
+    )
 

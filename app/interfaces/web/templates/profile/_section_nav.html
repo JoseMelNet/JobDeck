@@ -1,0 +1,18 @@
+<nav class="profile-section-nav" aria-label="Navegacion interna del Perfil Laboral">
+    <div class="profile-section-nav-list">
+        {% for item in profile_sections %}
+            <a
+                href="{{ item.href }}"
+                class="profile-section-link{% if item.active %} is-active{% endif %}"
+                {% if item.active %}aria-current="page"{% endif %}
+                hx-get="{{ item.shell_href }}"
+                hx-target="#profile-shell"
+                hx-swap="outerHTML"
+                hx-push-url="true"
+            >
+                <span class="profile-section-link-title">{{ item.title }}</span>
+                <span class="profile-section-link-copy">{{ item.summary }}</span>
+            </a>
+        {% endfor %}
+    </div>
+</nav>

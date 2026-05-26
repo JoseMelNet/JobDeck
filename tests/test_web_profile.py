@@ -35,9 +35,13 @@ class WebProfileTests(unittest.TestCase):
         response = self.client.get("/app/profile")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Mi Perfil", response.text)
-        self.assertIn("Jose", response.text)
-        self.assertIn("SQL", response.text)
+        self.assertIn("Perfil Laboral", response.text)
+        self.assertIn("Resumen", response.text)
+        self.assertIn("Objetivo", response.text)
+        self.assertIn("Senales", response.text)
+        self.assertIn("Salidas", response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
+        self.assertEqual(response.text.count('aria-current="page"'), 1)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_profile_shell_partial_renders_profile_sections(self, mock_repository):
@@ -58,10 +62,74 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("La skill fue agregada al perfil.", response.text)
-        self.assertIn("Datos principales", response.text)
+        self.assertIn("Resumen", response.text)
         self.assertIn("Estado del perfil", response.text)
-        self.assertIn("Vista CV", response.text)
-        self.assertIn('id="profile-skills-shell"', response.text)
+        self.assertIn("Proxima accion sugerida", response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
+        self.assertEqual(response.text.count('aria-current="page"'), 1)
+
+    @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_workspace_supports_each_internal_section(self, mock_repository, _mock_nav, _mock_metrics):
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose",
+            "titulo_profesional": "Data Analyst",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+            "nivel_actual": "Mid",
+            "anos_experiencia": 3,
+            "moneda": "COP",
+        }
+        mock_repository.get_skills.return_value = [{"id": 1, "categoria": "Data", "skill": "SQL", "nivel": "Avanzado"}]
+        mock_repository.get_experiences.return_value = [
+            {
+                "id": 10,
+                "cargo": "Data Analyst",
+                "empresa": "Acme",
+                "ciudad": "Bogota",
+                "descripcion_empresa": "Retail",
+                "fecha_inicio": date(2023, 1, 1),
+                "fecha_fin": date(2024, 2, 1),
+                "es_trabajo_actual": False,
+                "funciones": "Analisis",
+                "logros": "Ahorro",
+            }
+        ]
+        mock_repository.get_projects.return_value = [
+            {
+                "id": 20,
+                "nombre": "Dashboard",
+                "empresa": "Acme",
+                "ciudad": "Bogota",
+                "fecha_inicio": date(2024, 1, 1),
+                "fecha_fin": None,
+                "es_proyecto_actual": True,
+                "stack": "Python, SQL",
+                "funciones": "Construccion",
+                "logros": "Visibilidad",
+                "url_repositorio": "https://example.com/repo",
+            }
+        ]
+        mock_repository.get_education.return_value = [{"id": 1, "titulo": "Ingenieria", "institucion": "UN", "nivel": "Pregrado", "status": "Completado", "fecha_inicio": "2020-01-01", "fecha_fin": None}]
+        mock_repository.get_courses.return_value = [{"id": 2, "titulo": "SQL", "institucion": "Coursera", "status": "Completado"}]
+        mock_repository.get_certifications.return_value = [{"id": 3, "titulo": "AWS", "institucion": "AWS", "status": "Vigente", "fecha_obtencion": "2024-01-01"}]
+
+        expected = {
+            "summary": 'id="profile-summary-shell"',
+            "objective": 'id="profile-objective-shell"',
+            "signals": 'id="profile-signals-shell"',
+            "evidence": 'id="profile-evidence-shell"',
+            "credentials": 'id="profile-credentials-shell"',
+            "outputs": 'id="profile-outputs-shell"',
+        }
+
+        for section, marker in expected.items():
+            with self.subTest(section=section):
+                response = self.client.get(f"/app/profile?section={section}")
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(marker, response.text)
+                self.assertEqual(response.text.count('aria-current="page"'), 1)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_profile_skills_partial_renders_isolated_skills_shell(self, mock_repository):
@@ -225,7 +293,7 @@ class WebProfileTests(unittest.TestCase):
         mock_repository.get_courses.return_value = []
         mock_repository.get_certifications.return_value = []
 
-        response = self.client.get("/app/profile/shell")
+        response = self.client.get("/app/profile/shell?section=credentials")
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Educacion", response.text)
@@ -234,6 +302,7 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn('action="/app/profile/education"', response.text)
         self.assertIn('action="/app/profile/courses"', response.text)
         self.assertIn('action="/app/profile/certifications"', response.text)
+        self.assertIn('id="profile-credentials-shell"', response.text)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_profile_shell_partial_renders_experience_and_project_records(self, mock_repository):
@@ -277,7 +346,7 @@ class WebProfileTests(unittest.TestCase):
         mock_repository.get_courses.return_value = []
         mock_repository.get_certifications.return_value = []
 
-        response = self.client.get("/app/profile/shell")
+        response = self.client.get("/app/profile/shell?section=evidence")
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Experiencia", response.text)

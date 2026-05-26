@@ -1,0 +1,42 @@
+<section id="profile-summary-shell" class="stack-panel">
+    <div id="profile-overview">
+        {% include "profile/_overview.html" %}
+    </div>
+
+    <section class="profile-hint-grid">
+        <article class="helper-box soft">
+            <h3>Calidad actual</h3>
+            <p>
+                {% if not profile %}
+                    Aun no hay objetivo laboral configurado en el perfil.
+                {% elif not skills %}
+                    El perfil ya tiene base, pero faltan senales para mejorar la afinidad con vacantes.
+                {% elif not experiences %}
+                    Ya existen senales, pero falta evidencia profesional para respaldarlas.
+                {% elif not education and not courses and not certifications %}
+                    El perfil ya cubre objetivo y evidencia inicial, pero faltan credenciales de soporte.
+                {% else %}
+                    El perfil ya cubre objetivo, senales y evidencia inicial. Revisa salidas y consistencia general.
+                {% endif %}
+            </p>
+        </article>
+        <article class="helper-box">
+            <h3>Proxima accion sugerida</h3>
+            <p>
+                {% if not profile %}
+                    Abre Objetivo y completa cargo, modalidad, ubicacion y compensacion esperada.
+                {% elif not skills %}
+                    Abre Senales y registra skills clave con nivel para mejorar el matching.
+                {% elif not experiences %}
+                    Abre Evidencia y agrega al menos una experiencia con funciones y logros.
+                {% elif not education and not courses and not certifications %}
+                    Abre Credenciales para sumar respaldo academico o certificaciones relevantes.
+                {% else %}
+                    Abre Salidas para revisar la vista CV base y detectar inconsistencias antes de postular.
+                {% endif %}
+            </p>
+        </article>
+    </section>
+
+    {% include "profile/_profile_status.html" %}
+</section>
