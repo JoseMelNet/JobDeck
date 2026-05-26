@@ -15,6 +15,7 @@ from app.interfaces.web.presentation.profile_refresh import (
     ProfileRefreshAction,
     build_profile_refresh_plan,
 )
+from app.interfaces.web.presentation.profile_signals import build_profile_signals_inventory
 from app.interfaces.web.presentation.profile_view_model import (
     ProfileSectionId,
     build_profile_labor_contract,
@@ -254,6 +255,7 @@ def _build_profile_context(flash: str | None = None, section: str | None = None)
         courses=courses,
         certifications=certifications,
     )
+    profile_signals = build_profile_signals_inventory(skills)
 
     return {
         "profile": profile,
@@ -274,6 +276,7 @@ def _build_profile_context(flash: str | None = None, section: str | None = None)
         "certification_status_options": CERTIFICATION_STATUS_OPTIONS,
         "cv_preview_html": _build_cv_preview(profile, skills, experiences, education, courses, certifications),
         "profile_quality": profile_quality,
+        "profile_signals": profile_signals,
         "profile_quality_action_href": _build_profile_url(section=profile_quality.next_action.section_id.value),
         "profile_sections": _build_profile_sections(active_section),
         "active_profile_section": active_section_definition,

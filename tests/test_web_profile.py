@@ -88,6 +88,15 @@ class WebProfileTests(unittest.TestCase):
         mock_repository.get_courses.return_value = []
         mock_repository.get_certifications.return_value = []
 
+    def _mock_signals_inventory_workspace(self, mock_repository):
+        self._mock_summary_ready_workspace(mock_repository)
+        mock_repository.get_skills.return_value = [
+            {"id": 1, "categoria": "Data", "skill": "SQL", "nivel": "Avanzado"},
+            {"id": 2, "categoria": "Data", "skill": " sql ", "nivel": "Intermedio"},
+            {"id": 3, "categoria": "BI", "skill": "Power BI", "nivel": "Avanzado"},
+            {"id": 4, "categoria": "", "skill": "Storytelling", "nivel": ""},
+        ]
+
     @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
     @patch("app.interfaces.web.routes.profile.profile_repository")
@@ -201,7 +210,7 @@ class WebProfileTests(unittest.TestCase):
         _mock_nav,
         _mock_metrics,
     ):
-        self._mock_summary_ready_workspace(mock_repository)
+        self._mock_signals_inventory_workspace(mock_repository)
 
         response = self.client.get("/app/profile?section=signals")
 
@@ -209,30 +218,59 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn('id="profile-signals-shell"', response.text)
         self.assertIn("Senales de afinidad", response.text)
         self.assertIn('id="profile-skills-shell"', response.text)
+        self.assertIn("Inventario actual", response.text)
+        self.assertIn("Agregar skill", response.text)
+        self.assertIn("Data", response.text)
+        self.assertIn("BI", response.text)
+        self.assertIn("Sin categoria", response.text)
+        self.assertIn("Posible duplicado", response.text)
         self.assertNotIn("Estado del perfil", response.text)
         self.assertNotIn("Alertas principales", response.text)
         self.assertNotIn("Estado de migracion", response.text)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_signals_shell_partial_renders_inventory_groups(self, mock_repository):
+        self._mock_signals_inventory_workspace(mock_repository)
+
+        response = self.client.get("/app/profile/shell?section=signals")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-signals-shell"', response.text)
+        self.assertIn("Inventario actual", response.text)
+        self.assertIn("Revision rapida", response.text)
+        self.assertIn("SQL x2", response.text)
+
+    @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_signals_section_supports_empty_inventory_state(
+        self,
+        mock_repository,
+        _mock_nav,
+        _mock_metrics,
+    ):
+        self._mock_summary_ready_workspace(mock_repository)
+        mock_repository.get_skills.return_value = []
+
+        response = self.client.get("/app/profile?section=signals")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Sin skills", response.text)
+        self.assertIn("Aun no hay un inventario de senales", response.text)
+        self.assertIn("Agregar skill", response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_profile_skills_partial_renders_isolated_skills_shell(self, mock_repository):
-        mock_repository.get_active_profile.return_value = {
-            "id": 1,
-            "nombre": "Jose",
-            "titulo_profesional": "Data Analyst",
-            "modalidades_aceptadas": "Remoto,Hibrido",
-        }
-        mock_repository.get_skills.return_value = [{"id": 1, "categoria": "Data", "skill": "SQL", "nivel": "Avanzado"}]
-        mock_repository.get_experiences.return_value = []
-        mock_repository.get_projects.return_value = []
-        mock_repository.get_education.return_value = []
-        mock_repository.get_courses.return_value = []
-        mock_repository.get_certifications.return_value = []
+        self._mock_signals_inventory_workspace(mock_repository)
 
         response = self.client.get("/app/profile/skills")
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-skills-shell"', response.text)
         self.assertIn("SQL", response.text)
+        self.assertIn("Inventario actual", response.text)
+        self.assertIn("Revision rapida", response.text)
+        self.assertIn("Agregar skill", response.text)
         self.assertNotIn("Estado del perfil", response.text)
         self.assertNotIn("Alertas principales", response.text)
         self.assertNotIn('action="/app/profile/save"', response.text)
@@ -329,18 +367,8 @@ class WebProfileTests(unittest.TestCase):
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_add_skill_hx_returns_isolated_skills_fragment(self, mock_repository):
         mock_repository.add_skill.return_value = {"success": True}
-        mock_repository.get_active_profile.return_value = {
-            "id": 1,
-            "nombre": "Jose",
-            "titulo_profesional": "Data Analyst",
-            "modalidades_aceptadas": "Remoto,Hibrido",
-        }
+        self._mock_summary_ready_workspace(mock_repository)
         mock_repository.get_skills.return_value = [{"id": 2, "categoria": "Data", "skill": "Python", "nivel": "Avanzado"}]
-        mock_repository.get_experiences.return_value = []
-        mock_repository.get_projects.return_value = []
-        mock_repository.get_education.return_value = []
-        mock_repository.get_courses.return_value = []
-        mock_repository.get_certifications.return_value = []
 
         response = self.client.post(
             "/app/profile/skills",
@@ -354,6 +382,8 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn('id="profile-cv-preview"', response.text)
         self.assertIn('hx-swap-oob="outerHTML"', response.text)
         self.assertIn("La skill fue agregada al perfil.", response.text)
+        self.assertIn("Inventario actual", response.text)
+        self.assertIn("Agregar skill", response.text)
         self.assertIn("Python", response.text)
         self.assertNotIn('action="/app/profile/save"', response.text)
 
@@ -374,18 +404,8 @@ class WebProfileTests(unittest.TestCase):
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_delete_skill_hx_returns_isolated_skills_fragment(self, mock_repository):
         mock_repository.delete_skill.return_value = {"success": True}
-        mock_repository.get_active_profile.return_value = {
-            "id": 1,
-            "nombre": "Jose",
-            "titulo_profesional": "Data Analyst",
-            "modalidades_aceptadas": "Remoto,Hibrido",
-        }
+        self._mock_summary_ready_workspace(mock_repository)
         mock_repository.get_skills.return_value = []
-        mock_repository.get_experiences.return_value = []
-        mock_repository.get_projects.return_value = []
-        mock_repository.get_education.return_value = []
-        mock_repository.get_courses.return_value = []
-        mock_repository.get_certifications.return_value = []
 
         response = self.client.post(
             "/app/profile/skills/2/delete",
@@ -398,6 +418,8 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn('id="profile-cv-preview"', response.text)
         self.assertIn("La skill fue eliminada.", response.text)
         self.assertIn("Sin skills", response.text)
+        self.assertIn("Aun no hay un inventario de senales", response.text)
+        self.assertIn("Agregar skill", response.text)
         self.assertNotIn('action="/app/profile/save"', response.text)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")

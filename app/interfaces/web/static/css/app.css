@@ -2168,6 +2168,28 @@ a {
     gap: 10px;
 }
 
+.signal-group-card {
+    padding: 18px;
+}
+
+.signal-skill-list {
+    gap: 12px;
+}
+
+.signal-skill-row {
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.signal-skill-row:first-child {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.signal-pill-group {
+    margin-top: 8px;
+}
+
 .profile-summary-link {
     display: inline-flex;
     align-items: center;
