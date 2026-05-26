@@ -1,19 +1,23 @@
-{% if flash_message %}
-    {% set flash_tone = flash_message[0] %}
-    {% set flash_text = flash_message[1] %}
-    {% include "components/_flash.html" %}
-{% endif %}
+<div id="applications-shell">
+    <section class="workspace-toolbar">
+        {% if flash_message %}
+            {% set flash_tone = flash_message[0] %}
+            {% set flash_text = flash_message[1] %}
+            {% include "components/_flash.html" %}
+        {% endif %}
 
-{% include "applications/_filters.html" %}
-
-<section class="layout-two-columns">
-    <section class="panel application-list-panel">
-        <div id="application-list">
-            {% include "applications/_list.html" %}
-        </div>
+        {% include "applications/_filters.html" %}
     </section>
 
-    <div id="application-detail" class="application-detail-panel">
-        {% include "applications/_detail.html" %}
-    </div>
-</section>
+    <section class="layout-two-columns">
+        <section class="panel application-list-panel">
+            <div id="application-list">
+                {% include "applications/_list.html" %}
+            </div>
+        </section>
+
+        <div id="application-detail" class="application-detail-panel">
+            {% include "applications/_detail.html" %}
+        </div>
+    </section>
+</div>

@@ -1,114 +1,170 @@
 {% if selected_vacancy %}
-    <section class="panel detail-sheet detail-sheet-inline vacancy-card-inline">
-        <div class="vacancy-card-header">
-            <div class="vacancy-card-copy">
-                <h2 class="vacancy-card-title">
-                    {{ selected_vacancy.empresa }} - {{ selected_vacancy.cargo }}
-                    {% if selected_vacancy.link %}
-                        <a href="{{ selected_vacancy.link }}" target="_blank" class="vacancy-link-icon" title="Abrir vacante">Abrir</a>
-                    {% endif %}
-                </h2>
-                <div class="vacancy-card-meta">
-                    <span>{{ selected_vacancy.fecha_registro.strftime("%d/%m/%Y") if selected_vacancy.fecha_registro else "-" }}</span>
-                    <span>{{ selected_vacancy.modalidad }}</span>
+    {% set analysis = selected_vacancy.analisis %}
+    {% set signal = selected_vacancy.decision_signal %}
+    <section class="panel detail-sheet decision-panel">
+        <div class="vacancy-card-header decision-top">
+            <div class="vacancy-card-copy decision-top-copy">
+                <div class="decision-eyebrow">
                     <span class="status-badge status-{{ selected_vacancy.status_meta.tone }}">{{ selected_vacancy.status_meta.label }}</span>
                 </div>
+                <h2 class="vacancy-card-title">
+                    {{ selected_vacancy.empresa }} - {{ selected_vacancy.cargo }}
+                </h2>
+                {% if selected_vacancy.detail_meta_items %}
+                    <div class="vacancy-card-meta decision-meta-line">
+                        {% for item in selected_vacancy.detail_meta_items %}
+                            <span>{{ item }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
-            {% if not selected_vacancy.has_application %}
-                <div class="vacancy-card-actions">
+        </div>
+
+        <section class="decision-hero">
+            <div class="decision-copy">
+                <div class="decision-label">Decision sugerida</div>
+                <div class="decision-headline tone-{{ signal.display_tone or 'gray' }}">
+                    {{ signal.decision_label }}
+                </div>
+                <div class="decision-support">
+                    <span
+                        class="analysis-pill opportunity-score-pill tone-{{ signal.score_tone }}"
+                        title="{{ signal.score_title }}"
+                    >
+                        Score {{ signal.score_label if signal.score is not none else "-" }}
+                    </span>
+                    <span class="soft-badge">{{ selected_vacancy.affinity_meta.label }}</span>
+                    {% if analysis and analysis.encaje_estrategico %}
+                        <span class="soft-badge">{{ analysis.encaje_estrategico }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="vacancy-card-actions decision-actions">
+                {% if not selected_vacancy.has_application and not selected_vacancy.motivo_archivo %}
                     <form method="post" action="/app/vacancies/{{ selected_vacancy.id }}/interest">
-                        <button class="secondary-link vacancy-action-button" type="submit">Seguimiento</button>
+                        <input type="hidden" name="q" value="{{ query }}">
+                        <input type="hidden" name="view" value="{{ current_view }}">
+                        <input type="hidden" name="page" value="{{ pagination.page }}">
+                        <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
+                        <button class="primary-action vacancy-action-button" type="submit">Pasar a seguimiento</button>
                     </form>
                     <form method="post" action="/app/vacancies/{{ selected_vacancy.id }}/discard">
                         <input type="hidden" name="q" value="{{ query }}">
                         <input type="hidden" name="view" value="{{ current_view }}">
                         <input type="hidden" name="page" value="{{ pagination.page }}">
                         <input type="hidden" name="page_size" value="{{ pagination.page_size }}">
-                        <button class="secondary-link vacancy-action-button" type="submit">Descartar</button>
+                        <button class="danger-action vacancy-action-button" type="submit">Descartar</button>
                     </form>
-                    <a
-                        class="vacancy-close-button"
-                        href="/app/vacancies?q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                        hx-get="/app/vacancies/list?q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                        hx-target="#vacancy-list"
-                        hx-swap="innerHTML"
-                        hx-push-url="true"
-                        title="Cerrar"
-                    >×</a>
-                </div>
+                {% endif %}
+                {% if selected_vacancy.has_application %}
+                    {% if selected_vacancy.tracking_application_id %}
+                        <a class="secondary-link vacancy-action-button tracking-link" href="/app/applications?selected={{ selected_vacancy.tracking_application_id }}">Ver seguimiento</a>
+                    {% else %}
+                        <a class="secondary-link vacancy-action-button tracking-link" href="/app/applications">Ver seguimiento</a>
+                    {% endif %}
+                {% endif %}
+                {% if selected_vacancy.link %}
+                    <a href="{{ selected_vacancy.link }}" target="_blank" rel="noreferrer" class="secondary-link vacancy-action-button">Abrir vacante</a>
+                {% endif %}
+            </div>
+        </section>
+
+        <div class="vacancy-card-body decision-panel-body">
+            {% if analysis %}
+                {% if analysis.fortalezas_principales or analysis.riesgos_principales %}
+                    <section class="analysis-priority-grid decision-evidence-grid">
+                        {% if analysis.fortalezas_principales %}
+                            <article class="analysis-note analysis-note-positive decision-evidence-card">
+                                <div class="detail-label">Por que si</div>
+                                <ul class="detail-list">
+                                    {% for item in analysis.fortalezas_principales[:4] %}
+                                        <li>{{ item }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </article>
+                        {% endif %}
+                        {% if analysis.riesgos_principales %}
+                            <article class="analysis-note analysis-note-caution decision-evidence-card">
+                                <div class="detail-label">Ojo con esto</div>
+                                <ul class="detail-list">
+                                    {% for item in analysis.riesgos_principales[:4] %}
+                                        <li>{{ item }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </article>
+                        {% endif %}
+                    </section>
+                {% endif %}
+
+                {% if analysis and analysis.skills_match %}
+                    <section class="decision-inline-section">
+                        <div class="detail-label">Skills que ya traes</div>
+                        <div class="vacancy-skills">
+                            {% for skill in analysis.skills_match[:8] %}
+                                <span class="vacancy-skill">{{ skill }}</span>
+                            {% endfor %}
+                        </div>
+                    </section>
+                {% endif %}
+
+                {% if analysis and analysis.resumen_analisis %}
+                    <section class="analysis-summary analysis-summary-compact">
+                        <h3>Resumen ejecutivo</h3>
+                        <p class="vacancy-analysis-text">{{ analysis.resumen_analisis }}</p>
+                    </section>
+                {% elif analysis and analysis.justificacion_decision %}
+                    <section class="analysis-summary analysis-summary-compact">
+                        <h3>Resumen ejecutivo</h3>
+                        <p class="vacancy-analysis-text">{{ analysis.justificacion_decision }}</p>
+                    </section>
+                {% endif %}
+
+                {% if analysis.skills_gap or analysis.ajustes_cv_recomendados %}
+                    <div class="analysis-detail-grid">
+                        {% if analysis.skills_gap %}
+                            <section class="analysis-block">
+                                <div class="detail-label">Skills faltantes</div>
+                                <ul class="detail-list">
+                                    {% for item in analysis.skills_gap[:5] %}
+                                        <li>{{ item }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </section>
+                        {% endif %}
+                        {% if analysis.ajustes_cv_recomendados %}
+                            <section class="analysis-block">
+                                <div class="detail-label">Ajustes CV recomendados</div>
+                                <ul class="detail-list">
+                                    {% for item in analysis.ajustes_cv_recomendados[:5] %}
+                                        <li>{{ item }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </section>
+                        {% endif %}
+                    </div>
+                {% endif %}
             {% else %}
-                <div class="vacancy-card-actions">
-                    <a class="secondary-link vacancy-action-button" href="/app/applications">Seguimiento</a>
-                    <a
-                        class="vacancy-close-button"
-                        href="/app/vacancies?q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                        hx-get="/app/vacancies/list?q={{ query }}&view={{ current_view }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                        hx-target="#vacancy-list"
-                        hx-swap="innerHTML"
-                        hx-push-url="true"
-                        title="Cerrar"
-                    >×</a>
-                </div>
-            {% endif %}
-        </div>
-
-        <div class="vacancy-card-divider"></div>
-
-        <div class="vacancy-score-strip">
-            <div class="vacancy-score-value">
-                <div class="vacancy-score-label">Score</div>
-                <div class="vacancy-score-number tone-{{ selected_vacancy.score_meta.tone }}">
-                    {{ selected_vacancy.score_meta.value if selected_vacancy.score_meta.value is not none else "-" }}
-                </div>
-            </div>
-            <div class="vacancy-score-gauge-block">
-                <div class="vacancy-score-scale">
-                    <span>0</span>
-                    <span>100</span>
-                </div>
-                <div class="vacancy-score-gauge">
-                    <div
-                        class="vacancy-score-fill tone-{{ selected_vacancy.score_meta.tone }}"
-                        style="width: {{ selected_vacancy.score_meta.value if selected_vacancy.score_meta.value is not none else 0 }}%;"
-                    ></div>
-                </div>
-            </div>
-            <div class="vacancy-verdict tone-{{ selected_vacancy.decision_meta.tone }}">
-                {{ selected_vacancy.decision_meta.label }} · {{ selected_vacancy.affinity_meta.label }}
-            </div>
-        </div>
-
-        <div class="vacancy-card-divider"></div>
-
-        <div class="vacancy-card-body">
-            {% if selected_vacancy.analisis and selected_vacancy.analisis.skills_match %}
-                <div class="vacancy-skills">
-                    {% for skill in selected_vacancy.analisis.skills_match[:6] %}
-                        <span class="vacancy-skill">{{ skill }}</span>
-                    {% endfor %}
-                </div>
+                <section class="analysis-summary analysis-summary-empty">
+                    <h3>Analisis pendiente</h3>
+                    <p class="vacancy-analysis-text muted-note">
+                        Esta vacante aun no tiene analisis disponible.
+                    </p>
+                </section>
             {% endif %}
 
-            {% if selected_vacancy.analisis %}
-                <p class="vacancy-analysis-text">
-                    {{ selected_vacancy.analisis.resumen_analisis or selected_vacancy.analisis.justificacion_decision or "Sin resumen aun." }}
-                </p>
-            {% else %}
-                <p class="vacancy-analysis-text muted-note">
-                    Esta vacante aun no tiene analisis disponible.
-                </p>
-            {% endif %}
+            <details class="description-disclosure vacancy-description vacancy-description-reader">
+                <summary class="vacancy-description-summary">
+                    <span>Descripcion completa</span>
+                    <span class="description-summary-note">Texto original de la vacante</span>
+                </summary>
+                <div class="vacancy-description-body vacancy-description-content">
+                    <p class="vacancy-description-text">{{ selected_vacancy.descripcion or "Sin descripcion disponible." }}</p>
+                </div>
+            </details>
         </div>
-
-        <details class="description-disclosure vacancy-description">
-            <summary>Descripcion completa</summary>
-            <div class="vacancy-description-body">
-                <p>{{ selected_vacancy.descripcion }}</p>
-            </div>
-        </details>
     </section>
 {% else %}
-    <section class="panel detail-sheet empty-panel detail-sheet-inline">
+    <section class="panel detail-sheet decision-panel empty-panel">
         <h3>Sin detalle</h3>
         <p>Selecciona una vacante para ver su analisis y decidir si te interesa.</p>
     </section>

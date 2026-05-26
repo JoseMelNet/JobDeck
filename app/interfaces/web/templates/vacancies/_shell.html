@@ -1,15 +1,25 @@
-{% include "vacancies/_summary.html" %}
+<div id="vacancies-shell">
+    <section class="workspace-toolbar">
+        {% include "vacancies/_summary.html" %}
 
-{% if flash_message %}
-    {% set flash_tone = flash_message[0] %}
-    {% set flash_text = flash_message[1] %}
-    {% include "components/_flash.html" %}
-{% endif %}
+        {% if flash_message %}
+            {% set flash_tone = flash_message[0] %}
+            {% set flash_text = flash_message[1] %}
+            {% include "components/_flash.html" %}
+        {% endif %}
 
-{% include "vacancies/_filters.html" %}
+        {% include "vacancies/_filters.html" %}
+    </section>
 
-<section class="panel workspace-panel list-panel inbox-list-panel">
-    <div id="vacancy-list">
-        {% include "vacancies/_list.html" %}
-    </div>
-</section>
+    <section class="layout-two-columns workspace-shell inbox-workspace">
+        <section class="panel workspace-panel workspace-list inbox-list-panel">
+            <div id="vacancy-list">
+                {% include "vacancies/_list.html" %}
+            </div>
+        </section>
+
+        <div id="vacancy-detail" class="workspace-detail">
+            {% include "vacancies/_detail.html" %}
+        </div>
+    </section>
+</div>

@@ -1,30 +1,51 @@
 {% if applications %}
-    <div class="simple-table">
-        <div class="table-head">
-            <div>ID</div>
-            <div>Empresa</div>
-            <div>Cargo</div>
-            <div>Estado</div>
-            <div>Fecha</div>
-        </div>
-        {% for item in applications %}
-            <a
-                class="table-row row-link application-row{% if selected_application and selected_application.id == item.id %} is-selected{% endif %}"
-                href="/app/applications?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                hx-get="/app/applications/shell?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
-                hx-target="#applications-shell"
-                hx-swap="outerHTML"
-                hx-push-url="true"
-            >
-                <div class="mono-cell">#{{ item.id }}</div>
-                <div>
-                    <div class="primary-cell">{{ item.empresa }}</div>
-                    <div class="secondary-cell">{{ item.modalidad }}</div>
-                </div>
-                <div class="primary-cell">{{ item.cargo }}</div>
-                <div><span class="status-badge status-{{ item.status_meta.tone }}">{{ item.status_meta.label }}</span></div>
-                <div>{% if item.fecha_aplicacion %}{{ item.fecha_aplicacion.strftime("%d/%m/%Y") }}{% else %}-{% endif %}</div>
-            </a>
+    {% set grouped_states = [current_state] if current_state != "Todos" else follow_up_states %}
+    <div class="application-rail">
+        {% for status in grouped_states %}
+            {% set status_items = applications | selectattr("estado", "equalto", status) | list %}
+            {% if status_items %}
+                <section class="application-rail-group">
+                    <div class="list-section-label application-group-heading">
+                        <span>{{ status_labels.get(status, status) }}</span>
+                        <span>{{ status_items | length }}</span>
+                    </div>
+                    <div class="application-rail-list">
+                        {% for item in status_items %}
+                            <a
+                                class="row-link application-rail-row application-row state-{{ item.status_meta.tone }}{% if selected_application and selected_application.id == item.id %} is-selected{% endif %}"
+                                href="/app/applications?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
+                                hx-get="/app/applications/shell?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
+                                hx-target="#applications-shell"
+                                hx-swap="outerHTML"
+                                hx-push-url="/app/applications?selected={{ item.id }}&q={{ query }}&state={{ current_state }}&page={{ pagination.page }}&page_size={{ pagination.page_size }}"
+                            >
+                                <div class="application-rail-main">
+                                    <div class="application-rail-topline">
+                                        <div class="application-rail-company">{{ item.empresa }}</div>
+                                        <span class="status-badge status-{{ item.status_meta.tone }}">{{ item.status_meta.label }}</span>
+                                    </div>
+                                    <div class="application-rail-role">{{ item.cargo }}</div>
+                                    {% if item.compact_follow_up_signal %}
+                                        <div class="application-rail-signal">
+                                            <span class="status-badge status-{{ item.compact_follow_up_signal.tone }}">
+                                                {{ item.compact_follow_up_signal.label }}
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                    <div class="application-rail-meta">
+                                        <span class="application-rail-date-label">Seguimiento desde</span>
+                                        <span class="secondary-cell">{% if item.fecha_aplicacion %}{{ item.fecha_aplicacion.strftime("%d/%m/%Y") }}{% elif item.fecha_registro %}{{ item.fecha_registro.strftime("%d/%m/%Y") }}{% else %}-{% endif %}</span>
+                                        {% if item.modalidad %}
+                                            <span class="secondary-cell">{{ item.modalidad }}</span>
+                                        {% endif %}
+                                        <span class="application-rail-id">#{{ item.id }}</span>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
         {% endfor %}
     </div>
     {% set pagination_prev_href = "/app/applications?q=%s&state=%s&page=%s&page_size=%s"|format(query, current_state, pagination.prev_page, pagination.page_size) %}
@@ -33,7 +54,7 @@
     {% set pagination_next_hx_get = "/app/applications/shell?q=%s&state=%s&page=%s&page_size=%s"|format(query, current_state, pagination.next_page, pagination.page_size) %}
     {% set pagination_hx_target = "#applications-shell" %}
     {% set pagination_hx_swap = "outerHTML" %}
-    {% set pagination_hx_push_url = "true" %}
+    {% set pagination_hx_push_url = "false" %}
     {% include "components/_pagination.html" %}
 {% else %}
     <div class="empty-panel">
