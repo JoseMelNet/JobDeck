@@ -1,5 +1,5 @@
 <section class="panel helper-panel">
-    <h2>Estado del perfil</h2>
+    <h2>Alertas principales</h2>
     {% if profile_quality.alerts %}
         <ul class="flow-list">
             {% for alert in profile_quality.alerts %}
@@ -13,7 +13,7 @@
         </div>
     {% endif %}
     <div class="helper-box soft">
-        <h3>Lo que este resumen mide hoy</h3>
+        <h3>Limites actuales</h3>
         <p>{{ profile_quality.future_notes[0] }}</p>
         <p>{{ profile_quality.future_notes[1] }}</p>
     </div>

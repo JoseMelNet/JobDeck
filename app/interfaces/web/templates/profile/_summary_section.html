@@ -1,8 +1,4 @@
 <section id="profile-summary-shell" class="stack-panel"{% if summary_shell_oob %} hx-swap-oob="outerHTML"{% endif %}>
-    <div id="profile-overview">
-        {% include "profile/_overview.html" %}
-    </div>
-
     <section class="profile-quality-hero tone-{{ profile_quality.overall_tone }}">
         <div class="profile-quality-hero-copy">
             <p class="eyebrow">Command center del perfil</p>
@@ -14,6 +10,10 @@
             <div class="profile-quality-caption">Cobertura real actual</div>
         </div>
     </section>
+
+    <div id="profile-overview">
+        {% include "profile/_overview.html" %}
+    </div>
 
     <section class="profile-hint-grid profile-quality-grid">
         {% for coverage in (profile_quality.analysis_coverage, profile_quality.cv_coverage, profile_quality.evidence_coverage) %}

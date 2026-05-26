@@ -841,7 +841,7 @@ def delete_certification(request: Request, certification_id: int):
     if request.headers.get("HX-Request") == "true":
         return _render_profile_formation_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.CREDENTIALS.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.CREDENTIALS, flash=flash),
         status_code=303,
     )
 

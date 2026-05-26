@@ -32,9 +32,7 @@ PROFILE_REFRESH_PLANS = {
         primary_template="profile/_basics.html",
         redirect_section=ProfileSectionId.OBJECTIVE,
         refresh_summary=True,
-        # Transicional: Senales sigue montando _skills_shell, que hoy conserva
-        # estado derivado del perfil y debe mantenerse sincronizado via HTMX.
-        refresh_signals=True,
+        refresh_signals=False,
         refresh_cv_preview=True,
     ),
     ProfileRefreshAction.SKILLS: ProfileRefreshPlan(
@@ -50,9 +48,7 @@ PROFILE_REFRESH_PLANS = {
         primary_template="profile/_experiences_shell.html",
         redirect_section=ProfileSectionId.EVIDENCE,
         refresh_summary=True,
-        # Transicional: el shell de Senales aun comparte dependencias derivadas
-        # con Resumen y debe refrescarse hasta separar esos acoplamientos.
-        refresh_signals=True,
+        refresh_signals=False,
         refresh_cv_preview=True,
     ),
     ProfileRefreshAction.PROJECTS: ProfileRefreshPlan(
@@ -60,9 +56,7 @@ PROFILE_REFRESH_PLANS = {
         primary_template="profile/_projects_shell.html",
         redirect_section=ProfileSectionId.EVIDENCE,
         refresh_summary=True,
-        # Transicional: proyectos no cambian skills, pero Senales sigue siendo
-        # un punto de montaje heredado para estado derivado del perfil.
-        refresh_signals=True,
+        refresh_signals=False,
         refresh_cv_preview=False,
     ),
     ProfileRefreshAction.CREDENTIALS: ProfileRefreshPlan(
@@ -70,9 +64,7 @@ PROFILE_REFRESH_PLANS = {
         primary_template="profile/_formation_shell.html",
         redirect_section=ProfileSectionId.CREDENTIALS,
         refresh_summary=True,
-        # Transicional: mantener Senales al dia evita desfasar el estado
-        # compartido mientras Resumen y Skills sigan acoplados via shell.
-        refresh_signals=True,
+        refresh_signals=False,
         refresh_cv_preview=True,
     ),
 }
