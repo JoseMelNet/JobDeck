@@ -452,22 +452,54 @@ class WebApplicationsTests(unittest.TestCase):
         item["nombre_recruiter"] = "Ada"
         item["notas"] = "Pendiente de confirmar recruiter."
         mock_repository.list_all.return_value = [item]
+        self.mock_analysis_repository.get_by_vacancy_ids.return_value = {
+            7: _analysis_item(
+                score_total=88,
+                decision_aplicacion="Aplicar si sobra tiempo",
+                justificacion_decision="Buen match tecnico y alcance realista.",
+            )
+        }
 
         response = self.client.get("/app/applications")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Decision original", response.text)
+        self.assertIn("Analisis original", response.text)
+        self.assertIn("Recomendacion inicial", response.text)
+        self.assertIn("Contexto historico; no cambia el estado actual.", response.text)
         self.assertIn("Senales de seguimiento", response.text)
         self.assertIn("Accion principal", response.text)
         self.assertIn("Informacion de la aplicacion", response.text)
         self.assertIn("Contacto", response.text)
         self.assertIn("Notas", response.text)
-        self.assertIn("Editar seguimiento", response.text)
+        self.assertIn("<summary>Editar seguimiento</summary>", response.text)
         self.assertIn('class="primary-action application-primary-button"', response.text)
         self.assertIn('class="stack-form compact-form application-edit-form"', response.text)
-        self.assertLess(response.text.index("Accion principal"), response.text.index("Decision original"))
-        self.assertLess(response.text.index("Senales de seguimiento"), response.text.index("Decision original"))
+        self.assertIn('class="application-section section-disclosure application-edit-disclosure"', response.text)
+        self.assertLess(response.text.index("Accion principal"), response.text.index("Analisis original"))
+        self.assertLess(response.text.index("Senales de seguimiento"), response.text.index("Analisis original"))
         self.assertLess(response.text.index("Accion principal"), response.text.index("Editar seguimiento"))
+        self.assertNotIn("Usa la accion principal para registrar el siguiente avance del proceso.", response.text)
+        self.assertNotIn(
+            "Indicadores descriptivos basados solo en el estado y los datos ya cargados en esta aplicacion.",
+            response.text,
+        )
+        self.assertNotIn(
+            "Resumen del analisis inicial que explico por que esta vacante entro a seguimiento.",
+            response.text,
+        )
+        self.assertNotIn("Referencia rapida para continuar el seguimiento sin abrir otra vista.", response.text)
+        self.assertNotIn(
+            "Datos del recruiter o del contacto que necesitas para retomar la conversacion.",
+            response.text,
+        )
+        self.assertNotIn(
+            "Resumen libre del estado actual y de cualquier contexto importante del proceso.",
+            response.text,
+        )
+        self.assertNotIn(
+            "Usa esta seccion para mantener contacto, notas y estado al dia sin quitar foco al panel operativo.",
+            response.text,
+        )
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_batches_visible_vacancy_analysis_queries(self, mock_repository):
@@ -500,7 +532,8 @@ class WebApplicationsTests(unittest.TestCase):
         response = self.client.get("/app/applications?selected=7")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Decision original", response.text)
+        self.assertIn("Analisis original", response.text)
+        self.assertIn("Recomendacion inicial", response.text)
         self.assertIn("Aplicar si sobra tiempo", response.text)
         self.assertIn("Score 88", response.text)
         self.assertIn("Buen match tecnico y alcance realista.", response.text)
@@ -543,6 +576,26 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn("ETL no profundo", response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_frames_discard_recommendation_as_historical_context(self, mock_repository):
+        mock_repository.list_all.return_value = [_application_item(7, company="ACME", role="Data Analyst")]
+        self.mock_analysis_repository.get_by_vacancy_ids.return_value = {
+            7: _analysis_item(
+                score_total=42,
+                decision_aplicacion="Descartar",
+                justificacion_decision="La recomendacion inicial era descartar por bajo encaje.",
+            )
+        }
+
+        response = self.client.get("/app/applications?selected=7")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Analisis original", response.text)
+        self.assertIn("Recomendacion inicial", response.text)
+        self.assertIn("Contexto historico; no cambia el estado actual.", response.text)
+        self.assertIn("Descartar", response.text)
+        self.assertNotIn("Decision sugerida", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_detail_shows_clean_fallback_when_analysis_is_missing(self, mock_repository):
         mock_repository.list_all.return_value = [_application_item(7, company="ACME", role="Data Analyst")]
         self.mock_analysis_repository.get_by_vacancy_ids.return_value = {}
@@ -567,6 +620,69 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.text.count('class="application-rail-signal"'), 1)
         self.assertEqual(response.text.count("Lleva tiempo pendiente"), 2)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_hides_contact_block_when_no_contact_data_exists(self, mock_repository):
+        mock_repository.list_all.return_value = [
+            _application_item(7, company="ACME", role="Data Analyst", notes="Seguimiento activo")
+        ]
+
+        response = self.client.get("/app/applications?selected=7")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("<h3>Contacto</h3>", response.text)
+        self.assertIn("Nombre recruiter", response.text)
+        self.assertIn("Email", response.text)
+        self.assertIn("Telefono", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_shows_compact_contact_block_when_contact_exists(self, mock_repository):
+        mock_repository.list_all.return_value = [
+            _application_item(
+                7,
+                company="ACME",
+                role="Data Analyst",
+                recruiter="Ada Lovelace",
+                email="ada@example.com",
+                notes="Seguimiento activo",
+            )
+        ]
+
+        response = self.client.get("/app/applications?selected=7")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("<h3>Contacto</h3>", response.text)
+        self.assertIn("Ada Lovelace", response.text)
+        self.assertIn("ada@example.com", response.text)
+        self.assertNotIn("Sin recruiter registrado", response.text)
+        self.assertNotIn("Sin email registrado", response.text)
+        self.assertNotIn("Sin telefono registrado", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_does_not_render_large_notes_block_when_notes_are_empty(self, mock_repository):
+        mock_repository.list_all.return_value = [_application_item(7, company="ACME", role="Data Analyst", notes="")]
+
+        response = self.client.get("/app/applications?selected=7")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("<h3>Notas</h3>", response.text)
+        self.assertNotIn("Sin notas aun.", response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_keeps_edit_form_inside_secondary_disclosure(self, mock_repository):
+        mock_repository.list_all.return_value = [_application_item(7, company="ACME", role="Data Analyst")]
+
+        response = self.client.get("/app/applications?selected=7")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('class="application-section section-disclosure application-edit-disclosure"', response.text)
+        self.assertIn("<summary>Editar seguimiento</summary>", response.text)
+        self.assertIn('action="/app/applications/7/update"', response.text)
+        self.assertIn('hx-post="/app/applications/7/update"', response.text)
+        self.assertIn('name="q"', response.text)
+        self.assertIn('name="state"', response.text)
+        self.assertIn('name="page"', response.text)
+        self.assertIn('name="page_size"', response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_terminal_detail_does_not_render_operational_missing_info_signals(self, mock_repository):
@@ -615,7 +731,7 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertNotIn("Paso a entrevista", response.text)
         self.assertNotIn("Recibi oferta", response.text)
         self.assertNotIn("Marcar rechazada", response.text)
-        self.assertIn("Editar seguimiento", response.text)
+        self.assertIn("<summary>Editar seguimiento</summary>", response.text)
 
     @patch("app.interfaces.web.routes.applications._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.applications._build_nav", return_value=[])

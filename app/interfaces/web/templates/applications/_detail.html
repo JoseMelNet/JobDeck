@@ -13,8 +13,6 @@
                 <span class="status-badge status-{{ selected_application.status_meta.tone }}">{{ selected_application.status_meta.label }}</span>
                 {% if current_status in terminal_states %}
                     <p class="muted-note">Estado terminal. Puedes dejar registro final o ajustar los datos si hace falta.</p>
-                {% else %}
-                    <p class="muted-note">Usa la accion principal para registrar el siguiente avance del proceso.</p>
                 {% endif %}
             </div>
         </header>
@@ -22,19 +20,6 @@
         <section class="application-callout">
             <div class="application-section-heading">
                 <h3>Accion principal</h3>
-                {% if current_status == "Pending" %}
-                    <p>Confirma cuando ya enviaste la aplicacion y deja el resto de cambios para despues.</p>
-                {% elif current_status == "Applied" %}
-                    <p>Registra el siguiente avance visible del proceso para mantener el seguimiento al dia.</p>
-                {% elif current_status == "Technical Test" %}
-                    <p>La prueba tecnica ya quedo registrada. Actualiza el resultado cuando el proceso avance.</p>
-                {% elif current_status == "In Interview" %}
-                    <p>La entrevista ya esta en curso. Marca el siguiente hito cuando tengas una respuesta.</p>
-                {% elif current_status == "Open Offer" %}
-                    <p>La oferta ya esta registrada. Usa la edicion secundaria para cerrar o documentar el resultado.</p>
-                {% else %}
-                    <p>Esta aplicacion ya esta cerrada y no muestra acciones rapidas adicionales.</p>
-                {% endif %}
             </div>
 
             {% if current_status in terminal_states %}
@@ -120,7 +105,6 @@
             <section class="application-section">
                 <div class="application-section-heading">
                     <h3>Senales de seguimiento</h3>
-                    <p>Indicadores descriptivos basados solo en el estado y los datos ya cargados en esta aplicacion.</p>
                 </div>
                 <div class="application-signals-card">
                     <div class="application-signal-list">
@@ -134,15 +118,15 @@
 
         <section class="application-section application-origin-section">
             <div class="application-section-heading">
-                <h3>Decision original</h3>
-                <p>Resumen del analisis inicial que explico por que esta vacante entro a seguimiento.</p>
+                <h3>Analisis original</h3>
+                <p>Contexto historico; no cambia el estado actual.</p>
             </div>
 
             {% if original_analysis %}
                 <div class="application-origin-card">
                     <div class="application-origin-hero">
                         <div class="application-origin-copy">
-                            <div class="detail-label">Decision sugerida</div>
+                            <div class="detail-label">Recomendacion inicial</div>
                             <div class="decision-headline tone-{{ original_decision.display_tone or 'gray' }}">
                                 {{ original_decision.decision_label }}
                             </div>
@@ -205,7 +189,6 @@
         <section class="application-section">
             <div class="application-section-heading">
                 <h3>Informacion de la aplicacion</h3>
-                <p>Referencia rapida para continuar el seguimiento sin abrir otra vista.</p>
             </div>
             <div class="detail-grid application-info-grid">
                 <article class="detail-card">
@@ -229,42 +212,52 @@
             </div>
         </section>
 
-        <section class="application-section">
-            <div class="application-section-heading">
-                <h3>Contacto</h3>
-                <p>Datos del recruiter o del contacto que necesitas para retomar la conversacion.</p>
-            </div>
-            <div class="detail-grid application-contact-grid">
-                <article class="detail-card">
-                    <div class="detail-label">Recruiter</div>
-                    <div class="detail-value">{{ selected_application.nombre_recruiter or "Sin recruiter registrado" }}</div>
-                </article>
-                <article class="detail-card">
-                    <div class="detail-label">Email</div>
-                    <div class="detail-value">{{ selected_application.email_recruiter or "Sin email registrado" }}</div>
-                </article>
-                <article class="detail-card">
-                    <div class="detail-label">Telefono</div>
-                    <div class="detail-value">{{ selected_application.telefono_recruiter or "Sin telefono registrado" }}</div>
-                </article>
-            </div>
-        </section>
+        {% set recruiter_name = selected_application.nombre_recruiter|default('', true)|trim %}
+        {% set recruiter_email = selected_application.email_recruiter|default('', true)|trim %}
+        {% set recruiter_phone = selected_application.telefono_recruiter|default('', true)|trim %}
+        {% set notes_text = selected_application.notas|default('', true)|trim %}
+        {% set has_contact = recruiter_name or recruiter_email or recruiter_phone %}
+        {% if has_contact %}
+            <section class="application-section">
+                <div class="application-section-heading">
+                    <h3>Contacto</h3>
+                </div>
+                <div class="detail-grid application-contact-grid">
+                    {% if recruiter_name %}
+                        <article class="detail-card">
+                            <div class="detail-label">Recruiter</div>
+                            <div class="detail-value">{{ recruiter_name }}</div>
+                        </article>
+                    {% endif %}
+                    {% if recruiter_email %}
+                        <article class="detail-card">
+                            <div class="detail-label">Email</div>
+                            <div class="detail-value">{{ recruiter_email }}</div>
+                        </article>
+                    {% endif %}
+                    {% if recruiter_phone %}
+                        <article class="detail-card">
+                            <div class="detail-label">Telefono</div>
+                            <div class="detail-value">{{ recruiter_phone }}</div>
+                        </article>
+                    {% endif %}
+                </div>
+            </section>
+        {% endif %}
 
-        <section class="application-section">
-            <div class="application-section-heading">
-                <h3>Notas</h3>
-                <p>Resumen libre del estado actual y de cualquier contexto importante del proceso.</p>
-            </div>
-            <div class="application-notes-card">
-                <p>{{ selected_application.notas or "Sin notas aun." }}</p>
-            </div>
-        </section>
+        {% if notes_text %}
+            <section class="application-section">
+                <div class="application-section-heading">
+                    <h3>Notas</h3>
+                </div>
+                <div class="application-notes-card">
+                    <p>{{ notes_text }}</p>
+                </div>
+            </section>
+        {% endif %}
 
-        <section class="application-section">
-            <div class="application-section-heading">
-                <h3>Editar seguimiento</h3>
-                <p>Usa esta seccion para mantener contacto, notas y estado al dia sin quitar foco al panel operativo.</p>
-            </div>
+        <details class="application-section section-disclosure application-edit-disclosure">
+            <summary>Editar seguimiento</summary>
             <form class="stack-form compact-form application-edit-form" method="post" action="/app/applications/{{ selected_application.id }}/update" hx-post="/app/applications/{{ selected_application.id }}/update" hx-target="#applications-shell" hx-swap="outerHTML">
                 <input type="hidden" name="q" value="{{ query }}">
                 <input type="hidden" name="state" value="{{ current_state }}">
@@ -298,12 +291,11 @@
                 </label>
                 <button type="submit" class="secondary-action">Guardar cambios</button>
             </form>
-        </section>
+        </details>
 
         <section class="application-section application-danger-zone">
             <div class="application-section-heading">
                 <h3>Eliminar</h3>
-                <p>Accion terciaria. Solo usala si el registro ya no debe permanecer en seguimiento.</p>
             </div>
             <form method="post" action="/app/applications/{{ selected_application.id }}/delete" hx-post="/app/applications/{{ selected_application.id }}/delete" hx-target="#applications-shell" hx-swap="outerHTML">
                 <input type="hidden" name="q" value="{{ query }}">
