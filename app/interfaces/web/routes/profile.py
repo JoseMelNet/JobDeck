@@ -11,6 +11,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.infrastructure.persistence.repositories.profile_repository import ProfileRepository
 from app.interfaces.web.presentation.profile_quality import build_profile_quality_summary
+from app.interfaces.web.presentation.profile_refresh import (
+    ProfileRefreshAction,
+    build_profile_refresh_plan,
+)
 from app.interfaces.web.presentation.profile_view_model import (
     ProfileSectionId,
     build_profile_labor_contract,
@@ -37,6 +41,14 @@ PROFILE_SECTION_TEMPLATE_MAP = {
     ProfileSectionId.EVIDENCE.value: "profile/_evidence_section.html",
     ProfileSectionId.CREDENTIALS.value: "profile/_credentials_section.html",
     ProfileSectionId.OUTPUTS.value: "profile/_outputs_section.html",
+}
+
+PROFILE_ACTION_REDIRECTS = {
+    ProfileRefreshAction.BASICS: build_profile_refresh_plan(ProfileRefreshAction.BASICS).redirect_section,
+    ProfileRefreshAction.SKILLS: build_profile_refresh_plan(ProfileRefreshAction.SKILLS).redirect_section,
+    ProfileRefreshAction.EXPERIENCES: build_profile_refresh_plan(ProfileRefreshAction.EXPERIENCES).redirect_section,
+    ProfileRefreshAction.PROJECTS: build_profile_refresh_plan(ProfileRefreshAction.PROJECTS).redirect_section,
+    ProfileRefreshAction.CREDENTIALS: build_profile_refresh_plan(ProfileRefreshAction.CREDENTIALS).redirect_section,
 }
 
 
@@ -112,6 +124,10 @@ def _build_profile_url(*, section: str | None = None, flash: str | None = None, 
 
     base_path = "/app/profile/shell" if shell else "/app/profile"
     return base_path + (f"?{urlencode(params)}" if params else "")
+
+
+def _build_profile_redirect_url(*, action: ProfileRefreshAction, flash: str | None = None) -> str:
+    return _build_profile_url(section=PROFILE_ACTION_REDIRECTS[action].value, flash=flash)
 
 
 def _build_profile_sections(active_section: str) -> list[dict[str, str | bool]]:
@@ -275,12 +291,42 @@ def _render_profile_shell(request: Request, flash: str, section: str | None = No
     )
 
 
-def _render_profile_skills_shell(request: Request, flash: str = "", include_oob: bool = False):
+def _render_profile_refresh_response(
+    request: Request,
+    *,
+    flash: str,
+    action: ProfileRefreshAction,
+):
     context = _build_profile_context(flash=flash)
-    template_name = "profile/_skills_fragment.html" if include_oob else "profile/_skills_shell.html"
+    refresh_plan = build_profile_refresh_plan(action)
     return templates.TemplateResponse(
         request=request,
-        name=template_name,
+        name="profile/_refresh_response.html",
+        context={
+            "request": request,
+            **context,
+            "refresh_plan": refresh_plan,
+            "skills_flash_message": context["flash_message"] if action == ProfileRefreshAction.SKILLS and flash else None,
+            "basics_flash_message": context["flash_message"] if action == ProfileRefreshAction.BASICS and flash else None,
+            "formation_flash_message": (
+                context["flash_message"] if action == ProfileRefreshAction.CREDENTIALS and flash else None
+            ),
+            "projects_flash_message": context["flash_message"] if action == ProfileRefreshAction.PROJECTS and flash else None,
+            "experiences_flash_message": (
+                context["flash_message"] if action == ProfileRefreshAction.EXPERIENCES and flash else None
+            ),
+        },
+    )
+
+
+def _render_profile_skills_shell(request: Request, flash: str = "", include_oob: bool = False):
+    if include_oob:
+        return _render_profile_refresh_response(request, flash=flash, action=ProfileRefreshAction.SKILLS)
+
+    context = _build_profile_context(flash=flash)
+    return templates.TemplateResponse(
+        request=request,
+        name="profile/_skills_shell.html",
         context={
             "request": request,
             **context,
@@ -290,11 +336,13 @@ def _render_profile_skills_shell(request: Request, flash: str = "", include_oob:
 
 
 def _render_profile_basics_shell(request: Request, flash: str = "", include_oob: bool = False):
+    if include_oob:
+        return _render_profile_refresh_response(request, flash=flash, action=ProfileRefreshAction.BASICS)
+
     context = _build_profile_context(flash=flash)
-    template_name = "profile/_basics_fragment.html" if include_oob else "profile/_basics.html"
     return templates.TemplateResponse(
         request=request,
-        name=template_name,
+        name="profile/_basics.html",
         context={
             "request": request,
             **context,
@@ -304,11 +352,13 @@ def _render_profile_basics_shell(request: Request, flash: str = "", include_oob:
 
 
 def _render_profile_formation_shell(request: Request, flash: str = "", include_oob: bool = False):
+    if include_oob:
+        return _render_profile_refresh_response(request, flash=flash, action=ProfileRefreshAction.CREDENTIALS)
+
     context = _build_profile_context(flash=flash)
-    template_name = "profile/_formation_fragment.html" if include_oob else "profile/_formation_shell.html"
     return templates.TemplateResponse(
         request=request,
-        name=template_name,
+        name="profile/_formation_shell.html",
         context={
             "request": request,
             **context,
@@ -318,11 +368,13 @@ def _render_profile_formation_shell(request: Request, flash: str = "", include_o
 
 
 def _render_profile_projects_shell(request: Request, flash: str = "", include_oob: bool = False):
+    if include_oob:
+        return _render_profile_refresh_response(request, flash=flash, action=ProfileRefreshAction.PROJECTS)
+
     context = _build_profile_context(flash=flash)
-    template_name = "profile/_projects_fragment.html" if include_oob else "profile/_projects_shell.html"
     return templates.TemplateResponse(
         request=request,
-        name=template_name,
+        name="profile/_projects_shell.html",
         context={
             "request": request,
             **context,
@@ -332,11 +384,13 @@ def _render_profile_projects_shell(request: Request, flash: str = "", include_oo
 
 
 def _render_profile_experiences_shell(request: Request, flash: str = "", include_oob: bool = False):
+    if include_oob:
+        return _render_profile_refresh_response(request, flash=flash, action=ProfileRefreshAction.EXPERIENCES)
+
     context = _build_profile_context(flash=flash)
-    template_name = "profile/_experiences_fragment.html" if include_oob else "profile/_experiences_shell.html"
     return templates.TemplateResponse(
         request=request,
-        name=template_name,
+        name="profile/_experiences_shell.html",
         context={
             "request": request,
             **context,
@@ -431,7 +485,7 @@ def save_profile(
     if request.headers.get("HX-Request") == "true":
         return _render_profile_basics_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.OBJECTIVE.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.BASICS, flash=flash),
         status_code=303,
     )
 
@@ -453,7 +507,7 @@ def add_skill(
     if request.headers.get("HX-Request") == "true":
         return _render_profile_skills_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.SIGNALS.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.SKILLS, flash=flash),
         status_code=303,
     )
 
@@ -465,7 +519,7 @@ def delete_skill(request: Request, skill_id: int):
     if request.headers.get("HX-Request") == "true":
         return _render_profile_skills_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.SIGNALS.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.SKILLS, flash=flash),
         status_code=303,
     )
 
@@ -505,7 +559,7 @@ def add_experience(
     if request.headers.get("HX-Request") == "true":
         return _render_profile_experiences_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.EVIDENCE.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.EXPERIENCES, flash=flash),
         status_code=303,
     )
 
@@ -542,7 +596,7 @@ def update_experience(
     if request.headers.get("HX-Request") == "true":
         return _render_profile_experiences_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.EVIDENCE.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.EXPERIENCES, flash=flash),
         status_code=303,
     )
 
@@ -554,7 +608,7 @@ def delete_experience(request: Request, experience_id: int):
     if request.headers.get("HX-Request") == "true":
         return _render_profile_experiences_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.EVIDENCE.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.EXPERIENCES, flash=flash),
         status_code=303,
     )
 
@@ -596,7 +650,7 @@ def add_project(
     if request.headers.get("HX-Request") == "true":
         return _render_profile_projects_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.EVIDENCE.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.PROJECTS, flash=flash),
         status_code=303,
     )
 
@@ -635,7 +689,7 @@ def update_project(
     if request.headers.get("HX-Request") == "true":
         return _render_profile_projects_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.EVIDENCE.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.PROJECTS, flash=flash),
         status_code=303,
     )
 
@@ -647,7 +701,7 @@ def delete_project(request: Request, project_id: int):
     if request.headers.get("HX-Request") == "true":
         return _render_profile_projects_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.EVIDENCE.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.PROJECTS, flash=flash),
         status_code=303,
     )
 
@@ -683,7 +737,7 @@ def add_education(
     if request.headers.get("HX-Request") == "true":
         return _render_profile_formation_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.CREDENTIALS.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.CREDENTIALS, flash=flash),
         status_code=303,
     )
 
@@ -695,7 +749,7 @@ def delete_education(request: Request, education_id: int):
     if request.headers.get("HX-Request") == "true":
         return _render_profile_formation_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.CREDENTIALS.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.CREDENTIALS, flash=flash),
         status_code=303,
     )
 
@@ -729,7 +783,7 @@ def add_course(
     if request.headers.get("HX-Request") == "true":
         return _render_profile_formation_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.CREDENTIALS.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.CREDENTIALS, flash=flash),
         status_code=303,
     )
 
@@ -741,7 +795,7 @@ def delete_course(request: Request, course_id: int):
     if request.headers.get("HX-Request") == "true":
         return _render_profile_formation_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.CREDENTIALS.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.CREDENTIALS, flash=flash),
         status_code=303,
     )
 
@@ -775,7 +829,7 @@ def add_certification(
     if request.headers.get("HX-Request") == "true":
         return _render_profile_formation_shell(request, flash, include_oob=True)
     return RedirectResponse(
-        url=_build_profile_url(section=ProfileSectionId.CREDENTIALS.value, flash=flash),
+        url=_build_profile_redirect_url(action=ProfileRefreshAction.CREDENTIALS, flash=flash),
         status_code=303,
     )
 

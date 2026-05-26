@@ -1,4 +1,4 @@
-<section id="profile-summary-shell" class="stack-panel">
+<section id="profile-summary-shell" class="stack-panel"{% if summary_shell_oob %} hx-swap-oob="outerHTML"{% endif %}>
     <div id="profile-overview">
         {% include "profile/_overview.html" %}
     </div>

@@ -273,12 +273,33 @@ class WebProfileTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Los datos principales del perfil fueron guardados.", response.text)
         self.assertIn('id="profile-basics-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn('id="profile-skills-shell"', response.text)
         self.assertIn('id="profile-cv-preview"', response.text)
         self.assertIn('hx-swap-oob="outerHTML"', response.text)
         self.assertNotIn('action="/app/profile/experiences"', response.text)
         payload = mock_repository.save_profile.call_args.args[0]
         self.assertEqual(payload["modalidades_aceptadas"], "Remoto,Hibrido")
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_save_profile_non_hx_redirects_to_objective_section(self, mock_repository):
+        mock_repository.save_profile.return_value = {"success": True, "id": 1}
+
+        response = self.client.post(
+            "/app/profile/save",
+            data={
+                "nombre": "Jose",
+                "titulo_profesional": "Data Analyst",
+                "nivel_actual": "Mid",
+                "anos_experiencia": "3",
+                "moneda": "COP",
+                "modalidades_aceptadas": ["Remoto", "Hibrido"],
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers["location"], "/app/profile?section=objective&flash=profile_saved")
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_add_skill_hx_returns_isolated_skills_fragment(self, mock_repository):
@@ -304,10 +325,26 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-skills-shell"', response.text)
-        self.assertIn('hx-swap-oob="innerHTML"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
+        self.assertIn('id="profile-cv-preview"', response.text)
+        self.assertIn('hx-swap-oob="outerHTML"', response.text)
         self.assertIn("La skill fue agregada al perfil.", response.text)
         self.assertIn("Python", response.text)
         self.assertNotIn('action="/app/profile/save"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_add_skill_non_hx_redirects_to_signals_section(self, mock_repository):
+        mock_repository.add_skill.return_value = {"success": True}
+        mock_repository.get_active_profile.return_value = {"id": 1}
+
+        response = self.client.post(
+            "/app/profile/skills",
+            data={"categoria": "Data", "skill": "Python", "nivel": "Avanzado"},
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers["location"], "/app/profile?section=signals&flash=skill_added")
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_delete_skill_hx_returns_isolated_skills_fragment(self, mock_repository):
@@ -332,9 +369,49 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-skills-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
+        self.assertIn('id="profile-cv-preview"', response.text)
         self.assertIn("La skill fue eliminada.", response.text)
         self.assertIn("Sin skills", response.text)
         self.assertNotIn('action="/app/profile/save"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_add_experience_non_hx_redirects_to_evidence_section(self, mock_repository):
+        mock_repository.add_experience.return_value = {"success": True}
+        mock_repository.get_active_profile.return_value = {"id": 1}
+
+        response = self.client.post(
+            "/app/profile/experiences",
+            data={
+                "cargo": "Data Analyst",
+                "empresa": "Acme",
+                "fecha_inicio": "2024-01-01",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers["location"], "/app/profile?section=evidence&flash=experience_saved")
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_add_education_non_hx_redirects_to_credentials_section(self, mock_repository):
+        mock_repository.add_education.return_value = {"success": True}
+        mock_repository.get_active_profile.return_value = {"id": 1}
+
+        response = self.client.post(
+            "/app/profile/education",
+            data={
+                "titulo": "Ingenieria",
+                "institucion": "UN",
+                "nivel": "Pregrado",
+                "status": "Completado",
+                "fecha_inicio": "2020-01-01",
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers["location"], "/app/profile?section=credentials&flash=education_saved")
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_profile_shell_partial_keeps_formation_sections(self, mock_repository):
@@ -535,6 +612,7 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-projects-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn("El proyecto fue guardado.", response.text)
         self.assertIn("Dashboard", response.text)
         self.assertIn('id="profile-skills-shell"', response.text)
@@ -587,6 +665,7 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-projects-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn("El proyecto fue guardado.", response.text)
         self.assertIn("Dashboard V2", response.text)
         self.assertIn('id="profile-skills-shell"', response.text)
@@ -635,12 +714,11 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-experiences-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn("La experiencia fue guardada.", response.text)
         self.assertIn("Data Analyst · Acme", response.text)
-        self.assertIn('id="profile-overview"', response.text)
         self.assertIn('id="profile-skills-shell"', response.text)
         self.assertIn('id="profile-cv-preview"', response.text)
-        self.assertIn('hx-swap-oob="innerHTML"', response.text)
         self.assertIn('hx-swap-oob="outerHTML"', response.text)
         self.assertNotIn('id="profile-projects-shell"', response.text)
 
@@ -687,9 +765,9 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-experiences-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn("La experiencia fue guardada.", response.text)
         self.assertIn("Senior Data Analyst · Acme", response.text)
-        self.assertIn('id="profile-overview"', response.text)
         self.assertIn('id="profile-skills-shell"', response.text)
         self.assertIn('id="profile-cv-preview"', response.text)
         self.assertNotIn('id="profile-projects-shell"', response.text)
@@ -717,9 +795,9 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-experiences-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn("La experiencia fue eliminada.", response.text)
         self.assertIn("Sin experiencia registrada", response.text)
-        self.assertIn('id="profile-overview"', response.text)
         self.assertIn('id="profile-skills-shell"', response.text)
         self.assertIn('id="profile-cv-preview"', response.text)
         self.assertNotIn('id="profile-projects-shell"', response.text)
@@ -747,6 +825,7 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-projects-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn("El proyecto fue eliminado.", response.text)
         self.assertIn("Sin proyectos registrados", response.text)
         self.assertIn('id="profile-skills-shell"', response.text)
@@ -792,6 +871,7 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn("La educacion fue guardada.", response.text)
         self.assertIn('id="profile-skills-shell"', response.text)
         self.assertIn('id="profile-cv-preview"', response.text)
@@ -821,6 +901,7 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn("La educacion fue eliminada.", response.text)
         self.assertIn("Sin educacion registrada", response.text)
         self.assertNotIn('action="/app/profile/save"', response.text)
@@ -853,6 +934,7 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn("El curso fue guardado.", response.text)
         self.assertIn("SQL", response.text)
         self.assertIn('id="profile-cv-preview"', response.text)
@@ -881,6 +963,7 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn("El curso fue eliminado.", response.text)
         self.assertIn("Sin cursos registrados", response.text)
         self.assertNotIn('action="/app/profile/save"', response.text)
@@ -922,6 +1005,7 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn("La certificacion fue guardada.", response.text)
         self.assertIn("AWS", response.text)
         self.assertIn('id="profile-cv-preview"', response.text)
@@ -950,6 +1034,7 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-formation-shell"', response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
         self.assertIn("La certificacion fue eliminada.", response.text)
         self.assertIn("Sin certificaciones registradas", response.text)
         self.assertNotIn('action="/app/profile/save"', response.text)
