@@ -10,6 +10,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.infrastructure.persistence.repositories.profile_repository import ProfileRepository
+from app.interfaces.web.presentation.profile_quality import build_profile_quality_summary
 from app.interfaces.web.presentation.profile_view_model import (
     ProfileSectionId,
     build_profile_labor_contract,
@@ -228,6 +229,15 @@ def _build_profile_context(flash: str | None = None, section: str | None = None)
     selected_modalities = _format_modalities(profile.get("modalidades_aceptadas")) if profile else []
     active_section = _resolve_profile_section(section)
     active_section_definition = next(item for item in profile_labor_contract.sections if item.id.value == active_section)
+    profile_quality = build_profile_quality_summary(
+        profile=profile,
+        skills=skills,
+        experiences=experiences,
+        projects=projects,
+        education=education,
+        courses=courses,
+        certifications=certifications,
+    )
 
     return {
         "profile": profile,
@@ -247,6 +257,8 @@ def _build_profile_context(flash: str | None = None, section: str | None = None)
         "course_status_options": COURSE_STATUS_OPTIONS,
         "certification_status_options": CERTIFICATION_STATUS_OPTIONS,
         "cv_preview_html": _build_cv_preview(profile, skills, experiences, education, courses, certifications),
+        "profile_quality": profile_quality,
+        "profile_quality_action_href": _build_profile_url(section=profile_quality.next_action.section_id.value),
         "profile_sections": _build_profile_sections(active_section),
         "active_profile_section": active_section_definition,
         "active_profile_section_id": active_section,

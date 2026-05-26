@@ -15,10 +15,7 @@ class WebProfileTests(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(api.app)
 
-    @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
-    @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
-    @patch("app.interfaces.web.routes.profile.profile_repository")
-    def test_profile_index_renders_profile_shell(self, mock_repository, _mock_nav, _mock_metrics):
+    def _mock_empty_profile_workspace(self, mock_repository):
         mock_repository.get_active_profile.return_value = {
             "id": 1,
             "nombre": "Jose",
@@ -32,53 +29,19 @@ class WebProfileTests(unittest.TestCase):
         mock_repository.get_courses.return_value = []
         mock_repository.get_certifications.return_value = []
 
-        response = self.client.get("/app/profile")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("Perfil Laboral", response.text)
-        self.assertIn("Resumen", response.text)
-        self.assertIn("Objetivo", response.text)
-        self.assertIn("Senales", response.text)
-        self.assertIn("Salidas", response.text)
-        self.assertIn('id="profile-summary-shell"', response.text)
-        self.assertEqual(response.text.count('aria-current="page"'), 1)
-
-    @patch("app.interfaces.web.routes.profile.profile_repository")
-    def test_profile_shell_partial_renders_profile_sections(self, mock_repository):
+    def _mock_summary_ready_workspace(self, mock_repository):
         mock_repository.get_active_profile.return_value = {
             "id": 1,
-            "nombre": "Jose",
+            "nombre": "Jose Mejia",
             "titulo_profesional": "Data Analyst",
-            "modalidades_aceptadas": "Remoto,Hibrido",
-        }
-        mock_repository.get_skills.return_value = [{"id": 1, "categoria": "Data", "skill": "SQL", "nivel": "Avanzado"}]
-        mock_repository.get_experiences.return_value = []
-        mock_repository.get_projects.return_value = []
-        mock_repository.get_education.return_value = []
-        mock_repository.get_courses.return_value = []
-        mock_repository.get_certifications.return_value = []
-
-        response = self.client.get("/app/profile/shell?flash=skill_added")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("La skill fue agregada al perfil.", response.text)
-        self.assertIn("Resumen", response.text)
-        self.assertIn("Estado del perfil", response.text)
-        self.assertIn("Proxima accion sugerida", response.text)
-        self.assertIn('id="profile-summary-shell"', response.text)
-        self.assertEqual(response.text.count('aria-current="page"'), 1)
-
-    @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
-    @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
-    @patch("app.interfaces.web.routes.profile.profile_repository")
-    def test_profile_workspace_supports_each_internal_section(self, mock_repository, _mock_nav, _mock_metrics):
-        mock_repository.get_active_profile.return_value = {
-            "id": 1,
-            "nombre": "Jose",
-            "titulo_profesional": "Data Analyst",
+            "ciudad": "Bogota",
+            "correo": "jose@example.com",
+            "perfil_linkedin": "https://linkedin.com/in/jose",
             "modalidades_aceptadas": "Remoto,Hibrido",
             "nivel_actual": "Mid",
-            "anos_experiencia": 3,
+            "anos_experiencia": 4,
+            "salario_min": 5000000,
+            "salario_max": 8000000,
             "moneda": "COP",
         }
         mock_repository.get_skills.return_value = [{"id": 1, "categoria": "Data", "skill": "SQL", "nivel": "Avanzado"}]
@@ -111,9 +74,69 @@ class WebProfileTests(unittest.TestCase):
                 "url_repositorio": "https://example.com/repo",
             }
         ]
-        mock_repository.get_education.return_value = [{"id": 1, "titulo": "Ingenieria", "institucion": "UN", "nivel": "Pregrado", "status": "Completado", "fecha_inicio": "2020-01-01", "fecha_fin": None}]
+        mock_repository.get_education.return_value = [
+            {
+                "id": 1,
+                "titulo": "Ingenieria",
+                "institucion": "UN",
+                "nivel": "Pregrado",
+                "status": "Completado",
+                "fecha_inicio": "2020-01-01",
+                "fecha_fin": None,
+            }
+        ]
+        mock_repository.get_courses.return_value = []
+        mock_repository.get_certifications.return_value = []
+
+    @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_index_renders_profile_shell(self, mock_repository, _mock_nav, _mock_metrics):
+        self._mock_empty_profile_workspace(mock_repository)
+
+        response = self.client.get("/app/profile")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Perfil Laboral", response.text)
+        self.assertIn("Resumen", response.text)
+        self.assertIn("Objetivo", response.text)
+        self.assertIn("Senales", response.text)
+        self.assertIn("Salidas", response.text)
+        self.assertIn("Calidad general del perfil", response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
+        self.assertEqual(response.text.count('aria-current="page"'), 1)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_shell_partial_renders_profile_sections(self, mock_repository):
+        self._mock_empty_profile_workspace(mock_repository)
+
+        response = self.client.get("/app/profile/shell?flash=skill_added")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("La skill fue agregada al perfil.", response.text)
+        self.assertIn("Resumen", response.text)
+        self.assertIn("Estado del perfil", response.text)
+        self.assertIn("Proxima accion recomendada", response.text)
+        self.assertIn("Cobertura para analisis", response.text)
+        self.assertNotIn("Estado de migracion", response.text)
+        self.assertIn('id="profile-summary-shell"', response.text)
+        self.assertEqual(response.text.count('aria-current="page"'), 1)
+
+    @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_workspace_supports_each_internal_section(self, mock_repository, _mock_nav, _mock_metrics):
+        self._mock_summary_ready_workspace(mock_repository)
         mock_repository.get_courses.return_value = [{"id": 2, "titulo": "SQL", "institucion": "Coursera", "status": "Completado"}]
-        mock_repository.get_certifications.return_value = [{"id": 3, "titulo": "AWS", "institucion": "AWS", "status": "Vigente", "fecha_obtencion": "2024-01-01"}]
+        mock_repository.get_certifications.return_value = [
+            {
+                "id": 3,
+                "titulo": "AWS",
+                "institucion": "AWS",
+                "status": "Vigente",
+                "fecha_obtencion": "2024-01-01",
+            }
+        ]
 
         expected = {
             "summary": 'id="profile-summary-shell"',
@@ -130,6 +153,41 @@ class WebProfileTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(marker, response.text)
                 self.assertEqual(response.text.count('aria-current="page"'), 1)
+
+    @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_summary_section_renders_quality_command_center(
+        self,
+        mock_repository,
+        _mock_nav,
+        _mock_metrics,
+    ):
+        self._mock_summary_ready_workspace(mock_repository)
+
+        response = self.client.get("/app/profile?section=summary")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Calidad general del perfil", response.text)
+        self.assertIn("Cobertura para analisis", response.text)
+        self.assertIn("Cobertura para CV base", response.text)
+        self.assertIn("Cobertura de evidencia", response.text)
+        self.assertIn("Proxima accion recomendada", response.text)
+        self.assertIn("Lo que este resumen mide hoy", response.text)
+        self.assertNotIn("Estado de migracion", response.text)
+        self.assertIn('href="/app/profile?section=outputs"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_summary_shell_partial_keeps_navigation_and_quality(self, mock_repository):
+        self._mock_summary_ready_workspace(mock_repository)
+
+        response = self.client.get("/app/profile/shell?section=summary")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-summary-shell"', response.text)
+        self.assertIn("Calidad general del perfil", response.text)
+        self.assertIn("Proxima accion recomendada", response.text)
+        self.assertEqual(response.text.count('aria-current="page"'), 1)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_profile_skills_partial_renders_isolated_skills_shell(self, mock_repository):

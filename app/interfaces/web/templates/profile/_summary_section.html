@@ -3,38 +3,39 @@
         {% include "profile/_overview.html" %}
     </div>
 
-    <section class="profile-hint-grid">
-        <article class="helper-box soft">
-            <h3>Calidad actual</h3>
-            <p>
-                {% if not profile %}
-                    Aun no hay objetivo laboral configurado en el perfil.
-                {% elif not skills %}
-                    El perfil ya tiene base, pero faltan senales para mejorar la afinidad con vacantes.
-                {% elif not experiences %}
-                    Ya existen senales, pero falta evidencia profesional para respaldarlas.
-                {% elif not education and not courses and not certifications %}
-                    El perfil ya cubre objetivo y evidencia inicial, pero faltan credenciales de soporte.
-                {% else %}
-                    El perfil ya cubre objetivo, senales y evidencia inicial. Revisa salidas y consistencia general.
+    <section class="profile-quality-hero tone-{{ profile_quality.overall_tone }}">
+        <div class="profile-quality-hero-copy">
+            <p class="eyebrow">Command center del perfil</p>
+            <h3>Calidad general del perfil: {{ profile_quality.overall_label }}</h3>
+            <p>{{ profile_quality.overall_summary }}</p>
+        </div>
+        <div class="profile-quality-hero-score">
+            <div class="profile-quality-score">{{ profile_quality.overall_percent }}%</div>
+            <div class="profile-quality-caption">Cobertura real actual</div>
+        </div>
+    </section>
+
+    <section class="profile-hint-grid profile-quality-grid">
+        {% for coverage in (profile_quality.analysis_coverage, profile_quality.cv_coverage, profile_quality.evidence_coverage) %}
+            <article class="helper-box profile-coverage-card tone-{{ coverage.tone }}">
+                <div class="profile-coverage-head">
+                    <h3>{{ coverage.title }}</h3>
+                    <div class="profile-coverage-percent">{{ coverage.percent }}%</div>
+                </div>
+                <p>{{ coverage.covered }}/{{ coverage.total }} senales cubiertas. {{ coverage.summary }}</p>
+                {% if coverage.gaps %}
+                    <p class="helper-muted">Pendiente: {{ coverage.gaps|join(", ") }}.</p>
                 {% endif %}
-            </p>
-        </article>
-        <article class="helper-box">
-            <h3>Proxima accion sugerida</h3>
-            <p>
-                {% if not profile %}
-                    Abre Objetivo y completa cargo, modalidad, ubicacion y compensacion esperada.
-                {% elif not skills %}
-                    Abre Senales y registra skills clave con nivel para mejorar el matching.
-                {% elif not experiences %}
-                    Abre Evidencia y agrega al menos una experiencia con funciones y logros.
-                {% elif not education and not courses and not certifications %}
-                    Abre Credenciales para sumar respaldo academico o certificaciones relevantes.
-                {% else %}
-                    Abre Salidas para revisar la vista CV base y detectar inconsistencias antes de postular.
-                {% endif %}
-            </p>
+            </article>
+        {% endfor %}
+
+        <article class="helper-box profile-next-action-card">
+            <p class="eyebrow">Proxima accion recomendada</p>
+            <h3>{{ profile_quality.next_action.title }}</h3>
+            <p>{{ profile_quality.next_action.description }}</p>
+            <a class="profile-summary-link" href="{{ profile_quality_action_href }}">
+                Ir a {{ profile_quality.next_action.section_title }}
+            </a>
         </article>
     </section>
 

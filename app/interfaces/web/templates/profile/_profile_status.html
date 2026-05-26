@@ -1,14 +1,20 @@
 <section class="panel helper-panel">
     <h2>Estado del perfil</h2>
-    <ul class="flow-list">
-        <li>Datos principales: {% if profile %}configurados{% else %}pendientes{% endif %}</li>
-        <li>Skills registradas: {{ skills|length }}</li>
-        <li>Experiencias registradas: {{ experiences|length }}</li>
-        <li>Proyectos registrados: {{ projects|length }}</li>
-        <li>Formacion registrada: {{ education|length + courses|length + certifications|length }}</li>
-    </ul>
+    {% if profile_quality.alerts %}
+        <ul class="flow-list">
+            {% for alert in profile_quality.alerts %}
+                <li>{{ alert }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="helper-box soft">
+            <h3>Sin alertas criticas</h3>
+            <p>La base actual ya cubre lo esencial del perfil. El siguiente paso es revisar salidas y consistencia fina.</p>
+        </div>
+    {% endif %}
     <div class="helper-box soft">
-        <h3>Cobertura actual</h3>
-        <p>Prioriza objetivo, senales y evidencia. Credenciales y salidas ayudan a reforzar consistencia, CV base y futuras postulaciones.</p>
+        <h3>Lo que este resumen mide hoy</h3>
+        <p>{{ profile_quality.future_notes[0] }}</p>
+        <p>{{ profile_quality.future_notes[1] }}</p>
     </div>
 </section>
