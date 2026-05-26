@@ -537,6 +537,9 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn("Aplicar si sobra tiempo", response.text)
         self.assertIn("Score 88", response.text)
         self.assertIn("Buen match tecnico y alcance realista.", response.text)
+        self.assertIn('class="application-origin-disclosure"', response.text)
+        self.assertIn('class="application-origin-summary-toggle"', response.text)
+        self.assertNotIn("Decision original", response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_detail_uses_resumen_when_justification_is_missing(self, mock_repository):
@@ -554,6 +557,7 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("La vacante encaja con experiencia reciente.", response.text)
         self.assertIn("Justificacion", response.text)
+        self.assertIn('class="application-origin-disclosure"', response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_detail_renders_original_strengths_and_risks(self, mock_repository):
@@ -574,6 +578,7 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn("SQL fuerte", response.text)
         self.assertIn("Riesgos", response.text)
         self.assertIn("ETL no profundo", response.text)
+        self.assertIn('class="application-origin-disclosure"', response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_detail_frames_discard_recommendation_as_historical_context(self, mock_repository):
@@ -594,6 +599,7 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertIn("Contexto historico; no cambia el estado actual.", response.text)
         self.assertIn("Descartar", response.text)
         self.assertNotIn("Decision sugerida", response.text)
+        self.assertIn('class="application-origin-disclosure"', response.text)
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_detail_shows_clean_fallback_when_analysis_is_missing(self, mock_repository):
@@ -608,6 +614,38 @@ class WebApplicationsTests(unittest.TestCase):
         self.assertNotIn("Score 88", response.text)
         self.assertIn("Senales de seguimiento", response.text)
         self.assertIn("Lleva tiempo pendiente", response.text)
+        self.assertNotIn('class="application-origin-disclosure"', response.text)
+
+    @patch("app.interfaces.web.routes.applications.application_repository")
+    def test_applications_detail_collapses_original_analysis_with_summary_and_hidden_body(self, mock_repository):
+        mock_repository.list_all.return_value = [_application_item(7, company="ACME", role="Data Analyst")]
+        self.mock_analysis_repository.get_by_vacancy_ids.return_value = {
+            7: _analysis_item(
+                score_total=88,
+                decision_aplicacion="Aplicar si sobra tiempo",
+                justificacion_decision="Buen match tecnico y alcance realista.",
+                fortalezas_principales=["SQL fuerte"],
+                riesgos_principales=["Cobertura parcial en ETL"],
+            )
+        }
+
+        response = self.client.get("/app/applications?selected=7")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('<details class="application-origin-disclosure">', response.text)
+        self.assertIn('<summary class="application-origin-summary-toggle">', response.text)
+        self.assertIn("Analisis original", response.text)
+        self.assertIn("Recomendacion inicial", response.text)
+        self.assertIn("Score 88", response.text)
+        self.assertIn("Buen match tecnico y alcance realista.", response.text)
+        self.assertIn("SQL fuerte", response.text)
+        self.assertIn("Cobertura parcial en ETL", response.text)
+        self.assertNotIn("Decision original", response.text)
+        self.assertNotIn("Decision sugerida", response.text)
+        self.assertNotIn(
+            "Resumen del analisis inicial que explico por que esta vacante entro a seguimiento.",
+            response.text,
+        )
 
     @patch("app.interfaces.web.routes.applications.application_repository")
     def test_applications_list_shows_only_one_compact_signal_per_row(self, mock_repository):

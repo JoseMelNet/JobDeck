@@ -117,19 +117,18 @@
         {% endif %}
 
         <section class="application-section application-origin-section">
-            <div class="application-section-heading">
-                <h3>Analisis original</h3>
-                <p>Contexto historico; no cambia el estado actual.</p>
-            </div>
-
             {% if original_analysis %}
-                <div class="application-origin-card">
-                    <div class="application-origin-hero">
-                        <div class="application-origin-copy">
-                            <div class="detail-label">Recomendacion inicial</div>
+                <details class="application-origin-disclosure">
+                    <summary class="application-origin-summary-toggle">
+                        <div class="application-origin-summary-copy">
+                            <div class="application-origin-summary-head">
+                                <h3>Analisis original</h3>
+                                <span class="detail-label">Recomendacion inicial</span>
+                            </div>
                             <div class="decision-headline tone-{{ original_decision.display_tone or 'gray' }}">
                                 {{ original_decision.decision_label }}
                             </div>
+                            <p class="muted-note">Contexto historico; no cambia el estado actual.</p>
                         </div>
                         <div class="application-origin-pills">
                             <span
@@ -140,43 +139,49 @@
                             </span>
                             <span class="soft-badge">{{ original_decision.decision_compact_label }}</span>
                         </div>
+                    </summary>
+
+                    <div class="application-origin-card">
+                        {% if original_analysis.justificacion_decision or original_analysis.resumen_analisis %}
+                            <section class="analysis-summary analysis-summary-compact application-origin-summary">
+                                <h3>Justificacion</h3>
+                                <p class="vacancy-analysis-text">
+                                    {{ original_analysis.justificacion_decision or original_analysis.resumen_analisis }}
+                                </p>
+                            </section>
+                        {% endif %}
+
+                        {% if original_analysis.fortalezas_principales or original_analysis.riesgos_principales %}
+                            <section class="analysis-priority-grid application-origin-evidence">
+                                {% if original_analysis.fortalezas_principales %}
+                                    <article class="analysis-note analysis-note-positive">
+                                        <div class="detail-label">Fortalezas</div>
+                                        <ul class="detail-list">
+                                            {% for item in original_analysis.fortalezas_principales[:4] %}
+                                                <li>{{ item }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </article>
+                                {% endif %}
+                                {% if original_analysis.riesgos_principales %}
+                                    <article class="analysis-note analysis-note-caution">
+                                        <div class="detail-label">Riesgos</div>
+                                        <ul class="detail-list">
+                                            {% for item in original_analysis.riesgos_principales[:4] %}
+                                                <li>{{ item }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </article>
+                                {% endif %}
+                            </section>
+                        {% endif %}
                     </div>
-
-                    {% if original_analysis.justificacion_decision or original_analysis.resumen_analisis %}
-                        <section class="analysis-summary analysis-summary-compact application-origin-summary">
-                            <h3>Justificacion</h3>
-                            <p class="vacancy-analysis-text">
-                                {{ original_analysis.justificacion_decision or original_analysis.resumen_analisis }}
-                            </p>
-                        </section>
-                    {% endif %}
-
-                    {% if original_analysis.fortalezas_principales or original_analysis.riesgos_principales %}
-                        <section class="analysis-priority-grid application-origin-evidence">
-                            {% if original_analysis.fortalezas_principales %}
-                                <article class="analysis-note analysis-note-positive">
-                                    <div class="detail-label">Fortalezas</div>
-                                    <ul class="detail-list">
-                                        {% for item in original_analysis.fortalezas_principales[:4] %}
-                                            <li>{{ item }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                </article>
-                            {% endif %}
-                            {% if original_analysis.riesgos_principales %}
-                                <article class="analysis-note analysis-note-caution">
-                                    <div class="detail-label">Riesgos</div>
-                                    <ul class="detail-list">
-                                        {% for item in original_analysis.riesgos_principales[:4] %}
-                                            <li>{{ item }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                </article>
-                            {% endif %}
-                        </section>
-                    {% endif %}
-                </div>
+                </details>
             {% else %}
+                <div class="application-section-heading">
+                    <h3>Analisis original</h3>
+                    <p>Contexto historico; no cambia el estado actual.</p>
+                </div>
                 <div class="application-origin-card application-origin-empty">
                     <div class="detail-label">Analisis original</div>
                     <p class="muted-note">
