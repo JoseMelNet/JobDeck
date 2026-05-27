@@ -10,6 +10,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.infrastructure.persistence.repositories.profile_repository import ProfileRepository
+from app.interfaces.web.presentation.profile_evidence import build_profile_evidence_inventory
 from app.interfaces.web.presentation.profile_quality import build_profile_quality_summary
 from app.interfaces.web.presentation.profile_refresh import (
     ProfileRefreshAction,
@@ -255,6 +256,7 @@ def _build_profile_context(flash: str | None = None, section: str | None = None)
         courses=courses,
         certifications=certifications,
     )
+    profile_evidence = build_profile_evidence_inventory(experiences, projects)
     profile_signals = build_profile_signals_inventory(skills)
 
     return {
@@ -275,6 +277,7 @@ def _build_profile_context(flash: str | None = None, section: str | None = None)
         "course_status_options": COURSE_STATUS_OPTIONS,
         "certification_status_options": CERTIFICATION_STATUS_OPTIONS,
         "cv_preview_html": _build_cv_preview(profile, skills, experiences, education, courses, certifications),
+        "profile_evidence": profile_evidence,
         "profile_quality": profile_quality,
         "profile_signals": profile_signals,
         "profile_quality_action_href": _build_profile_url(section=profile_quality.next_action.section_id.value),

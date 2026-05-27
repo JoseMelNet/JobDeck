@@ -1,5 +1,6 @@
 <section class="panel">
-    <div class="section-title"><div><h2>Proyectos</h2><p>Proyectos que respaldan tu experiencia tecnica.</p></div><span class="soft-badge">{{ projects|length }} registrados</span></div>
+    <div class="section-title"><div><h2>Proyectos</h2><p>Proyectos que complementan la evidencia con stack, descripcion y resultados concretos.</p></div><span class="soft-badge">{{ profile_evidence.projects.total }} registrados</span></div>
+    <p class="section-caption">En curso: {{ profile_evidence.projects.current_count }} · Con stack: {{ profile_evidence.projects.with_stack_count }} · Con descripcion o logros: {{ profile_evidence.projects.total - profile_evidence.projects.without_substance_count }}</p>
     <details class="section-disclosure" {% if not projects %}open{% endif %}>
         <summary>Agregar proyecto</summary>
         <form class="stack-form compact-form section-form" method="post" action="/app/profile/projects" hx-post="/app/profile/projects" hx-target="#profile-projects-shell" hx-swap="outerHTML">

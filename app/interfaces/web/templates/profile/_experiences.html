@@ -1,5 +1,6 @@
 <section class="panel">
-    <div class="section-title"><div><h2>Experiencia</h2><p>Registra y actualiza tu trayectoria laboral actual.</p></div><span class="soft-badge">{{ experiences|length }} registradas</span></div>
+    <div class="section-title"><div><h2>Experiencias</h2><p>Trayectoria laboral que aporta contexto, funciones y logros a tu biblioteca de evidencia.</p></div><span class="soft-badge">{{ profile_evidence.experiences.total }} registradas</span></div>
+    <p class="section-caption">Actuales: {{ profile_evidence.experiences.current_count }} · Con funciones: {{ profile_evidence.experiences.with_functions_count }} · Con logros: {{ profile_evidence.experiences.with_logros_count }}</p>
     <details class="section-disclosure" {% if not experiences %}open{% endif %}>
         <summary>Agregar experiencia</summary>
         <form class="stack-form compact-form section-form" method="post" action="/app/profile/experiences" hx-post="/app/profile/experiences" hx-target="#profile-experiences-shell" hx-swap="outerHTML">

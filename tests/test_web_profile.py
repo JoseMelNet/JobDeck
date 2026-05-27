@@ -97,6 +97,63 @@ class WebProfileTests(unittest.TestCase):
             {"id": 4, "categoria": "", "skill": "Storytelling", "nivel": ""},
         ]
 
+    def _mock_evidence_inventory_workspace(self, mock_repository):
+        self._mock_summary_ready_workspace(mock_repository)
+        mock_repository.get_experiences.return_value = [
+            {
+                "id": 10,
+                "cargo": "Data Analyst",
+                "empresa": "Acme",
+                "ciudad": "Bogota",
+                "descripcion_empresa": "Retail",
+                "fecha_inicio": date(2023, 1, 1),
+                "fecha_fin": None,
+                "es_trabajo_actual": True,
+                "funciones": "Analisis",
+                "logros": "",
+            },
+            {
+                "id": 11,
+                "cargo": "BI Analyst",
+                "empresa": "Globex",
+                "ciudad": "Bogota",
+                "descripcion_empresa": "CPG",
+                "fecha_inicio": date(2021, 1, 1),
+                "fecha_fin": date(2022, 12, 1),
+                "es_trabajo_actual": False,
+                "funciones": "",
+                "logros": "",
+            },
+        ]
+        mock_repository.get_projects.return_value = [
+            {
+                "id": 20,
+                "nombre": "Dashboard",
+                "empresa": "Acme",
+                "ciudad": "Bogota",
+                "fecha_inicio": date(2024, 1, 1),
+                "fecha_fin": None,
+                "es_proyecto_actual": True,
+                "stack": "Python, SQL",
+                "funciones": "Construccion",
+                "logros": "Visibilidad",
+                "url_repositorio": "https://example.com/repo",
+            },
+            {
+                "id": 21,
+                "nombre": "Automation",
+                "empresa": "",
+                "ciudad": "Bogota",
+                "fecha_inicio": date(2023, 6, 1),
+                "fecha_fin": date(2023, 8, 1),
+                "es_proyecto_actual": False,
+                "stack": "",
+                "funciones": "",
+                "logros": "",
+                "url_repositorio": "",
+            },
+        ]
+
     @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
     @patch("app.interfaces.web.routes.profile.profile_repository")
@@ -130,6 +187,48 @@ class WebProfileTests(unittest.TestCase):
         self.assertNotIn("Estado de migracion", response.text)
         self.assertIn('id="profile-summary-shell"', response.text)
         self.assertEqual(response.text.count('aria-current="page"'), 1)
+
+    @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_evidence_section_renders_inventory_library(
+        self,
+        mock_repository,
+        _mock_nav,
+        _mock_metrics,
+    ):
+        self._mock_evidence_inventory_workspace(mock_repository)
+
+        response = self.client.get("/app/profile?section=evidence")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-evidence-shell"', response.text)
+        self.assertIn("Biblioteca actual", response.text)
+        self.assertIn("Revision rapida", response.text)
+        self.assertIn("Experiencias", response.text)
+        self.assertIn("Proyectos", response.text)
+        self.assertIn("2 experiencia(s) y 2 proyecto(s)", response.text)
+        self.assertIn("sin funciones ni logros", response.text)
+        self.assertIn("sin descripcion ni logros", response.text)
+        self.assertIn("Con funciones: 1", response.text)
+        self.assertIn("Con logros: 0", response.text)
+        self.assertIn("Con stack: 1", response.text)
+        self.assertIn("Data Analyst · Acme", response.text)
+        self.assertIn("Automation", response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_evidence_shell_partial_renders_inventory_library(self, mock_repository):
+        self._mock_evidence_inventory_workspace(mock_repository)
+
+        response = self.client.get("/app/profile/shell?section=evidence")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-evidence-shell"', response.text)
+        self.assertIn("Biblioteca actual", response.text)
+        self.assertIn("Experiencias", response.text)
+        self.assertIn("Proyectos", response.text)
+        self.assertIn('id="profile-experiences-shell"', response.text)
+        self.assertIn('id="profile-projects-shell"', response.text)
 
     @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
