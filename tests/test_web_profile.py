@@ -154,6 +154,55 @@ class WebProfileTests(unittest.TestCase):
             },
         ]
 
+    def _mock_credentials_inventory_workspace(self, mock_repository):
+        self._mock_summary_ready_workspace(mock_repository)
+        mock_repository.get_education.return_value = [
+            {
+                "id": 1,
+                "titulo": "Ingenieria",
+                "institucion": "UN",
+                "nivel": "Pregrado",
+                "status": "Completado",
+                "fecha_inicio": "2020-01-01",
+                "fecha_fin": None,
+            },
+            {
+                "id": 2,
+                "titulo": "Especializacion",
+                "institucion": "",
+                "nivel": "Especializacion",
+                "status": "En curso",
+                "fecha_inicio": "2025-01-01",
+                "fecha_fin": None,
+            },
+        ]
+        mock_repository.get_courses.return_value = [
+            {
+                "id": 3,
+                "titulo": "SQL",
+                "institucion": "Coursera",
+                "status": "Completado",
+                "url_certificado": "https://example.com/sql",
+            },
+            {
+                "id": 4,
+                "titulo": "Python",
+                "institucion": "",
+                "status": "En curso",
+                "url_certificado": "",
+            },
+        ]
+        mock_repository.get_certifications.return_value = [
+            {
+                "id": 5,
+                "titulo": "AWS",
+                "institucion": "AWS",
+                "status": "Vigente",
+                "fecha_obtencion": "2024-01-01",
+                "url_certificado": "",
+            }
+        ]
+
     @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
     @patch("app.interfaces.web.routes.profile.profile_repository")
@@ -229,6 +278,46 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn("Proyectos", response.text)
         self.assertIn('id="profile-experiences-shell"', response.text)
         self.assertIn('id="profile-projects-shell"', response.text)
+
+    @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_credentials_section_renders_support_inventory(
+        self,
+        mock_repository,
+        _mock_nav,
+        _mock_metrics,
+    ):
+        self._mock_credentials_inventory_workspace(mock_repository)
+
+        response = self.client.get("/app/profile?section=credentials")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-credentials-shell"', response.text)
+        self.assertIn("Inventario actual", response.text)
+        self.assertIn("Revision rapida", response.text)
+        self.assertIn("2 educacion, 2 curso(s) y 1 certificacion(es)", response.text)
+        self.assertIn("3 con institucion/emisor", response.text)
+        self.assertIn("1 con soporte verificable", response.text)
+        self.assertIn("credencial(es) con datos base incompletos", response.text)
+        self.assertIn("Educacion", response.text)
+        self.assertIn("Cursos", response.text)
+        self.assertIn("Certificaciones", response.text)
+        self.assertIn("Ingenieria", response.text)
+        self.assertIn("SQL", response.text)
+        self.assertIn("AWS", response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_credentials_shell_partial_renders_support_inventory(self, mock_repository):
+        self._mock_credentials_inventory_workspace(mock_repository)
+
+        response = self.client.get("/app/profile/shell?section=credentials")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-credentials-shell"', response.text)
+        self.assertIn("Inventario actual", response.text)
+        self.assertIn("Revision rapida", response.text)
+        self.assertIn('id="profile-formation-shell"', response.text)
 
     @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])

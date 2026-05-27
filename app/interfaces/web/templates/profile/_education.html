@@ -1,5 +1,6 @@
 <section class="panel">
-    <div class="section-title"><div><h2>Educacion</h2><p>Formacion academica principal.</p></div><span class="soft-badge">{{ education|length }} registros</span></div>
+    <div class="section-title"><div><h2>Educacion</h2><p>Base academica principal que da contexto y solidez al perfil.</p></div><span class="soft-badge">{{ profile_credentials.education.total }} registros</span></div>
+    <p class="section-caption">Con institucion: {{ profile_credentials.education.with_issuer_count }} · Incompletas: {{ profile_credentials.education.incomplete_count }}</p>
     <details class="section-disclosure" {% if not education %}open{% endif %}>
         <summary>Agregar educacion</summary>
         <form class="stack-form compact-form section-form" method="post" action="/app/profile/education" hx-post="/app/profile/education" hx-target="#profile-formation-shell" hx-swap="outerHTML">

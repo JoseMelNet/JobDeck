@@ -1,5 +1,6 @@
 """Presentation helpers for the web UI."""
 
+from app.interfaces.web.presentation.profile_credentials import build_profile_credentials_inventory
 from app.interfaces.web.presentation.profile_evidence import build_profile_evidence_inventory
 from app.interfaces.web.presentation.profile_quality import build_profile_quality_summary
 from app.interfaces.web.presentation.profile_refresh import build_profile_refresh_plan
@@ -8,6 +9,7 @@ from app.interfaces.web.presentation.profile_view_model import build_profile_lab
 
 __all__ = [
     "build_profile_labor_contract",
+    "build_profile_credentials_inventory",
     "build_profile_evidence_inventory",
     "build_profile_quality_summary",
     "build_profile_refresh_plan",
