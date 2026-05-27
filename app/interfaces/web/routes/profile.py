@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from app.infrastructure.persistence.repositories.profile_repository import ProfileRepository
 from app.interfaces.web.presentation.profile_credentials import build_profile_credentials_inventory
 from app.interfaces.web.presentation.profile_evidence import build_profile_evidence_inventory
+from app.interfaces.web.presentation.profile_outputs import build_profile_outputs_inventory
 from app.interfaces.web.presentation.profile_quality import build_profile_quality_summary
 from app.interfaces.web.presentation.profile_refresh import (
     ProfileRefreshAction,
@@ -260,6 +261,16 @@ def _build_profile_context(flash: str | None = None, section: str | None = None)
     profile_evidence = build_profile_evidence_inventory(experiences, projects)
     profile_credentials = build_profile_credentials_inventory(education, courses, certifications)
     profile_signals = build_profile_signals_inventory(skills)
+    cv_preview_html = _build_cv_preview(profile, skills, experiences, education, courses, certifications)
+    profile_outputs = build_profile_outputs_inventory(
+        profile=profile,
+        skills=skills,
+        experiences=experiences,
+        education=education,
+        courses=courses,
+        certifications=certifications,
+        cv_preview_html=cv_preview_html,
+    )
 
     return {
         "profile": profile,
@@ -278,9 +289,10 @@ def _build_profile_context(flash: str | None = None, section: str | None = None)
         "education_status_options": EDUCATION_STATUS_OPTIONS,
         "course_status_options": COURSE_STATUS_OPTIONS,
         "certification_status_options": CERTIFICATION_STATUS_OPTIONS,
-        "cv_preview_html": _build_cv_preview(profile, skills, experiences, education, courses, certifications),
+        "cv_preview_html": cv_preview_html,
         "profile_credentials": profile_credentials,
         "profile_evidence": profile_evidence,
+        "profile_outputs": profile_outputs,
         "profile_quality": profile_quality,
         "profile_signals": profile_signals,
         "profile_quality_action_href": _build_profile_url(section=profile_quality.next_action.section_id.value),

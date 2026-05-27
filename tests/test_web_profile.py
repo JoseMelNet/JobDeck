@@ -203,6 +203,88 @@ class WebProfileTests(unittest.TestCase):
             }
         ]
 
+    def _mock_outputs_workspace(self, mock_repository):
+        self._mock_summary_ready_workspace(mock_repository)
+        mock_repository.get_active_profile.return_value = {
+            "id": 1,
+            "nombre": "Jose Mejia",
+            "titulo_profesional": "Data Analyst",
+            "ciudad": "Bogota",
+            "correo": "jose@example.com",
+            "celular": "3000000000",
+            "perfil_linkedin": "https://linkedin.com/in/jose",
+            "perfil_github": "https://github.com/jose",
+            "modalidades_aceptadas": "Remoto,Hibrido",
+            "nivel_actual": "Mid",
+            "anos_experiencia": 4,
+            "salario_min": 5000000,
+            "salario_max": 8000000,
+            "moneda": "COP",
+        }
+        mock_repository.get_skills.return_value = [
+            {"id": 1, "categoria": "Data", "skill": "SQL", "nivel": "Avanzado"},
+            {"id": 2, "categoria": "BI", "skill": "Power BI", "nivel": "Intermedio"},
+        ]
+        mock_repository.get_experiences.return_value = [
+            {
+                "id": 10,
+                "cargo": "Data Analyst",
+                "empresa": "Acme",
+                "ciudad": "Bogota",
+                "descripcion_empresa": "Retail",
+                "fecha_inicio": date(2023, 1, 1),
+                "fecha_fin": None,
+                "es_trabajo_actual": True,
+                "funciones": "Analisis",
+                "logros": "Ahorro",
+            }
+        ]
+        mock_repository.get_projects.return_value = [
+            {
+                "id": 20,
+                "nombre": "Dashboard",
+                "empresa": "Acme",
+                "ciudad": "Bogota",
+                "fecha_inicio": date(2024, 1, 1),
+                "fecha_fin": None,
+                "es_proyecto_actual": True,
+                "stack": "Python, SQL",
+                "funciones": "Construccion",
+                "logros": "Visibilidad",
+                "url_repositorio": "https://example.com/repo",
+            }
+        ]
+        mock_repository.get_education.return_value = [
+            {
+                "id": 1,
+                "titulo": "Ingenieria",
+                "institucion": "UN",
+                "nivel": "Pregrado",
+                "status": "Completado",
+                "fecha_inicio": "2020-01-01",
+                "fecha_fin": None,
+            }
+        ]
+        mock_repository.get_courses.return_value = [
+            {
+                "id": 2,
+                "titulo": "SQL",
+                "institucion": "Coursera",
+                "status": "Completado",
+                "url_certificado": "https://example.com/sql",
+            }
+        ]
+        mock_repository.get_certifications.return_value = [
+            {
+                "id": 3,
+                "titulo": "AWS",
+                "institucion": "AWS",
+                "status": "Vigente",
+                "fecha_obtencion": "2024-01-01",
+                "url_certificado": "",
+            }
+        ]
+
     @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
     @patch("app.interfaces.web.routes.profile.profile_repository")
@@ -318,6 +400,45 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn("Inventario actual", response.text)
         self.assertIn("Revision rapida", response.text)
         self.assertIn('id="profile-formation-shell"', response.text)
+
+    @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_outputs_section_renders_base_cv_as_reusable_output(
+        self,
+        mock_repository,
+        _mock_nav,
+        _mock_metrics,
+    ):
+        self._mock_outputs_workspace(mock_repository)
+
+        response = self.client.get("/app/profile?section=outputs")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-outputs-shell"', response.text)
+        self.assertIn("Inventario actual", response.text)
+        self.assertIn("Revision rapida", response.text)
+        self.assertIn("Datos de contacto y salida", response.text)
+        self.assertIn("Estado del CV base", response.text)
+        self.assertIn("Vista previa del CV base", response.text)
+        self.assertIn("Salidas futuras", response.text)
+        self.assertIn("CV base renderizable", response.text)
+        self.assertIn("GitHub", response.text)
+        self.assertIn("reutiliza el titulo profesional", response.text)
+        self.assertIn('id="profile-cv-preview"', response.text)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_outputs_shell_partial_keeps_inventory_and_cv_preview(self, mock_repository):
+        self._mock_outputs_workspace(mock_repository)
+
+        response = self.client.get("/app/profile/shell?section=outputs")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-outputs-shell"', response.text)
+        self.assertIn("Inventario actual", response.text)
+        self.assertIn("Revision rapida", response.text)
+        self.assertIn("Vista previa del CV base", response.text)
+        self.assertIn('id="profile-cv-preview"', response.text)
 
     @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])

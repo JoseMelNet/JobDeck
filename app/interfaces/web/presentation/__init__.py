@@ -2,6 +2,7 @@
 
 from app.interfaces.web.presentation.profile_credentials import build_profile_credentials_inventory
 from app.interfaces.web.presentation.profile_evidence import build_profile_evidence_inventory
+from app.interfaces.web.presentation.profile_outputs import build_profile_outputs_inventory
 from app.interfaces.web.presentation.profile_quality import build_profile_quality_summary
 from app.interfaces.web.presentation.profile_refresh import build_profile_refresh_plan
 from app.interfaces.web.presentation.profile_signals import build_profile_signals_inventory
@@ -11,6 +12,7 @@ __all__ = [
     "build_profile_labor_contract",
     "build_profile_credentials_inventory",
     "build_profile_evidence_inventory",
+    "build_profile_outputs_inventory",
     "build_profile_quality_summary",
     "build_profile_refresh_plan",
     "build_profile_signals_inventory",

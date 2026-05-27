@@ -1,8 +1,84 @@
 <section id="profile-outputs-shell" class="stack-panel">
     <article class="helper-box soft">
         <h3>Salidas</h3>
-        <p>Esta seccion concentra la salida provisional mas clara del perfil: la vista CV base construida con la informacion ya registrada.</p>
+        <p>Esta seccion concentra lo que el Perfil Laboral ya puede producir o reutilizar hoy: contacto, CV base y piezas listas para futuras aplicaciones.</p>
     </article>
+
+    <section class="profile-hint-grid">
+        <article class="helper-box soft">
+            <h3>Inventario actual</h3>
+            <p>{{ profile_outputs.summary }}</p>
+            <div class="pill-group">
+                <span class="soft-badge">{{ profile_outputs.contact.ready_count }}/{{ profile_outputs.contact.total_count }} datos de salida disponibles</span>
+                <span class="soft-badge">{{ profile_outputs.cv_base.ready_count }}/{{ profile_outputs.cv_base.total_count }} entradas activas para CV base</span>
+                {% if profile_outputs.cv_base.is_renderable %}
+                    <span class="status-badge status-blue">CV base renderizable</span>
+                {% else %}
+                    <span class="status-badge status-amber">CV base aun no disponible</span>
+                {% endif %}
+            </div>
+        </article>
+        <article class="helper-box">
+            <h3>Revision rapida</h3>
+            {% if profile_outputs.alerts %}
+                <ul class="flow-list">
+                    {% for alert in profile_outputs.alerts %}
+                        <li>{{ alert }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>La salida actual ya tiene una base util para revisar contacto y CV sin perder de vista los siguientes pasos.</p>
+            {% endif %}
+        </article>
+    </section>
+
+    <section class="profile-hint-grid">
+        <article class="helper-box soft">
+            <h3>Datos de contacto y salida</h3>
+            <p>Estos datos se pueden reutilizar hoy en el CV base y en futuras aplicaciones.</p>
+            <div class="pill-group">
+                {% if profile_outputs.contact.has_name %}<span class="soft-badge">Nombre</span>{% endif %}
+                {% if profile_outputs.contact.has_email %}<span class="soft-badge">Correo</span>{% endif %}
+                {% if profile_outputs.contact.has_city %}<span class="soft-badge">Ciudad</span>{% endif %}
+                {% if profile_outputs.contact.has_phone %}<span class="soft-badge">Celular</span>{% endif %}
+                {% if profile_outputs.contact.has_linkedin %}<span class="soft-badge">LinkedIn</span>{% endif %}
+                {% if profile_outputs.contact.has_github %}<span class="soft-badge">GitHub</span>{% endif %}
+                {% if profile_outputs.contact.ready_count == 0 %}
+                    <span class="status-badge status-amber">Sin datos de salida</span>
+                {% endif %}
+            </div>
+        </article>
+        <article class="helper-box soft">
+            <h3>Estado del CV base</h3>
+            <p>Hoy el CV base toma nombre, titulo, contacto visible, skills, experiencias y credenciales registradas.</p>
+            <div class="pill-group">
+                {% if profile_outputs.cv_base.has_name %}<span class="soft-badge">Nombre</span>{% endif %}
+                {% if profile_outputs.cv_base.has_title %}<span class="soft-badge">Titulo</span>{% endif %}
+                {% if profile_outputs.cv_base.has_email %}<span class="soft-badge">Correo</span>{% endif %}
+                {% if profile_outputs.cv_base.has_linkedin %}<span class="soft-badge">LinkedIn</span>{% endif %}
+                {% if profile_outputs.cv_base.has_city %}<span class="soft-badge">Ciudad</span>{% endif %}
+                {% if profile_outputs.cv_base.has_phone %}<span class="soft-badge">Celular</span>{% endif %}
+                {% if profile_outputs.cv_base.has_skills %}<span class="soft-badge">Skills</span>{% endif %}
+                {% if profile_outputs.cv_base.has_experiences %}<span class="soft-badge">Experiencias</span>{% endif %}
+                {% if profile_outputs.cv_base.has_credentials %}<span class="soft-badge">Credenciales</span>{% endif %}
+            </div>
+        </article>
+    </section>
+
+    <section class="profile-hint-grid">
+        <article class="helper-box">
+            <h3>Limites actuales</h3>
+            <ul class="flow-list">
+                {% for limit in profile_outputs.limits %}
+                    <li>{{ limit }}</li>
+                {% endfor %}
+            </ul>
+        </article>
+        <article class="helper-box soft">
+            <h3>Salidas futuras</h3>
+            <p>Este bloque prepara el terreno para CV adaptado, cartas y mensajes, pero hoy solo expone el estado del CV base y los datos de salida ya disponibles.</p>
+        </article>
+    </section>
 
     {% include "profile/_cv_preview.html" %}
 </section>
