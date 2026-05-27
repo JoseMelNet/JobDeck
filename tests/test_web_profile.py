@@ -294,6 +294,7 @@ class WebProfileTests(unittest.TestCase):
         response = self.client.get("/app/profile")
 
         self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-shell"', response.text)
         self.assertIn("Perfil Laboral", response.text)
         self.assertIn("Resumen", response.text)
         self.assertIn("Objetivo", response.text)
@@ -310,6 +311,7 @@ class WebProfileTests(unittest.TestCase):
         response = self.client.get("/app/profile/shell?flash=skill_added")
 
         self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-shell"', response.text)
         self.assertIn("La skill fue agregada al perfil.", response.text)
         self.assertIn("Resumen", response.text)
         self.assertIn("Alertas principales", response.text)
@@ -469,8 +471,59 @@ class WebProfileTests(unittest.TestCase):
             with self.subTest(section=section):
                 response = self.client.get(f"/app/profile?section={section}")
                 self.assertEqual(response.status_code, 200)
+                self.assertIn('id="profile-shell"', response.text)
                 self.assertIn(marker, response.text)
                 self.assertEqual(response.text.count('aria-current="page"'), 1)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_shell_workspace_supports_each_internal_section(self, mock_repository):
+        self._mock_summary_ready_workspace(mock_repository)
+        mock_repository.get_courses.return_value = [{"id": 2, "titulo": "SQL", "institucion": "Coursera", "status": "Completado"}]
+        mock_repository.get_certifications.return_value = [
+            {
+                "id": 3,
+                "titulo": "AWS",
+                "institucion": "AWS",
+                "status": "Vigente",
+                "fecha_obtencion": "2024-01-01",
+            }
+        ]
+
+        expected = {
+            "summary": 'id="profile-summary-shell"',
+            "objective": 'id="profile-objective-shell"',
+            "signals": 'id="profile-signals-shell"',
+            "evidence": 'id="profile-evidence-shell"',
+            "credentials": 'id="profile-credentials-shell"',
+            "outputs": 'id="profile-outputs-shell"',
+        }
+
+        for section, marker in expected.items():
+            with self.subTest(section=section):
+                response = self.client.get(f"/app/profile/shell?section={section}")
+                self.assertEqual(response.status_code, 200)
+                self.assertIn('id="profile-shell"', response.text)
+                self.assertIn(marker, response.text)
+                self.assertEqual(response.text.count('aria-current="page"'), 1)
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_section_nav_uses_public_push_urls_and_shell_fetches(self, mock_repository):
+        self._mock_summary_ready_workspace(mock_repository)
+
+        response = self.client.get("/app/profile?section=summary")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-shell"', response.text)
+        for section in ("summary", "objective", "signals", "evidence", "credentials", "outputs"):
+            with self.subTest(section=section):
+                self.assertIn(f'href="/app/profile?section={section}"', response.text)
+                self.assertIn(f'hx-get="/app/profile/shell?section={section}"', response.text)
+                self.assertIn('hx-target="#profile-shell"', response.text)
+                self.assertIn('hx-swap="outerHTML"', response.text)
+                self.assertIn(f'hx-push-url="/app/profile?section={section}"', response.text)
+
+        self.assertNotIn('hx-push-url="true"', response.text)
+        self.assertNotIn('hx-push-url="/app/profile/shell?', response.text)
 
     @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])

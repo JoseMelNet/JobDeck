@@ -1,22 +1,22 @@
-﻿{% if flash_message %}
-    {% set flash_tone = flash_message[0] %}
-    {% set flash_text = flash_message[1] %}
-    {% include "components/_flash.html" %}
-{% endif %}
+<div id="profile-shell" hx-history-elt hx-history="false">
+    {% if flash_message %}
+        {% set flash_tone = flash_message[0] %}
+        {% set flash_text = flash_message[1] %}
+        {% include "components/_flash.html" %}
+    {% endif %}
 
-<section class="profile-workspace">
-    {% include "profile/_section_nav.html" %}
+    <section class="profile-workspace">
+        {% include "profile/_section_nav.html" %}
 
-    <section class="stack-panel">
-        <div class="section-title">
-            <div>
-                <h2>{{ active_profile_section.title }}</h2>
-                <p>{{ active_profile_section.summary }}</p>
+        <section class="stack-panel">
+            <div class="section-title">
+                <div>
+                    <h2>{{ active_profile_section.title }}</h2>
+                    <p>{{ active_profile_section.summary }}</p>
+                </div>
             </div>
-        </div>
 
-        {% include active_profile_section_template %}
+            {% include active_profile_section_template %}
+        </section>
     </section>
-</section>
-
-
+</div>

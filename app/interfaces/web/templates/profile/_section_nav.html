@@ -8,7 +8,7 @@
                 hx-get="{{ item.shell_href }}"
                 hx-target="#profile-shell"
                 hx-swap="outerHTML"
-                hx-push-url="true"
+                hx-push-url="{{ item.href }}"
             >
                 <span class="profile-section-link-title">{{ item.title }}</span>
                 <span class="profile-section-link-copy">{{ item.summary }}</span>

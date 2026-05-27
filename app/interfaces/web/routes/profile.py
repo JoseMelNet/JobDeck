@@ -118,10 +118,16 @@ def _resolve_profile_section(section: str | None) -> str:
     return ProfileSectionId.SUMMARY.value
 
 
-def _build_profile_url(*, section: str | None = None, flash: str | None = None, shell: bool = False) -> str:
+def _build_profile_url(
+    *,
+    section: str | None = None,
+    flash: str | None = None,
+    shell: bool = False,
+    include_default_section: bool = False,
+) -> str:
     params: list[tuple[str, str]] = []
     resolved_section = _resolve_profile_section(section)
-    if resolved_section != ProfileSectionId.SUMMARY.value:
+    if include_default_section or resolved_section != ProfileSectionId.SUMMARY.value:
         params.append(("section", resolved_section))
     if flash:
         params.append(("flash", flash))
@@ -140,8 +146,8 @@ def _build_profile_sections(active_section: str) -> list[dict[str, str | bool]]:
             "id": item.id.value,
             "title": item.title,
             "summary": item.summary,
-            "href": _build_profile_url(section=item.id.value),
-            "shell_href": _build_profile_url(section=item.id.value, shell=True),
+            "href": _build_profile_url(section=item.id.value, include_default_section=True),
+            "shell_href": _build_profile_url(section=item.id.value, shell=True, include_default_section=True),
             "active": item.id.value == active_section,
         }
         for item in profile_labor_contract.sections
