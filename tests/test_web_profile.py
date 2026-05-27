@@ -294,6 +294,8 @@ class WebProfileTests(unittest.TestCase):
         response = self.client.get("/app/profile")
 
         self.assertEqual(response.status_code, 200)
+        self.assertNotIn('class="kpi-strip"', response.text)
+        self.assertIn('class="page-header page-header-compact"', response.text)
         self.assertIn('id="profile-shell"', response.text)
         self.assertIn("Perfil Laboral", response.text)
         self.assertIn("Resumen", response.text)
@@ -302,6 +304,8 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn("Salidas", response.text)
         self.assertIn("Calidad general del perfil", response.text)
         self.assertIn('id="profile-summary-shell"', response.text)
+        self.assertIn('role="tablist"', response.text)
+        self.assertNotIn('class="profile-section-link-copy"', response.text)
         self.assertEqual(response.text.count('aria-current="page"'), 1)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
@@ -314,6 +318,8 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn('id="profile-shell"', response.text)
         self.assertIn("La skill fue agregada al perfil.", response.text)
         self.assertIn("Resumen", response.text)
+        self.assertIn('role="tablist"', response.text)
+        self.assertNotIn('class="profile-section-link-copy"', response.text)
         self.assertIn("Alertas principales", response.text)
         self.assertIn("Proxima accion recomendada", response.text)
         self.assertIn("Cobertura para analisis", response.text)
@@ -524,6 +530,8 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertNotIn('hx-push-url="true"', response.text)
         self.assertNotIn('hx-push-url="/app/profile/shell?', response.text)
+        self.assertIn('role="tablist"', response.text)
+        self.assertNotIn('class="profile-section-link-copy"', response.text)
 
     @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])

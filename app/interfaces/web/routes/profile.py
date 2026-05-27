@@ -437,6 +437,7 @@ def profile_index(request: Request, flash: str | None = None, section: str | Non
             "active_nav": "profile",
             "nav_items": _build_nav("profile"),
             "metrics": _build_metrics(),
+            "hide_global_metrics": True,
             **context,
         },
     )

@@ -1985,50 +1985,49 @@ a {
 /* Layer 11: Profile feature and CV preview */
 .profile-workspace {
     display: grid;
-    gap: 18px;
+    gap: 14px;
 }
 
 .profile-section-nav {
     display: grid;
-    gap: 12px;
+    gap: 8px;
 }
 
 .profile-section-nav-list {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .profile-section-link {
-    display: grid;
-    gap: 6px;
-    padding: 14px 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 14px;
     border: 1px solid var(--border);
-    border-radius: 16px;
-    background: #fbfcfe;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
     color: inherit;
     text-decoration: none;
+    white-space: nowrap;
 }
 
 .profile-section-link:hover {
-    border-color: #cbd5e1;
-    background: #f8fbff;
+    border-color: #bfdbfe;
+    background: #ffffff;
 }
 
 .profile-section-link.is-active {
     border-color: #93c5fd;
     background: #eff6ff;
     box-shadow: inset 0 0 0 1px #bfdbfe;
+    color: var(--brand-strong);
 }
 
 .profile-section-link-title {
     font-weight: 700;
-}
-
-.profile-section-link-copy {
-    color: var(--muted);
-    font-size: 0.9rem;
-    line-height: 1.45;
+    font-size: 0.92rem;
 }
 
 .profile-grid {
@@ -2537,7 +2536,6 @@ a {
     .context-strip,
     .profile-hint-grid,
     .profile-quality-grid,
-    .profile-section-nav-list,
     .filter-form,
     .layout-two-columns,
     .detail-grid,
@@ -2571,6 +2569,13 @@ a {
     .profile-quality-hero-score {
         justify-items: start;
         text-align: left;
+    }
+
+    .profile-section-nav-list {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: thin;
     }
 
     #vacancy-detail {
