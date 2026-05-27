@@ -513,6 +513,47 @@ class WebProfileTests(unittest.TestCase):
     @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
     @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
     @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_objective_section_prioritizes_strategy_over_contact(
+        self,
+        mock_repository,
+        _mock_nav,
+        _mock_metrics,
+    ):
+        self._mock_summary_ready_workspace(mock_repository)
+        mock_repository.get_active_profile.return_value["celular"] = "3001234567"
+        mock_repository.get_active_profile.return_value["perfil_github"] = "https://github.com/jose"
+
+        response = self.client.get("/app/profile?section=objective")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-objective-shell"', response.text)
+        self.assertIn("Objetivo laboral", response.text)
+        self.assertIn("Base estrategica", response.text)
+        self.assertIn("Condiciones de busqueda", response.text)
+        self.assertIn("Contacto y salida", response.text)
+        self.assertIn("Titulo profesional", response.text)
+        self.assertIn("Modalidades aceptadas", response.text)
+        self.assertIn("GitHub", response.text)
+        self.assertIn("comparas vacantes", response.text.lower())
+
+    @patch("app.interfaces.web.routes.profile.profile_repository")
+    def test_profile_objective_shell_partial_keeps_strategic_groups(self, mock_repository):
+        self._mock_summary_ready_workspace(mock_repository)
+        mock_repository.get_active_profile.return_value["celular"] = "3001234567"
+
+        response = self.client.get("/app/profile/shell?section=objective")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="profile-objective-shell"', response.text)
+        self.assertIn("Base estrategica y datos de salida", response.text)
+        self.assertIn("Base estrategica", response.text)
+        self.assertIn("Condiciones de busqueda", response.text)
+        self.assertIn("Contacto y salida", response.text)
+        self.assertEqual(response.text.count('aria-current="page"'), 1)
+
+    @patch("app.interfaces.web.routes.profile._build_metrics", return_value=[])
+    @patch("app.interfaces.web.routes.profile._build_nav", return_value=[])
+    @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_profile_signals_section_keeps_focus_on_skills_without_global_status(
         self,
         mock_repository,

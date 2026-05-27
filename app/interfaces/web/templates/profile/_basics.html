@@ -6,52 +6,68 @@
     {% endif %}
     <div class="section-title">
         <div>
-            <h2>Datos principales</h2>
-            <p>Estos datos alimentan el analisis de vacantes y el resumen general del perfil.</p>
+            <p class="eyebrow">Datos principales</p>
+            <h2>Base estrategica y datos de salida</h2>
+            <p>Primero define el marco con el que evaluas vacantes; despues deja visibles los datos de contacto y salida que hoy reutiliza el perfil.</p>
         </div>
     </div>
-    <p class="section-caption">Los campos de esta seccion son la base del perfil y del contexto que consume el analizador.</p>
     <form class="stack-form" method="post" action="/app/profile/save" hx-post="/app/profile/save" hx-target="#profile-basics-shell" hx-swap="outerHTML">
-        <div class="grid-two">
-            <label><span>Nombre completo</span><input type="text" name="nombre" placeholder="Ej. Jose Martinez" value="{{ profile.nombre if profile else '' }}"></label>
-            <label><span>Titulo profesional</span><input type="text" name="titulo_profesional" placeholder="Ej. Data Analyst | BI | SQL" value="{{ profile.titulo_profesional if profile else '' }}"></label>
-        </div>
-        <div class="grid-two">
-            <label><span>Ciudad</span><input type="text" name="ciudad" placeholder="Ej. Bogota" value="{{ profile.ciudad if profile else '' }}"></label>
-            <label><span>Celular</span><input type="text" name="celular" placeholder="Ej. 3001234567" value="{{ profile.celular if profile else '' }}"></label>
-        </div>
-        <label><span>Direccion</span><input type="text" name="direccion" placeholder="Opcional" value="{{ profile.direccion if profile else '' }}"></label>
-        <div class="grid-two">
-            <label><span>Correo</span><input type="email" name="correo" value="{{ profile.correo if profile else '' }}"></label>
-            <label>
-                <span>Nivel actual</span>
-                <select name="nivel_actual">
-                    {% for option in level_options %}
-                        <option value="{{ option }}"{% if profile and profile.nivel_actual == option %} selected{% endif %}>{{ option }}</option>
-                    {% endfor %}
-                </select>
-            </label>
-        </div>
-        <div class="grid-two">
-            <label><span>LinkedIn</span><input type="url" name="perfil_linkedin" placeholder="https://linkedin.com/in/..." value="{{ profile.perfil_linkedin if profile else '' }}"></label>
-            <label><span>GitHub</span><input type="url" name="perfil_github" placeholder="https://github.com/..." value="{{ profile.perfil_github if profile else '' }}"></label>
-        </div>
-        <div class="grid-three">
-            <label><span>Anios de experiencia</span><input type="number" min="0" name="anos_experiencia" value="{{ profile.anos_experiencia if profile and profile.anos_experiencia is not none else 0 }}"></label>
-            <label><span>Salario minimo</span><input type="number" min="0" name="salario_min" value="{{ profile.salario_min if profile and profile.salario_min is not none else '' }}"></label>
-            <label><span>Salario maximo</span><input type="number" min="0" name="salario_max" value="{{ profile.salario_max if profile and profile.salario_max is not none else '' }}"></label>
-        </div>
-        <div class="grid-two">
-            <label><span>Moneda</span><input type="text" name="moneda" value="{{ profile.moneda if profile else 'COP' }}"></label>
-            <fieldset class="checkbox-group">
-                <legend>Modalidades aceptadas</legend>
-                <div class="checkbox-list">
-                    {% for option in modality_options %}
-                        <label class="checkbox-item"><input type="checkbox" name="modalidades_aceptadas" value="{{ option }}"{% if option in selected_modalities %} checked{% endif %}><span>{{ option }}</span></label>
-                    {% endfor %}
-                </div>
-            </fieldset>
-        </div>
+        <section class="helper-box soft">
+            <h3>Base estrategica</h3>
+            <p class="helper-muted">Estos campos te ayudan a contrastar afinidad, condiciones y prioridad de una vacante antes de aplicar.</p>
+            <div class="grid-two">
+                <label><span>Titulo profesional</span><input type="text" name="titulo_profesional" placeholder="Ej. Data Analyst | BI | SQL" value="{{ profile.titulo_profesional if profile else '' }}"></label>
+                <label>
+                    <span>Nivel actual</span>
+                    <select name="nivel_actual">
+                        {% for option in level_options %}
+                            <option value="{{ option }}"{% if profile and profile.nivel_actual == option %} selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+            <div class="grid-two">
+                <label><span>Anios de experiencia</span><input type="number" min="0" name="anos_experiencia" value="{{ profile.anos_experiencia if profile and profile.anos_experiencia is not none else 0 }}"></label>
+                <label><span>Ciudad o ubicacion principal</span><input type="text" name="ciudad" placeholder="Ej. Bogota" value="{{ profile.ciudad if profile else '' }}"></label>
+            </div>
+        </section>
+
+        <section class="helper-box">
+            <h3>Condiciones de busqueda</h3>
+            <p class="helper-muted">Define modalidad y rango esperado para decidir mas rapido si una oportunidad entra o no en tu radar.</p>
+            <div class="grid-two">
+                <fieldset class="checkbox-group">
+                    <legend>Modalidades aceptadas</legend>
+                    <div class="checkbox-list">
+                        {% for option in modality_options %}
+                            <label class="checkbox-item"><input type="checkbox" name="modalidades_aceptadas" value="{{ option }}"{% if option in selected_modalities %} checked{% endif %}><span>{{ option }}</span></label>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+                <label><span>Moneda</span><input type="text" name="moneda" value="{{ profile.moneda if profile else 'COP' }}"></label>
+            </div>
+            <div class="grid-two">
+                <label><span>Salario minimo</span><input type="number" min="0" name="salario_min" value="{{ profile.salario_min if profile and profile.salario_min is not none else '' }}"></label>
+                <label><span>Salario maximo</span><input type="number" min="0" name="salario_max" value="{{ profile.salario_max if profile and profile.salario_max is not none else '' }}"></label>
+            </div>
+        </section>
+
+        <section class="helper-box">
+            <h3>Contacto y salida</h3>
+            <p class="helper-muted">Este bloque queda en segundo plano dentro de Objetivo, pero sigue alimentando el CV base y otras salidas reutilizables.</p>
+            <div class="grid-two">
+                <label><span>Nombre completo</span><input type="text" name="nombre" placeholder="Ej. Jose Martinez" value="{{ profile.nombre if profile else '' }}"></label>
+                <label><span>Correo</span><input type="email" name="correo" value="{{ profile.correo if profile else '' }}"></label>
+            </div>
+            <div class="grid-two">
+                <label><span>Celular</span><input type="text" name="celular" placeholder="Ej. 3001234567" value="{{ profile.celular if profile else '' }}"></label>
+                <label><span>Direccion</span><input type="text" name="direccion" placeholder="Opcional" value="{{ profile.direccion if profile else '' }}"></label>
+            </div>
+            <div class="grid-two">
+                <label><span>LinkedIn</span><input type="url" name="perfil_linkedin" placeholder="https://linkedin.com/in/..." value="{{ profile.perfil_linkedin if profile else '' }}"></label>
+                <label><span>GitHub</span><input type="url" name="perfil_github" placeholder="https://github.com/..." value="{{ profile.perfil_github if profile else '' }}"></label>
+            </div>
+        </section>
         <button type="submit">Guardar perfil</button>
     </form>
 </section>
