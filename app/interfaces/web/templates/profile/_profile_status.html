@@ -1,20 +1,16 @@
-<section class="panel helper-panel">
-    <h2>Alertas principales</h2>
+<article class="helper-box profile-summary-points">
+    <h3>Pendientes clave</h3>
     {% if profile_quality.alerts %}
-        <ul class="flow-list">
-            {% for alert in profile_quality.alerts %}
+        <ul class="flow-list compact-list">
+            {% for alert in profile_quality.alerts[:3] %}
                 <li>{{ alert }}</li>
             {% endfor %}
         </ul>
     {% else %}
-        <div class="helper-box soft">
-            <h3>Sin alertas criticas</h3>
-            <p>La base actual ya cubre lo esencial del perfil. El siguiente paso es revisar salidas y consistencia fina.</p>
-        </div>
+        <p class="helper-muted">La base actual ya cubre lo esencial. El siguiente paso es revisar salidas y consistencia fina.</p>
     {% endif %}
-    <div class="helper-box soft">
-        <h3>Limites actuales</h3>
-        <p>{{ profile_quality.future_notes[0] }}</p>
-        <p>{{ profile_quality.future_notes[1] }}</p>
+    <div class="profile-mini-notes">
+        <p class="profile-mini-note"><strong>Limite actual:</strong> {{ profile_quality.future_notes[0] }}</p>
+        <p class="profile-mini-note"><strong>Tambien:</strong> {{ profile_quality.future_notes[1] }}</p>
     </div>
-</section>
+</article>

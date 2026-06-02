@@ -6,15 +6,14 @@
     {% endif %}
     <div class="section-title">
         <div>
-            <p class="eyebrow">Datos principales</p>
-            <h2>Base estrategica y datos de salida</h2>
-            <p>Primero define el marco con el que evaluas vacantes; despues deja visibles los datos de contacto y salida que hoy reutiliza el perfil.</p>
+            <p class="eyebrow">Perfil y criterios</p>
+            <h2>Perfil profesional y criterios de busqueda</h2>
+            <p>Primero deja claro el contexto con el que comparas vacantes. Contacto queda al final porque hoy sirve sobre todo para salidas.</p>
         </div>
     </div>
     <form class="stack-form" method="post" action="/app/profile/save" hx-post="/app/profile/save" hx-target="#profile-basics-shell" hx-swap="outerHTML">
         <section class="helper-box soft">
-            <h3>Base estrategica</h3>
-            <p class="helper-muted">Estos campos te ayudan a contrastar afinidad, condiciones y prioridad de una vacante antes de aplicar.</p>
+            <h3>Perfil profesional</h3>
             <div class="grid-two">
                 <label><span>Titulo profesional</span><input type="text" name="titulo_profesional" placeholder="Ej. Data Analyst | BI | SQL" value="{{ profile.titulo_profesional if profile else '' }}"></label>
                 <label>
@@ -33,8 +32,7 @@
         </section>
 
         <section class="helper-box">
-            <h3>Condiciones de busqueda</h3>
-            <p class="helper-muted">Define modalidad y rango esperado para decidir mas rapido si una oportunidad entra o no en tu radar.</p>
+            <h3>Criterios de busqueda</h3>
             <div class="grid-two">
                 <fieldset class="checkbox-group">
                     <legend>Modalidades aceptadas</legend>
@@ -52,9 +50,9 @@
             </div>
         </section>
 
-        <section class="helper-box">
-            <h3>Contacto y salida</h3>
-            <p class="helper-muted">Este bloque queda en segundo plano dentro de Objetivo, pero sigue alimentando el CV base y otras salidas reutilizables.</p>
+        <section class="helper-box soft profile-secondary-section">
+            <p class="eyebrow">Secundario</p>
+            <h3>Contacto usado en salidas</h3>
             <div class="grid-two">
                 <label><span>Nombre completo</span><input type="text" name="nombre" placeholder="Ej. Jose Martinez" value="{{ profile.nombre if profile else '' }}"></label>
                 <label><span>Correo</span><input type="email" name="correo" value="{{ profile.correo if profile else '' }}"></label>

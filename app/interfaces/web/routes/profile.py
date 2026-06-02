@@ -55,6 +55,16 @@ PROFILE_ACTION_REDIRECTS = {
     ProfileRefreshAction.CREDENTIALS: build_profile_refresh_plan(ProfileRefreshAction.CREDENTIALS).redirect_section,
 }
 
+PROFILE_SECTION_DISPLAY_OVERRIDES = {
+    ProfileSectionId.SUMMARY.value: {
+        "summary": "Siguiente paso, estado operativo y pendientes clave del perfil.",
+    },
+    ProfileSectionId.OBJECTIVE.value: {
+        "title": "Perfil y criterios",
+        "summary": "Perfil profesional, condiciones de busqueda y contacto reutilizable para decidir donde aplicar.",
+    },
+}
+
 
 def _build_flash_message(flash: str | None) -> tuple[str, str] | None:
     if flash == "profile_saved":
@@ -255,6 +265,7 @@ def _build_profile_context(flash: str | None = None, section: str | None = None)
     selected_modalities = _format_modalities(profile.get("modalidades_aceptadas")) if profile else []
     active_section = _resolve_profile_section(section)
     active_section_definition = next(item for item in profile_labor_contract.sections if item.id.value == active_section)
+    active_section_display = PROFILE_SECTION_DISPLAY_OVERRIDES.get(active_section, {})
     profile_quality = build_profile_quality_summary(
         profile=profile,
         skills=skills,
@@ -304,6 +315,8 @@ def _build_profile_context(flash: str | None = None, section: str | None = None)
         "profile_quality_action_href": _build_profile_url(section=profile_quality.next_action.section_id.value),
         "profile_sections": _build_profile_sections(active_section),
         "active_profile_section": active_section_definition,
+        "active_profile_section_title": active_section_display.get("title", active_section_definition.title),
+        "active_profile_section_summary": active_section_display.get("summary", active_section_definition.summary),
         "active_profile_section_id": active_section,
         "active_profile_section_template": PROFILE_SECTION_TEMPLATE_MAP[active_section],
     }

@@ -2167,6 +2167,111 @@ a {
     gap: 10px;
 }
 
+.profile-action-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+    gap: 16px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: #fbfcfe;
+}
+
+.profile-action-hero.tone-success {
+    border-color: #86efac;
+    background: #f0fdf4;
+}
+
+.profile-action-hero.tone-info {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+.profile-action-hero.tone-warning {
+    border-color: #facc15;
+    background: #fff8eb;
+}
+
+.profile-action-hero-copy {
+    display: grid;
+    gap: 10px;
+}
+
+.profile-action-hero-copy h3 {
+    margin: 0;
+}
+
+.profile-action-hero-copy p {
+    margin: 0;
+}
+
+.profile-state-strip {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+}
+
+.profile-state-chip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.profile-state-chip strong {
+    font-size: 1rem;
+}
+
+.profile-state-chip-label {
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.profile-summary-columns,
+.profile-summary-coverage {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.profile-summary-points {
+    margin-top: 0;
+}
+
+.compact-list {
+    margin-bottom: 0;
+    padding-left: 18px;
+    line-height: 1.55;
+}
+
+.profile-mini-notes {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.profile-mini-note {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.profile-coverage-card-compact p {
+    margin: 0;
+}
+
+.profile-secondary-section {
+    border-style: dashed;
+}
+
 .signal-group-card {
     padding: 18px;
 }
@@ -2536,6 +2641,8 @@ a {
     .context-strip,
     .profile-hint-grid,
     .profile-quality-grid,
+    .profile-summary-columns,
+    .profile-summary-coverage,
     .filter-form,
     .layout-two-columns,
     .detail-grid,
@@ -2569,6 +2676,10 @@ a {
     .profile-quality-hero-score {
         justify-items: start;
         text-align: left;
+    }
+
+    .profile-action-hero {
+        grid-template-columns: 1fr;
     }
 
     .profile-section-nav-list {
