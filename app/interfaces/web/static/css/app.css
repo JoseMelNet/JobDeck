@@ -2272,16 +2272,84 @@ a {
     border-style: dashed;
 }
 
-.signal-group-card {
-    padding: 18px;
+.signal-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+    gap: 14px;
+    margin-bottom: 18px;
 }
 
-.signal-skill-list {
+.signal-toolbar .helper-box {
+    margin-top: 0;
+}
+
+.signal-toolbar-summary p,
+.signal-create-box p {
+    margin: 0;
+}
+
+.signal-toolbar-pills {
+    margin-top: 10px;
+}
+
+.signal-create-box {
+    display: grid;
     gap: 12px;
 }
 
+.signal-create-title {
+    margin-bottom: 0;
+}
+
+.signal-create-title h3 {
+    margin: 0;
+}
+
+.signal-create-form {
+    gap: 12px;
+}
+
+.signal-create-grid {
+    gap: 12px;
+}
+
+.signal-create-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.signal-create-actions button {
+    min-width: 140px;
+}
+
+.signal-hint-grid {
+    gap: 14px;
+}
+
+.signal-groups {
+    gap: 12px;
+}
+
+.signal-group-card {
+    padding: 14px 16px;
+}
+
+.signal-group-header {
+    margin-bottom: 10px;
+}
+
+.signal-skill-list {
+    gap: 8px;
+}
+
 .signal-skill-row {
-    padding-top: 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding-top: 8px;
     border-top: 1px solid var(--border);
 }
 
@@ -2290,8 +2358,28 @@ a {
     border-top: 0;
 }
 
+.signal-skill-main {
+    min-width: 0;
+}
+
+.signal-skill-main h4 {
+    margin: 0;
+    font-size: 0.96rem;
+}
+
 .signal-pill-group {
-    margin-top: 8px;
+    margin-top: 6px;
+}
+
+.signal-skill-pills {
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.signal-delete-action {
+    min-height: 34px;
+    padding: 0 10px;
+    font-size: 0.78rem;
 }
 
 .profile-summary-link {
@@ -2687,6 +2775,11 @@ a {
         overflow-x: auto;
         padding-bottom: 4px;
         scrollbar-width: thin;
+    }
+
+    .signal-toolbar,
+    .signal-create-actions {
+        grid-template-columns: 1fr;
     }
 
     #vacancy-detail {

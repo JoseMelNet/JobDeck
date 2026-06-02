@@ -633,8 +633,15 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn('id="profile-signals-shell"', response.text)
         self.assertIn("Senales de afinidad", response.text)
         self.assertIn('id="profile-skills-shell"', response.text)
+        self.assertIn("Barra operativa", response.text)
         self.assertIn("Inventario actual", response.text)
         self.assertIn("Agregar skill", response.text)
+        self.assertIn('id="profile-skill-create"', response.text)
+        self.assertIn('id="profile-skill-groups"', response.text)
+        self.assertLess(
+            response.text.index('id="profile-skill-create"'),
+            response.text.index('id="profile-skill-groups"'),
+        )
         self.assertIn("Data", response.text)
         self.assertIn("BI", response.text)
         self.assertIn("Sin categoria", response.text)
@@ -651,6 +658,8 @@ class WebProfileTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-signals-shell"', response.text)
+        self.assertIn('id="profile-skill-create"', response.text)
+        self.assertIn('id="profile-skill-groups"', response.text)
         self.assertIn("Inventario actual", response.text)
         self.assertIn("Revision rapida", response.text)
         self.assertIn("SQL x2", response.text)
@@ -673,6 +682,7 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn("Sin skills", response.text)
         self.assertIn("Aun no hay un inventario de senales", response.text)
         self.assertIn("Agregar skill", response.text)
+        self.assertIn('id="profile-skill-create"', response.text)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
     def test_profile_skills_partial_renders_isolated_skills_shell(self, mock_repository):
@@ -683,9 +693,12 @@ class WebProfileTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="profile-skills-shell"', response.text)
         self.assertIn("SQL", response.text)
+        self.assertIn("Barra operativa", response.text)
         self.assertIn("Inventario actual", response.text)
         self.assertIn("Revision rapida", response.text)
         self.assertIn("Agregar skill", response.text)
+        self.assertIn('id="profile-skill-create"', response.text)
+        self.assertIn('id="profile-skill-groups"', response.text)
         self.assertNotIn("Estado del perfil", response.text)
         self.assertNotIn("Alertas principales", response.text)
         self.assertNotIn('action="/app/profile/save"', response.text)
@@ -798,6 +811,7 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn('id="profile-cv-preview"', response.text)
         self.assertIn('hx-swap-oob="outerHTML"', response.text)
         self.assertIn("La skill fue agregada al perfil.", response.text)
+        self.assertIn("Barra operativa", response.text)
         self.assertIn("Inventario actual", response.text)
         self.assertIn("Agregar skill", response.text)
         self.assertIn("Python", response.text)
@@ -836,6 +850,7 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn("Sin skills", response.text)
         self.assertIn("Aun no hay un inventario de senales", response.text)
         self.assertIn("Agregar skill", response.text)
+        self.assertIn('id="profile-skill-create"', response.text)
         self.assertNotIn('action="/app/profile/save"', response.text)
 
     @patch("app.interfaces.web.routes.profile.profile_repository")
