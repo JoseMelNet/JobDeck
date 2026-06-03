@@ -1,7 +1,7 @@
-<section class="panel">
-    <div class="section-title"><div><h2>Experiencias</h2><p>Trayectoria laboral que aporta contexto, funciones y logros a tu biblioteca de evidencia.</p></div><span class="soft-badge">{{ profile_evidence.experiences.total }} registradas</span></div>
-    <p class="section-caption">Actuales: {{ profile_evidence.experiences.current_count }} · Con funciones: {{ profile_evidence.experiences.with_functions_count }} · Con logros: {{ profile_evidence.experiences.with_logros_count }}</p>
-    <details class="section-disclosure" {% if not experiences %}open{% endif %}>
+<section class="panel evidence-block">
+    <div class="section-title evidence-block-title"><div><h2>Experiencias</h2><p>Trayectoria laboral con contexto, funciones y logros reutilizables.</p></div><span class="soft-badge">{{ profile_evidence.experiences.total }} registradas</span></div>
+    <p class="section-caption evidence-caption">Actuales: {{ profile_evidence.experiences.current_count }} · Con funciones: {{ profile_evidence.experiences.with_functions_count }} · Con logros: {{ profile_evidence.experiences.with_logros_count }}</p>
+    <details id="profile-experience-create" class="section-disclosure evidence-action-disclosure" {% if not experiences %}open{% endif %}>
         <summary>Agregar experiencia</summary>
         <form class="stack-form compact-form section-form" method="post" action="/app/profile/experiences" hx-post="/app/profile/experiences" hx-target="#profile-experiences-shell" hx-swap="outerHTML">
         <div class="grid-two">
@@ -23,7 +23,7 @@
         </form>
     </details>
     {% if experiences %}
-        <div class="record-list">
+        <div class="record-list compact-record-list">
             {% for item in experiences %}
                 {% include "profile/_experience_record.html" %}
             {% endfor %}

@@ -1,11 +1,9 @@
-<section id="profile-projects-shell">
+<section id="profile-projects-shell" class="evidence-block-shell">
     {% if projects_flash_message %}
         {% set flash_tone = projects_flash_message[0] %}
         {% set flash_text = projects_flash_message[1] %}
         {% include "components/_flash.html" %}
     {% endif %}
 
-    <section class="profile-sections-grid">
-        {% include "profile/_projects.html" %}
-    </section>
+    {% include "profile/_projects.html" %}
 </section>

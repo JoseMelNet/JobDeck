@@ -2382,6 +2382,81 @@ a {
     font-size: 0.78rem;
 }
 
+.evidence-toolbar,
+.evidence-summary-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.evidence-toolbar-card,
+.evidence-summary-card {
+    margin-top: 0;
+}
+
+.evidence-toolbar-card p,
+.evidence-summary-card p {
+    margin: 0;
+}
+
+.evidence-pill-group {
+    margin-top: 10px;
+}
+
+.evidence-library-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.evidence-library-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.evidence-library-link:hover {
+    border-color: #bfdbfe;
+    background: #ffffff;
+}
+
+.evidence-library-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.evidence-block-shell {
+    min-width: 0;
+}
+
+.evidence-block {
+    padding: 16px 18px;
+}
+
+.evidence-block-title {
+    margin-bottom: 8px;
+}
+
+.evidence-caption {
+    margin-bottom: 12px;
+}
+
+.evidence-action-disclosure {
+    margin-bottom: 12px;
+}
+
+.evidence-action-disclosure > summary {
+    padding: 12px 14px;
+}
+
 .profile-summary-link {
     display: inline-flex;
     align-items: center;
@@ -2778,7 +2853,10 @@ a {
     }
 
     .signal-toolbar,
-    .signal-create-actions {
+    .signal-create-actions,
+    .evidence-toolbar,
+    .evidence-summary-strip,
+    .evidence-library-grid {
         grid-template-columns: 1fr;
     }
 

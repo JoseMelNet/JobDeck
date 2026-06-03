@@ -1,14 +1,14 @@
 <section id="profile-evidence-shell" class="stack-panel">
     <article class="helper-box soft">
         <h3>Evidencia profesional</h3>
-        <p>Esta biblioteca respalda el perfil con trayectoria, proyectos, impacto y contexto reusable para CV futuro, analisis, cartas y entrevistas.</p>
+        <p>Reune trayectoria y proyectos en una biblioteca profesional util para CV, entrevistas y decisiones de aplicacion.</p>
     </article>
 
-    <section class="profile-hint-grid">
-        <article class="helper-box soft">
+    <section class="evidence-toolbar">
+        <article class="helper-box soft evidence-toolbar-card">
             <h3>Biblioteca actual</h3>
             <p>{{ profile_evidence.summary }}</p>
-            <div class="pill-group">
+            <div class="pill-group evidence-pill-group">
                 <span class="soft-badge">{{ profile_evidence.experiences.total }} experiencia{% if profile_evidence.experiences.total != 1 %}s{% endif %}</span>
                 <span class="soft-badge">{{ profile_evidence.projects.total }} proyecto{% if profile_evidence.projects.total != 1 %}s{% endif %}</span>
                 {% if profile_evidence.experiences.current_count %}
@@ -19,10 +19,10 @@
                 {% endif %}
             </div>
         </article>
-        <article class="helper-box">
+        <article class="helper-box evidence-toolbar-card">
             <h3>Revision rapida</h3>
             {% if profile_evidence.alerts %}
-                <ul class="flow-list">
+                <ul class="flow-list compact-list">
                     {% for alert in profile_evidence.alerts %}
                         <li>{{ alert }}</li>
                     {% endfor %}
@@ -33,11 +33,12 @@
         </article>
     </section>
 
-    <section class="profile-hint-grid">
-        <article class="helper-box soft">
+    <section class="evidence-summary-strip">
+        <article class="helper-box soft evidence-summary-card">
             <h3>Experiencias</h3>
-            <div class="pill-group">
+            <div class="pill-group evidence-pill-group">
                 <span class="soft-badge">{{ profile_evidence.experiences.total }} total</span>
+                <span class="soft-badge">{{ profile_evidence.experiences.current_count }} actuales</span>
                 <span class="soft-badge">{{ profile_evidence.experiences.with_functions_count }} con funciones</span>
                 <span class="soft-badge">{{ profile_evidence.experiences.with_logros_count }} con logros</span>
                 {% if profile_evidence.experiences.without_substance_count %}
@@ -45,12 +46,13 @@
                 {% endif %}
             </div>
         </article>
-        <article class="helper-box soft">
+        <article class="helper-box soft evidence-summary-card">
             <h3>Proyectos</h3>
-            <div class="pill-group">
+            <div class="pill-group evidence-pill-group">
                 <span class="soft-badge">{{ profile_evidence.projects.total }} total</span>
+                <span class="soft-badge">{{ profile_evidence.projects.current_count }} en curso</span>
                 <span class="soft-badge">{{ profile_evidence.projects.with_stack_count }} con stack</span>
-                <span class="soft-badge">{{ profile_evidence.projects.with_functions_count + profile_evidence.projects.with_logros_count }} señales descriptivas</span>
+                <span class="soft-badge">{{ profile_evidence.projects.with_functions_count + profile_evidence.projects.with_logros_count }} con descripcion o logros</span>
                 {% if profile_evidence.projects.without_substance_count %}
                     <span class="status-badge status-amber">{{ profile_evidence.projects.without_substance_count }} sin sustancia</span>
                 {% endif %}
@@ -58,7 +60,14 @@
         </article>
     </section>
 
-    <section class="profile-sections-grid">
+    <nav class="evidence-library-nav" aria-label="Accesos de evidencia">
+        <a class="evidence-library-link" href="#profile-experiences-shell">Experiencias</a>
+        <a class="evidence-library-link" href="#profile-experience-create">Agregar experiencia</a>
+        <a class="evidence-library-link" href="#profile-projects-shell">Proyectos</a>
+        <a class="evidence-library-link" href="#profile-project-create">Agregar proyecto</a>
+    </nav>
+
+    <section class="evidence-library-grid">
         {% include "profile/_experiences_shell.html" %}
         {% include "profile/_projects_shell.html" %}
     </section>

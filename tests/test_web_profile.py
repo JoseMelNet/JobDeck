@@ -347,6 +347,18 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn("Revision rapida", response.text)
         self.assertIn("Experiencias", response.text)
         self.assertIn("Proyectos", response.text)
+        self.assertIn('href="#profile-experiences-shell"', response.text)
+        self.assertIn('href="#profile-projects-shell"', response.text)
+        self.assertIn('id="profile-experience-create"', response.text)
+        self.assertIn('id="profile-project-create"', response.text)
+        self.assertLess(
+            response.text.index('id="profile-experience-create"'),
+            response.text.index("Data Analyst · Acme"),
+        )
+        self.assertLess(
+            response.text.index('id="profile-project-create"'),
+            response.text.index("Automation"),
+        )
         self.assertIn("2 experiencia(s) y 2 proyecto(s)", response.text)
         self.assertIn("sin funciones ni logros", response.text)
         self.assertIn("sin descripcion ni logros", response.text)
@@ -367,6 +379,8 @@ class WebProfileTests(unittest.TestCase):
         self.assertIn("Biblioteca actual", response.text)
         self.assertIn("Experiencias", response.text)
         self.assertIn("Proyectos", response.text)
+        self.assertIn('href="#profile-experience-create"', response.text)
+        self.assertIn('href="#profile-project-create"', response.text)
         self.assertIn('id="profile-experiences-shell"', response.text)
         self.assertIn('id="profile-projects-shell"', response.text)
 
