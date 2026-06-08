@@ -42,7 +42,22 @@ function extraerModalidad(root = document) {
   return "Remoto";
 }
 
-function extraerDescripcion(root = document) {
+function extraerDescripcionLegacyJobView() {
+  let mejor = "";
+  let mejorLen = 0;
+
+  for (const el of document.querySelectorAll("p, span")) {
+    const texto = el.innerText?.trim() || "";
+    if (texto.length > 500 && texto.length < 8000 && texto.length > mejorLen) {
+      mejor = texto;
+      mejorLen = texto.length;
+    }
+  }
+
+  return mejor;
+}
+
+function extraerDescripcionSearchPanel(root = document) {
   const candidatos = root.querySelectorAll("p, span, div");
   let mejor = "";
   let mejorLen = 0;
@@ -108,7 +123,7 @@ function extraerHeaderBusqueda(root) {
 function extraerVacanteJobView(identity) {
   const { cargo, empresa } = extraerDesdeTitle();
   const modalidad = extraerModalidad(document);
-  const descripcion = extraerDescripcion(document);
+  const descripcion = extraerDescripcionLegacyJobView();
 
   return {
     cargo,
@@ -141,7 +156,7 @@ function extraerVacanteSearchPanel(identity) {
     ".jobs-box__html-content",
     ".jobs-description-content__text",
     ".jobs-description",
-  ], root) || extraerDescripcion(root);
+  ], root) || extraerDescripcionSearchPanel(root);
 
   return {
     cargo,
