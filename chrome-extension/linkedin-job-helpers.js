@@ -11,6 +11,23 @@
   const JOB_SEARCH_RESULTS_RE = /^\/jobs\/search-results(?:\/|$)/i;
   const JOB_LINK_RE = /\/jobs\/view\/(\d+)(?:\/|$)/i;
   const MIN_JOB_ID_LENGTH = 6;
+  const BLOCK_TAGS = new Set([
+    "article", "div", "header", "h1", "h2", "h3", "h4", "h5", "h6",
+    "li", "ol", "p", "section", "ul",
+  ]);
+  const LIST_TAGS = new Set(["ul", "ol"]);
+  const INLINE_TEXT_TAGS = new Set([
+    "a", "b", "em", "i", "small", "span", "strong", "u",
+  ]);
+  const IGNORED_TAGS = new Set([
+    "button", "footer", "nav", "script", "style", "svg",
+  ]);
+  const LINKEDIN_NOISE_PATTERNS = [
+    "inicio mi red empleos mensajes",
+    "linkedin corporation",
+    "seleccionar idioma",
+    "premium",
+  ];
 
   function parseUrl(url) {
     if (!url) return null;
@@ -178,6 +195,198 @@
     return normalizedLink ? `linkedin:${normalizedLink}` : null;
   }
 
+  function collapseWhitespace(text) {
+    return String(text || "").replace(/\s+/g, " ").trim();
+  }
+
+  function getNodeTagName(node) {
+    return String(node?.tagName || node?.nodeName || "").toLowerCase();
+  }
+
+  function getNodeType(node) {
+    if (!node) return 0;
+    if (typeof node.nodeType === "number") return node.nodeType;
+    if (node.childNodes || node.tagName || node.nodeName) return 1;
+    return 3;
+  }
+
+  function getChildNodes(node) {
+    if (!node) return [];
+    if (Array.isArray(node.childNodes)) return node.childNodes;
+    if (typeof node.childNodes?.length === "number") return Array.from(node.childNodes);
+    return [];
+  }
+
+  function getNodeText(node) {
+    if (!node) return "";
+    if (getNodeType(node) === 3) {
+      return String(node.textContent || node.nodeValue || "");
+    }
+    return String(node.innerText || node.textContent || "");
+  }
+
+  function isLikelyLinkedInNoise(text) {
+    const normalized = collapseWhitespace(text).toLowerCase();
+    if (!normalized) return false;
+
+    const matches = LINKEDIN_NOISE_PATTERNS.filter((pattern) => normalized.includes(pattern));
+    if (matches.length >= 2) return true;
+    if (matches.length === 1 && normalized.length <= 120) return true;
+    return false;
+  }
+
+  function uniquePush(target, value) {
+    if (!value) return;
+    if (!target.includes(value)) {
+      target.push(value);
+    }
+  }
+
+  function inlineTextFromNode(node) {
+    if (!node) return "";
+
+    const nodeType = getNodeType(node);
+    if (nodeType === 3) {
+      return String(node.textContent || node.nodeValue || "");
+    }
+
+    const tag = getNodeTagName(node);
+    if (IGNORED_TAGS.has(tag)) return "";
+    if (tag === "br") return "\n";
+
+    const children = getChildNodes(node);
+    if (!children.length) {
+      return getNodeText(node);
+    }
+
+    let text = "";
+    for (const child of children) {
+      const childTag = getNodeTagName(child);
+      if (LIST_TAGS.has(childTag) || BLOCK_TAGS.has(childTag)) {
+        continue;
+      }
+      const childText = inlineTextFromNode(child);
+      if (childText === "\n") {
+        text += "\n";
+      } else if (childText) {
+        text += childText;
+      }
+    }
+
+    return text || getNodeText(node);
+  }
+
+  function structuredBlocksFromNode(node) {
+    if (!node) return [];
+
+    const nodeType = getNodeType(node);
+    if (nodeType === 3) {
+      const text = collapseWhitespace(node.textContent || node.nodeValue || "");
+      return text ? [text] : [];
+    }
+
+    const tag = getNodeTagName(node);
+    if (IGNORED_TAGS.has(tag)) return [];
+    if (tag === "br") return [];
+
+    const children = getChildNodes(node);
+
+    if (LIST_TAGS.has(tag)) {
+      const blocks = [];
+      for (const child of children) {
+        const childTag = getNodeTagName(child);
+        if (childTag === "li") {
+          const itemText = collapseWhitespace(inlineTextFromNode(child));
+          if (!itemText || isLikelyLinkedInNoise(itemText)) continue;
+          uniquePush(blocks, itemText.startsWith("-") ? itemText : `- ${itemText}`);
+          continue;
+        }
+        for (const block of structuredBlocksFromNode(child)) {
+          if (!isLikelyLinkedInNoise(block)) uniquePush(blocks, block);
+        }
+      }
+      return blocks;
+    }
+
+    if (tag === "li") {
+      const itemText = collapseWhitespace(inlineTextFromNode(node));
+      if (!itemText || isLikelyLinkedInNoise(itemText)) return [];
+      return [itemText.startsWith("-") ? itemText : `- ${itemText}`];
+    }
+
+    const childBlockTags = children
+      .map((child) => getNodeTagName(child))
+      .filter((childTag) => BLOCK_TAGS.has(childTag) || childTag === "br");
+
+    if (!childBlockTags.length) {
+      const text = collapseWhitespace(inlineTextFromNode(node));
+      if (!text || isLikelyLinkedInNoise(text)) return [];
+      return [text];
+    }
+
+    const blocks = [];
+    let inlineBuffer = "";
+
+    const flushInlineBuffer = () => {
+      const text = collapseWhitespace(inlineBuffer);
+      inlineBuffer = "";
+      if (!text || isLikelyLinkedInNoise(text)) return;
+      uniquePush(blocks, text);
+    };
+
+    for (const child of children) {
+      const childType = getNodeType(child);
+      const childTag = getNodeTagName(child);
+
+      if (childType === 3) {
+        inlineBuffer += ` ${child.textContent || child.nodeValue || ""}`;
+        continue;
+      }
+
+      if (IGNORED_TAGS.has(childTag)) continue;
+
+      if (childTag === "br") {
+        inlineBuffer += "\n";
+        continue;
+      }
+
+      if (BLOCK_TAGS.has(childTag) || LIST_TAGS.has(childTag)) {
+        flushInlineBuffer();
+        for (const block of structuredBlocksFromNode(child)) {
+          if (!isLikelyLinkedInNoise(block)) uniquePush(blocks, block);
+        }
+        continue;
+      }
+
+      if (INLINE_TEXT_TAGS.has(childTag) || !childTag) {
+        inlineBuffer += ` ${inlineTextFromNode(child)}`;
+      }
+    }
+
+    flushInlineBuffer();
+
+    if (!blocks.length) {
+      const text = collapseWhitespace(getNodeText(node));
+      if (!text || isLikelyLinkedInNoise(text)) return [];
+      return [text];
+    }
+
+    return blocks;
+  }
+
+  function extractStructuredDescriptionText(root) {
+    if (!root) return "";
+
+    const blocks = structuredBlocksFromNode(root)
+      .map((block) => collapseWhitespace(block))
+      .filter(Boolean)
+      .filter((block) => !isLikelyLinkedInNoise(block));
+
+    if (!blocks.length) return "";
+
+    return blocks.join("\n\n");
+  }
+
   function normalizeDescription(text) {
     if (text == null) return "";
 
@@ -224,6 +433,8 @@
     buildVacancyKey,
     canSaveVacancy,
     detectLinkedInContext,
+    extractStructuredDescriptionText,
+    isLikelyLinkedInNoise,
     normalizeDescription,
     normalizeJobId,
     normalizeLink,

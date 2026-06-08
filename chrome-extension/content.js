@@ -73,6 +73,22 @@ function extraerDescripcionSearchPanel(root = document) {
   return mejor;
 }
 
+function obtenerContenedorDescripcionBusqueda(root = document) {
+  const selectores = [
+    ".jobs-description__container",
+    ".jobs-box__html-content",
+    ".jobs-description-content__text",
+    ".jobs-description",
+  ];
+
+  for (const selector of selectores) {
+    const node = root.querySelector(selector);
+    if (node) return node;
+  }
+
+  return null;
+}
+
 function obtenerTextoPorSelectores(selectores, root = document) {
   for (const selector of selectores) {
     const node = root.querySelector(selector);
@@ -150,13 +166,16 @@ function extraerVacanteSearchPanel(identity) {
   const cargo = header.cargo || fallback.cargo;
   const empresa = header.empresa || fallback.empresa;
   const modalidad = extraerModalidad(root);
-
-  const descripcion = obtenerTextoPorSelectores([
-    ".jobs-description__container",
-    ".jobs-box__html-content",
-    ".jobs-description-content__text",
-    ".jobs-description",
-  ], root) || extraerDescripcionSearchPanel(root);
+  const descriptionContainer = obtenerContenedorDescripcionBusqueda(root);
+  const structuredDescription = LINKEDIN_HELPERS.extractStructuredDescriptionText(descriptionContainer);
+  const descripcion = structuredDescription.length >= 120
+    ? structuredDescription
+    : (descriptionContainer ? obtenerTextoPorSelectores([
+        ".jobs-description__container",
+        ".jobs-box__html-content",
+        ".jobs-description-content__text",
+        ".jobs-description",
+      ], root) : "") || extraerDescripcionSearchPanel(root);
   const descripcionNormalizada = LINKEDIN_HELPERS.normalizeDescription(descripcion);
 
   return {

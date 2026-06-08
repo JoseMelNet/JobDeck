@@ -21,6 +21,27 @@ function createDocument(selectorMap) {
   };
 }
 
+function textNode(text) {
+  return {
+    nodeType: 3,
+    textContent: text,
+    nodeValue: text,
+  };
+}
+
+function element(tagName, ...children) {
+  const normalizedChildren = children.flat();
+  const node = {
+    nodeType: 1,
+    tagName: tagName.toUpperCase(),
+    nodeName: tagName.toUpperCase(),
+    childNodes: normalizedChildren,
+    textContent: normalizedChildren.map((child) => child.textContent || child.nodeValue || "").join(""),
+    innerText: normalizedChildren.map((child) => child.textContent || child.nodeValue || "").join(""),
+  };
+  return node;
+}
+
 test("detects /jobs/view/<id> as job_view", () => {
   assert.equal(
     helpers.detectLinkedInContext("https://www.linkedin.com/jobs/view/4421695645/?tracking=abc"),
@@ -138,4 +159,83 @@ test("does not change normal descriptions", () => {
 test("returns empty string for empty description input", () => {
   assert.equal(helpers.normalizeDescription("   "), "");
   assert.equal(helpers.normalizeDescription(null), "");
+});
+
+test("structured extraction separates headings and paragraphs in Search Panel content", () => {
+  const container = element(
+    "div",
+    element("h2", textNode("Propósito del cargo")),
+    element("p", textNode("Participar y gestionar iniciativas de analitica.")),
+    element("h3", textNode("Educación")),
+    element("p", textNode("Pregrado en ingenieria o carreras afines."))
+  );
+
+  assert.equal(
+    helpers.extractStructuredDescriptionText(container),
+    [
+      "Propósito del cargo",
+      "Participar y gestionar iniciativas de analitica.",
+      "Educación",
+      "Pregrado en ingenieria o carreras afines.",
+    ].join("\n\n"),
+  );
+});
+
+test("structured extraction preserves list-style lines", () => {
+  const container = element(
+    "div",
+    element("h3", textNode("Conocimientos Técnicos")),
+    element(
+      "ul",
+      element("li", textNode("Transformación de datos")),
+      element("li", textNode("Consultas con SQL")),
+      element("li", textNode("Bases de datos"))
+    )
+  );
+
+  assert.equal(
+    helpers.extractStructuredDescriptionText(container),
+    [
+      "Conocimientos Técnicos",
+      "- Transformación de datos",
+      "- Consultas con SQL",
+      "- Bases de datos",
+    ].join("\n\n"),
+  );
+});
+
+test("structured extraction does not duplicate nested text", () => {
+  const container = element(
+    "div",
+    element(
+      "section",
+      element("h3", textNode("Competencias")),
+      element(
+        "div",
+        element("p", textNode("Pensamiento analitico.")),
+        element("p", textNode("Trabajo colaborativo."))
+      )
+    )
+  );
+
+  assert.equal(
+    helpers.extractStructuredDescriptionText(container),
+    [
+      "Competencias",
+      "Pensamiento analitico.",
+      "Trabajo colaborativo.",
+    ].join("\n\n"),
+  );
+});
+
+test("structured extraction rejects global LinkedIn noise blocks", () => {
+  const noisyContainer = element(
+    "div",
+    element("div", textNode("Inicio Mi red Empleos Mensajes")),
+    element("div", textNode("Premium")),
+    element("div", textNode("Seleccionar idioma")),
+    element("div", textNode("LinkedIn Corporation")),
+  );
+
+  assert.equal(helpers.extractStructuredDescriptionText(noisyContainer), "");
 });
