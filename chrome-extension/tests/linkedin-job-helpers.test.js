@@ -104,3 +104,38 @@ test("marks vacancy as unsavable when no stable job_id exists", () => {
   assert.equal(identity.canSave, false);
   assert.equal(helpers.canSaveVacancy(identity), false);
 });
+
+test("removes 'Acerca del empleo' at the start", () => {
+  assert.equal(
+    helpers.normalizeDescription("Acerca del empleo\nBuscamos una persona con experiencia en analitica."),
+    "Buscamos una persona con experiencia en analitica.",
+  );
+});
+
+test("removes trailing '... más' and variants at the end", () => {
+  assert.equal(
+    helpers.normalizeDescription("Descripcion de la vacante...\n... más"),
+    "Descripcion de la vacante...",
+  );
+  assert.equal(
+    helpers.normalizeDescription("Descripcion completa del rol Ver más"),
+    "Descripcion completa del rol",
+  );
+});
+
+test("preserves bullets and real content while reducing excessive newlines", () => {
+  assert.equal(
+    helpers.normalizeDescription("Acerca del empleo\n\n- SQL\n- Python\n\n\n- ETL\n... más"),
+    "- SQL\n- Python\n\n- ETL",
+  );
+});
+
+test("does not change normal descriptions", () => {
+  const text = "Responsabilidades principales\n- Analizar datos\n- Presentar hallazgos";
+  assert.equal(helpers.normalizeDescription(text), text);
+});
+
+test("returns empty string for empty description input", () => {
+  assert.equal(helpers.normalizeDescription("   "), "");
+  assert.equal(helpers.normalizeDescription(null), "");
+});

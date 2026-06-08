@@ -123,7 +123,7 @@ function extraerHeaderBusqueda(root) {
 function extraerVacanteJobView(identity) {
   const { cargo, empresa } = extraerDesdeTitle();
   const modalidad = extraerModalidad(document);
-  const descripcion = extraerDescripcionLegacyJobView();
+  const descripcion = LINKEDIN_HELPERS.normalizeDescription(extraerDescripcionLegacyJobView());
 
   return {
     cargo,
@@ -157,12 +157,13 @@ function extraerVacanteSearchPanel(identity) {
     ".jobs-description-content__text",
     ".jobs-description",
   ], root) || extraerDescripcionSearchPanel(root);
+  const descripcionNormalizada = LINKEDIN_HELPERS.normalizeDescription(descripcion);
 
   return {
     cargo,
     empresa,
     modalidad,
-    descripcion,
+    descripcion: descripcionNormalizada,
     link: identity.canonicalLink,
     vacancyKey: identity.vacancyKey,
     _identity: identity,
@@ -170,7 +171,7 @@ function extraerVacanteSearchPanel(identity) {
       cargo: cargo.length > 0,
       empresa: empresa.length > 0,
       modalidad: MODALIDADES_VALIDAS.has(modalidad),
-      descripcion: descripcion.length > 200,
+      descripcion: descripcionNormalizada.length > 200,
       jobId: Boolean(identity.jobId),
     },
   };

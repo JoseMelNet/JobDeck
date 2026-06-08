@@ -178,6 +178,25 @@
     return normalizedLink ? `linkedin:${normalizedLink}` : null;
   }
 
+  function normalizeDescription(text) {
+    if (text == null) return "";
+
+    let normalized = String(text).replace(/\r\n?/g, "\n").trim();
+    if (!normalized) return "";
+
+    normalized = normalized.replace(/^Acerca del empleo\b(?:\s*:\s*|\s*\n+|\s+)/i, "");
+    normalized = normalized.replace(/\n[ \t]+\n/g, "\n\n");
+    normalized = normalized
+      .split("\n")
+      .map((line) => line.trimEnd())
+      .join("\n");
+    normalized = normalized.replace(/\n{3,}/g, "\n\n");
+    normalized = normalized.replace(/(?:\u2026|\.\.\.)\s*m[aá]s$/i, "");
+    normalized = normalized.replace(/Ver m[aá]s$/i, "");
+
+    return normalized.trim();
+  }
+
   function canSaveVacancy(identity) {
     return Boolean(identity?.jobId && identity?.canonicalLink && identity?.vacancyKey);
   }
@@ -205,6 +224,7 @@
     buildVacancyKey,
     canSaveVacancy,
     detectLinkedInContext,
+    normalizeDescription,
     normalizeJobId,
     normalizeLink,
     resolveJobId,
