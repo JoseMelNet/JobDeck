@@ -21,25 +21,19 @@ function createDocument(selectorMap) {
   };
 }
 
-function textNode(text) {
+function createTextElement(text) {
   return {
-    nodeType: 3,
+    innerText: text,
     textContent: text,
-    nodeValue: text,
   };
 }
 
-function element(tagName, ...children) {
-  const normalizedChildren = children.flat();
-  const node = {
-    nodeType: 1,
-    tagName: tagName.toUpperCase(),
-    nodeName: tagName.toUpperCase(),
-    childNodes: normalizedChildren,
-    textContent: normalizedChildren.map((child) => child.textContent || child.nodeValue || "").join(""),
-    innerText: normalizedChildren.map((child) => child.textContent || child.nodeValue || "").join(""),
+function createRootWithTexts(textsBySelector) {
+  return {
+    querySelectorAll(selector) {
+      return (textsBySelector[selector] || []).map((text) => createTextElement(text));
+    },
   };
-  return node;
 }
 
 test("detects /jobs/view/<id> as job_view", () => {
@@ -161,81 +155,66 @@ test("returns empty string for empty description input", () => {
   assert.equal(helpers.normalizeDescription(null), "");
 });
 
-test("structured extraction separates headings and paragraphs in Search Panel content", () => {
-  const container = element(
-    "div",
-    element("h2", textNode("Propósito del cargo")),
-    element("p", textNode("Participar y gestionar iniciativas de analitica.")),
-    element("h3", textNode("Educación")),
-    element("p", textNode("Pregrado en ingenieria o carreras afines."))
-  );
+test("extractLegacyDescriptionFrom returns the longest p/span text inside the root", () => {
+  const shortText = "x".repeat(520);
+  const longText = "y".repeat(900);
+  const root = createRootWithTexts({
+    "p, span": [shortText, longText],
+  });
 
-  assert.equal(
-    helpers.extractStructuredDescriptionText(container),
-    [
-      "Propósito del cargo",
-      "Participar y gestionar iniciativas de analitica.",
-      "Educación",
-      "Pregrado en ingenieria o carreras afines.",
-    ].join("\n\n"),
+  assert.equal(helpers.extractLegacyDescriptionFrom(root), longText);
+});
+
+test("extractLegacyDescriptionFrom ignores texts shorter than 500 chars", () => {
+  const root = createRootWithTexts({
+    "p, span": ["corto", "a".repeat(499)],
+  });
+
+  assert.equal(helpers.extractLegacyDescriptionFrom(root), "");
+});
+
+test("extractLegacyDescriptionFrom ignores texts longer than 8000 chars", () => {
+  const validText = "a".repeat(700);
+  const tooLongText = "b".repeat(8001);
+  const root = createRootWithTexts({
+    "p, span": [tooLongText, validText],
+  });
+
+  assert.equal(helpers.extractLegacyDescriptionFrom(root), validText);
+});
+
+test("extractLegacyDescriptionFrom applies normalizeDescription", () => {
+  const root = createRootWithTexts({
+    "p, span": ["Acerca del empleo\n" + "a".repeat(650) + "\n... más"],
+  });
+
+  assert.equal(helpers.extractLegacyDescriptionFrom(root), "a".repeat(650));
+});
+
+test("extractLegacyDescriptionFrom only uses text inside the provided root", () => {
+  const root = createRootWithTexts({
+    "p, span": ["Contenido local " + "a".repeat(650)],
+  });
+  const globalNoise = createRootWithTexts({
+    "p, span": ["Contenido global " + "b".repeat(1200)],
+  });
+
+  assert.equal(helpers.extractLegacyDescriptionFrom(root), "Contenido local " + "a".repeat(650));
+  assert.notEqual(
+    helpers.extractLegacyDescriptionFrom(root),
+    helpers.extractLegacyDescriptionFrom(globalNoise),
   );
 });
 
-test("structured extraction preserves list-style lines", () => {
-  const container = element(
-    "div",
-    element("h3", textNode("Conocimientos Técnicos")),
-    element(
-      "ul",
-      element("li", textNode("Transformación de datos")),
-      element("li", textNode("Consultas con SQL")),
-      element("li", textNode("Bases de datos"))
-    )
-  );
+test("extractLegacyDescriptionFrom does not accept global LinkedIn noise when root has no valid description", () => {
+  const root = createRootWithTexts({
+    "p, span": [
+      "Inicio Mi red Empleos Mensajes",
+      "Premium",
+      "Seleccionar idioma",
+      "LinkedIn Corporation",
+    ],
+  });
 
-  assert.equal(
-    helpers.extractStructuredDescriptionText(container),
-    [
-      "Conocimientos Técnicos",
-      "- Transformación de datos",
-      "- Consultas con SQL",
-      "- Bases de datos",
-    ].join("\n\n"),
-  );
-});
-
-test("structured extraction does not duplicate nested text", () => {
-  const container = element(
-    "div",
-    element(
-      "section",
-      element("h3", textNode("Competencias")),
-      element(
-        "div",
-        element("p", textNode("Pensamiento analitico.")),
-        element("p", textNode("Trabajo colaborativo."))
-      )
-    )
-  );
-
-  assert.equal(
-    helpers.extractStructuredDescriptionText(container),
-    [
-      "Competencias",
-      "Pensamiento analitico.",
-      "Trabajo colaborativo.",
-    ].join("\n\n"),
-  );
-});
-
-test("structured extraction rejects global LinkedIn noise blocks", () => {
-  const noisyContainer = element(
-    "div",
-    element("div", textNode("Inicio Mi red Empleos Mensajes")),
-    element("div", textNode("Premium")),
-    element("div", textNode("Seleccionar idioma")),
-    element("div", textNode("LinkedIn Corporation")),
-  );
-
-  assert.equal(helpers.extractStructuredDescriptionText(noisyContainer), "");
+  assert.equal(helpers.extractLegacyDescriptionFrom(root), "");
 });

@@ -42,37 +42,6 @@ function extraerModalidad(root = document) {
   return "Remoto";
 }
 
-function extraerDescripcionLegacyJobView() {
-  let mejor = "";
-  let mejorLen = 0;
-
-  for (const el of document.querySelectorAll("p, span")) {
-    const texto = el.innerText?.trim() || "";
-    if (texto.length > 500 && texto.length < 8000 && texto.length > mejorLen) {
-      mejor = texto;
-      mejorLen = texto.length;
-    }
-  }
-
-  return mejor;
-}
-
-function extraerDescripcionSearchPanel(root = document) {
-  const candidatos = root.querySelectorAll("p, span, div");
-  let mejor = "";
-  let mejorLen = 0;
-
-  for (const el of candidatos) {
-    const texto = textoLimpio(el.innerText);
-    if (texto.length > 500 && texto.length < 12000 && texto.length > mejorLen) {
-      mejor = texto;
-      mejorLen = texto.length;
-    }
-  }
-
-  return mejor;
-}
-
 function obtenerContenedorDescripcionBusqueda(root = document) {
   const selectores = [
     ".jobs-description__container",
@@ -139,7 +108,7 @@ function extraerHeaderBusqueda(root) {
 function extraerVacanteJobView(identity) {
   const { cargo, empresa } = extraerDesdeTitle();
   const modalidad = extraerModalidad(document);
-  const descripcion = LINKEDIN_HELPERS.normalizeDescription(extraerDescripcionLegacyJobView());
+  const descripcion = LINKEDIN_HELPERS.extractLegacyDescriptionFrom(document);
 
   return {
     cargo,
@@ -167,16 +136,7 @@ function extraerVacanteSearchPanel(identity) {
   const empresa = header.empresa || fallback.empresa;
   const modalidad = extraerModalidad(root);
   const descriptionContainer = obtenerContenedorDescripcionBusqueda(root);
-  const structuredDescription = LINKEDIN_HELPERS.extractStructuredDescriptionText(descriptionContainer);
-  const descripcion = structuredDescription.length >= 120
-    ? structuredDescription
-    : (descriptionContainer ? obtenerTextoPorSelectores([
-        ".jobs-description__container",
-        ".jobs-box__html-content",
-        ".jobs-description-content__text",
-        ".jobs-description",
-      ], root) : "") || extraerDescripcionSearchPanel(root);
-  const descripcionNormalizada = LINKEDIN_HELPERS.normalizeDescription(descripcion);
+  const descripcionNormalizada = LINKEDIN_HELPERS.extractLegacyDescriptionFrom(descriptionContainer || root);
 
   return {
     cargo,
