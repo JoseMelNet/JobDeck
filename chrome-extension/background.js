@@ -1,8 +1,21 @@
+importScripts("linkedin-job-helpers.js");
+
 const API_BASE = "http://localhost:8001";
 const ACTIVE_TASK_KEY = "activeAnalysisTasks";
+const LINKEDIN_HELPERS = globalThis.LinkedInJobHelpers;
 
 function normalizarUrlVacante(url) {
-  return (url || "").split("?")[0];
+  return LINKEDIN_HELPERS.normalizeLink(url);
+}
+
+function resolverClaveVacante({ vacancyKey, link, pageUrl }) {
+  return (
+    vacancyKey ||
+    LINKEDIN_HELPERS.buildVacancyKey(link) ||
+    LINKEDIN_HELPERS.buildVacancyKey(pageUrl) ||
+    normalizarUrlVacante(link) ||
+    normalizarUrlVacante(pageUrl)
+  );
 }
 
 if (chrome.sidePanel?.setPanelBehavior) {
@@ -18,11 +31,11 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   }
 
   if (request.action === "clearActiveTask") {
-    const pageUrl = normalizarUrlVacante(request.pageUrl);
+    const targetKey = resolverClaveVacante(request);
     chrome.storage.local.get(ACTIVE_TASK_KEY, (result) => {
       const tasks = result[ACTIVE_TASK_KEY] || {};
-      if (pageUrl) {
-        delete tasks[pageUrl];
+      if (targetKey) {
+        delete tasks[targetKey];
         chrome.storage.local.set({ [ACTIVE_TASK_KEY]: tasks }, () => sendResponse({ success: true }));
         return;
       }
@@ -50,17 +63,24 @@ async function guardarVacanteEnSegundoPlano(payload) {
     throw new Error(data.detail || data.message || "No se pudo guardar la vacante");
   }
 
+  const vacancyKey = resolverClaveVacante({
+    vacancyKey: payload.vacancyKey,
+    link: payload.link,
+    pageUrl: payload.pageUrl,
+  });
+
   const activeTask = {
     taskId: data.task_id || data.job_id,
     vacancyId: data.id,
     status: data.status,
     message: data.message,
     pageUrl: normalizarUrlVacante(payload.link),
+    vacancyKey,
     savedAt: new Date().toISOString(),
   };
   const storage = await chrome.storage.local.get(ACTIVE_TASK_KEY);
   const tasks = storage[ACTIVE_TASK_KEY] || {};
-  tasks[activeTask.pageUrl] = activeTask;
+  tasks[vacancyKey] = activeTask;
   await chrome.storage.local.set({ [ACTIVE_TASK_KEY]: tasks });
   return activeTask;
 }
@@ -83,6 +103,11 @@ async function guardarVacanteConApiLegacy(payload) {
     status: "completed",
     message: "Vacante guardada. La API local no soporta analisis en segundo plano todavia.",
     legacyMode: true,
+    vacancyKey: resolverClaveVacante({
+      vacancyKey: payload.vacancyKey,
+      link: payload.link,
+      pageUrl: payload.pageUrl,
+    }),
     savedAt: new Date().toISOString(),
   };
 }
