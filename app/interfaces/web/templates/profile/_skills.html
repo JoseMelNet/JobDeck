@@ -2,42 +2,125 @@
     <div class="section-title">
         <div>
             <h2>Skills</h2>
-            <p>Manten tus skills clave visibles para el analisis de afinidad.</p>
+            <p>Inventario actual de senales que hoy alimentan analisis, CV base y estrategia.</p>
         </div>
+        <span class="soft-badge">{{ profile_signals.total_skills }} skill{% if profile_signals.total_skills != 1 %}s{% endif %}</span>
     </div>
-    <p class="section-caption">Mantener skills claras y concretas ayuda a que la afinidad con vacantes sea mas fiable.</p>
-    <form class="stack-form compact-form" method="post" action="/app/profile/skills" hx-post="/app/profile/skills" hx-target="#profile-skills-shell" hx-swap="outerHTML">
-        <div class="grid-two">
-            <label><span>Categoria</span><input type="text" name="categoria" placeholder="Ej. Data, BI, Backend" required></label>
-            <label><span>Skill</span><input type="text" name="skill" placeholder="Ej. SQL" required></label>
+    <p class="section-caption">Agrupa tus skills por categoria para detectar rapido huecos, duplicados simples y senales todavia poco claras.</p>
+
+    <section class="signal-toolbar">
+        <article class="helper-box soft signal-toolbar-summary">
+            <h3>Barra operativa</h3>
+            <p>{{ profile_signals.summary }}</p>
+            <div class="pill-group signal-toolbar-pills">
+                <span class="soft-badge">{{ profile_signals.total_skills }} skill{% if profile_signals.total_skills != 1 %}s{% endif %}</span>
+                <span class="soft-badge">{{ profile_signals.category_count }} categoria{% if profile_signals.category_count != 1 %}s{% endif %}</span>
+                {% if profile_signals.duplicate_count %}
+                    <span class="status-badge status-red">{{ profile_signals.duplicate_count }} duplicado{% if profile_signals.duplicate_count != 1 %}s{% endif %}</span>
+                {% endif %}
+                {% if profile_signals.without_level_count %}
+                    <span class="status-badge status-amber">{{ profile_signals.without_level_count }} sin nivel</span>
+                {% endif %}
+            </div>
+        </article>
+
+        <article id="profile-skill-create" class="helper-box signal-create-box">
+            <div class="section-title signal-create-title">
+                <div>
+                    <h3>Agregar skill</h3>
+                    <p>Registra una nueva senal sin bajar hasta el final del inventario.</p>
+                </div>
+            </div>
+            <form class="stack-form compact-form signal-create-form" method="post" action="/app/profile/skills" hx-post="/app/profile/skills" hx-target="#profile-skills-shell" hx-swap="outerHTML">
+                <div class="grid-two signal-create-grid">
+                    <label><span>Categoria</span><input type="text" name="categoria" placeholder="Ej. Data, BI, Backend" required></label>
+                    <label><span>Skill</span><input type="text" name="skill" placeholder="Ej. SQL" required></label>
+                </div>
+                <div class="signal-create-actions">
+                    <label>
+                        <span>Nivel</span>
+                        <select name="nivel">
+                            {% for option in skill_level_options %}
+                                <option value="{{ option }}">{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <button type="submit">Agregar skill</button>
+                </div>
+            </form>
+        </article>
+    </section>
+
+    {% if profile_signals.is_empty %}
+        <div class="empty-panel">
+            <h3>Sin skills</h3>
+            <p>Aun no hay un inventario de senales. Agrega tus skills principales para que el matching y la lectura del perfil sean mas utiles.</p>
         </div>
-        <label>
-            <span>Nivel</span>
-            <select name="nivel">
-                {% for option in skill_level_options %}
-                    <option value="{{ option }}">{{ option }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <button type="submit">Agregar skill</button>
-    </form>
-    {% if skills %}
-        <div class="record-list compact-record-list">
-            {% for item in skills %}
-                <article class="record-card">
-                    <div class="record-header">
+    {% else %}
+        <section class="profile-hint-grid signal-hint-grid">
+            <article class="helper-box soft">
+                <h3>Inventario actual</h3>
+                <p>Escanea tus categorias activas y detecta rapido que parte del inventario necesita orden.</p>
+                <div class="pill-group signal-toolbar-pills">
+                    {% for label in profile_signals.categories_present %}
+                        <span class="soft-badge">{{ label }}</span>
+                    {% endfor %}
+                    {% if profile_signals.uncategorized_count %}
+                        <span class="status-badge status-blue">{{ profile_signals.uncategorized_count }} sin categoria</span>
+                    {% endif %}
+                </div>
+            </article>
+            <article class="helper-box">
+                <h3>Revision rapida</h3>
+                {% if profile_signals.alerts %}
+                    <ul class="flow-list compact-list">
+                        {% for alert in profile_signals.alerts %}
+                            <li>{{ alert }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>Las skills ya estan agrupadas y no muestran huecos basicos de categoria o nivel.</p>
+                {% endif %}
+                {% if profile_signals.duplicate_skills %}
+                    <div class="pill-group">
+                        {% for duplicate in profile_signals.duplicate_skills %}
+                            <span class="status-badge status-red">{{ duplicate.name }} x{{ duplicate.count }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </article>
+        </section>
+
+        <section id="profile-skill-groups" class="stack-panel signal-groups">
+            {% for group in profile_signals.groups %}
+                <article class="record-card signal-group-card">
+                    <div class="record-header signal-group-header">
                         <div>
-                            <h3>{{ item.skill }}</h3>
-                            <p>{{ item.categoria }} · {{ item.nivel }}</p>
+                            <h3>{{ group.label }}</h3>
+                            <p>{{ group.count }} skill{% if group.count != 1 %}s{% endif %}</p>
                         </div>
-                        <form method="post" action="/app/profile/skills/{{ item.id }}/delete" hx-post="/app/profile/skills/{{ item.id }}/delete" hx-target="#profile-skills-shell" hx-swap="outerHTML">
-                            <button type="submit" class="danger-action">Eliminar</button>
-                        </form>
+                    </div>
+
+                    <div class="stack-panel signal-skill-list">
+                        {% for item in group.skills %}
+                            <div class="signal-skill-row">
+                                <div class="signal-skill-main">
+                                    <h4>{{ item.skill }}</h4>
+                                    <div class="pill-group signal-pill-group signal-skill-pills">
+                                        <span class="soft-badge">{{ item.level_label }}</span>
+                                        {% if item.is_duplicate %}
+                                            <span class="status-badge status-red">Posible duplicado</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <form method="post" action="/app/profile/skills/{{ item.id }}/delete" hx-post="/app/profile/skills/{{ item.id }}/delete" hx-target="#profile-skills-shell" hx-swap="outerHTML">
+                                    <button type="submit" class="danger-action signal-delete-action">Eliminar</button>
+                                </form>
+                            </div>
+                        {% endfor %}
                     </div>
                 </article>
             {% endfor %}
-        </div>
-    {% else %}
-        <div class="empty-panel"><h3>Sin skills</h3><p>Agrega tus skills principales para que el analisis de vacantes sea mas preciso.</p></div>
+        </section>
     {% endif %}
 </section>

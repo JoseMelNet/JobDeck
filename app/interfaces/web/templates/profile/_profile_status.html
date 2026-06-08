@@ -1,14 +1,16 @@
-<section class="panel helper-panel">
-    <h2>Estado del perfil</h2>
-    <ul class="flow-list">
-        <li>Datos principales: {% if profile %}configurados{% else %}pendientes{% endif %}</li>
-        <li>Skills registradas: {{ skills|length }}</li>
-        <li>Experiencias registradas: {{ experiences|length }}</li>
-        <li>Proyectos registrados: {{ projects|length }}</li>
-        <li>Formacion registrada: {{ education|length + courses|length + certifications|length }}</li>
-    </ul>
-    <div class="helper-box soft">
-        <h3>Estado de migracion</h3>
-        <p>Mi Perfil ya puede mantenerse desde la web para el flujo principal del producto.</p>
+<article class="helper-box profile-summary-points">
+    <h3>Pendientes clave</h3>
+    {% if profile_quality.alerts %}
+        <ul class="flow-list compact-list">
+            {% for alert in profile_quality.alerts[:3] %}
+                <li>{{ alert }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="helper-muted">La base actual ya cubre lo esencial. El siguiente paso es revisar salidas y consistencia fina.</p>
+    {% endif %}
+    <div class="profile-mini-notes">
+        <p class="profile-mini-note"><strong>Limite actual:</strong> {{ profile_quality.future_notes[0] }}</p>
+        <p class="profile-mini-note"><strong>Tambien:</strong> {{ profile_quality.future_notes[1] }}</p>
     </div>
-</section>
+</article>

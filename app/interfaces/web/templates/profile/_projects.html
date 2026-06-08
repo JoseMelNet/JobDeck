@@ -1,6 +1,7 @@
-<section class="panel">
-    <div class="section-title"><div><h2>Proyectos</h2><p>Proyectos que respaldan tu experiencia tecnica.</p></div><span class="soft-badge">{{ projects|length }} registrados</span></div>
-    <details class="section-disclosure" {% if not projects %}open{% endif %}>
+<section class="panel evidence-block">
+    <div class="section-title evidence-block-title"><div><h2>Proyectos</h2><p>Proyectos que muestran stack, alcance y resultados concretos.</p></div><span class="soft-badge">{{ profile_evidence.projects.total }} registrados</span></div>
+    <p class="section-caption evidence-caption">En curso: {{ profile_evidence.projects.current_count }} · Con stack: {{ profile_evidence.projects.with_stack_count }} · Con descripcion o logros: {{ profile_evidence.projects.total - profile_evidence.projects.without_substance_count }}</p>
+    <details id="profile-project-create" class="section-disclosure evidence-action-disclosure" {% if not projects %}open{% endif %}>
         <summary>Agregar proyecto</summary>
         <form class="stack-form compact-form section-form" method="post" action="/app/profile/projects" hx-post="/app/profile/projects" hx-target="#profile-projects-shell" hx-swap="outerHTML">
         <div class="grid-two">
@@ -23,7 +24,7 @@
         </form>
     </details>
     {% if projects %}
-        <div class="record-list">
+        <div class="record-list compact-record-list">
             {% for item in projects %}
                 {% include "profile/_project_record.html" %}
             {% endfor %}

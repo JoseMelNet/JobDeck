@@ -1,0 +1,68 @@
+<section id="profile-summary-shell" class="stack-panel"{% if summary_shell_oob %} hx-swap-oob="outerHTML"{% endif %}>
+    {% set formation_count = education|length + courses|length + certifications|length %}
+
+    <section class="profile-action-hero tone-{{ profile_quality.overall_tone }}">
+        <div class="profile-action-hero-copy">
+            <p class="eyebrow">Siguiente paso</p>
+            <h3>{{ profile_quality.next_action.title }}</h3>
+            <p>{{ profile_quality.next_action.description }}</p>
+            <p class="helper-muted">Estado actual: {{ profile_quality.overall_label }}. {{ profile_quality.overall_summary }}</p>
+            <a class="profile-summary-link" href="{{ profile_quality_action_href }}">
+                Ir a {{ profile_quality.next_action.section_title }}
+            </a>
+        </div>
+
+        <div class="profile-state-strip" aria-label="Estado operativo del perfil">
+            {% for coverage in (profile_quality.analysis_coverage, profile_quality.cv_coverage, profile_quality.evidence_coverage) %}
+                <article class="profile-state-chip tone-{{ coverage.tone }}">
+                    <span class="profile-state-chip-label">
+                        {% if coverage.key == "analysis" %}Analisis{% elif coverage.key == "cv" %}CV base{% else %}Evidencia{% endif %}
+                    </span>
+                    <strong>{{ coverage.percent }}%</strong>
+                </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="profile-summary-columns">
+        <article class="helper-box profile-summary-points">
+            <h3>Fortalezas actuales</h3>
+            <ul class="flow-list compact-list">
+                {% if skills %}
+                    <li>{{ skills|length }} skill(s) ya alimentan matching y CV base.</li>
+                {% endif %}
+                {% if experiences %}
+                    <li>{{ experiences|length }} experiencia(s) ya respaldan el perfil con evidencia utilizable.</li>
+                {% endif %}
+                {% if formation_count > 0 %}
+                    <li>Ya hay credenciales cargadas para sostener la salida base.</li>
+                {% endif %}
+                {% if not skills and not experiences and formation_count == 0 %}
+                    <li>Aun no hay una base suficiente cargada como para destacar fortalezas claras.</li>
+                {% endif %}
+            </ul>
+        </article>
+
+        {% include "profile/_profile_status.html" %}
+    </section>
+
+    <section class="profile-summary-coverage">
+        {% for coverage in (profile_quality.analysis_coverage, profile_quality.cv_coverage, profile_quality.evidence_coverage) %}
+            <article class="helper-box profile-coverage-card profile-coverage-card-compact tone-{{ coverage.tone }}">
+                <div class="profile-coverage-head">
+                    <h3>{{ coverage.title }}</h3>
+                    <div class="profile-coverage-percent">{{ coverage.percent }}%</div>
+                </div>
+                <p>{{ coverage.covered }}/{{ coverage.total }} senales cubiertas.</p>
+                {% if coverage.gaps %}
+                    <p class="helper-muted">Pendiente: {{ coverage.gaps[:2]|join(", ") }}.</p>
+                {% endif %}
+            </article>
+        {% endfor %}
+    </section>
+
+    <div id="profile-overview">
+        {% include "profile/_overview.html" %}
+    </div>
+
+</section>

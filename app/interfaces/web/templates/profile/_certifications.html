@@ -1,6 +1,7 @@
-<section class="panel">
-    <div class="section-title"><div><h2>Certificaciones</h2><p>Credenciales y badges relevantes para tus postulaciones.</p></div><span class="soft-badge">{{ certifications|length }} registros</span></div>
-    <details class="section-disclosure" {% if not certifications %}open{% endif %}>
+<section class="panel credentials-block">
+    <div class="section-title credentials-block-title"><div><h2>Certificaciones</h2><p>Credenciales verificables con respaldo formal.</p></div><span class="soft-badge">{{ profile_credentials.certifications.total }} registros</span></div>
+    <p class="section-caption credentials-caption">Con emisor: {{ profile_credentials.certifications.with_issuer_count }} · Con URL: {{ profile_credentials.certifications.with_url_count }} · Incompletas: {{ profile_credentials.certifications.incomplete_count }}</p>
+    <details id="profile-certification-create" class="section-disclosure credentials-action-disclosure" {% if not certifications %}open{% endif %}>
         <summary>Agregar certificacion</summary>
         <form class="stack-form compact-form section-form" method="post" action="/app/profile/certifications" hx-post="/app/profile/certifications" hx-target="#profile-formation-shell" hx-swap="outerHTML">
         <div class="grid-two">

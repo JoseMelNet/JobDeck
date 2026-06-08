@@ -1,0 +1,16 @@
+{% if refresh_plan.refresh_summary %}
+    {% set summary_shell_oob = true %}
+    {% include "profile/_summary_section.html" %}
+{% endif %}
+
+{% if refresh_plan.refresh_signals %}
+    {% set skills_shell_oob = true %}
+    {% include "profile/_skills_shell.html" %}
+{% endif %}
+
+{% if refresh_plan.refresh_cv_preview %}
+    {% set cv_preview_oob = true %}
+    {% include "profile/_cv_preview.html" %}
+{% endif %}
+
+{% include refresh_plan.primary_template %}

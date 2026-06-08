@@ -1,6 +1,7 @@
-<section class="panel">
-    <div class="section-title"><div><h2>Cursos</h2><p>Formacion complementaria para reforzar tu perfil.</p></div><span class="soft-badge">{{ courses|length }} registros</span></div>
-    <details class="section-disclosure" {% if not courses %}open{% endif %}>
+<section class="panel credentials-block">
+    <div class="section-title credentials-block-title"><div><h2>Cursos</h2><p>Formacion complementaria reciente y reutilizable.</p></div><span class="soft-badge">{{ profile_credentials.courses.total }} registros</span></div>
+    <p class="section-caption credentials-caption">Con institucion: {{ profile_credentials.courses.with_issuer_count }} · Con URL: {{ profile_credentials.courses.with_url_count }} · Incompletos: {{ profile_credentials.courses.incomplete_count }}</p>
+    <details id="profile-course-create" class="section-disclosure credentials-action-disclosure" {% if not courses %}open{% endif %}>
         <summary>Agregar curso</summary>
         <form class="stack-form compact-form section-form" method="post" action="/app/profile/courses" hx-post="/app/profile/courses" hx-target="#profile-formation-shell" hx-swap="outerHTML">
         <div class="grid-two">

@@ -1,27 +1,22 @@
-﻿{% if flash_message %}
-    {% set flash_tone = flash_message[0] %}
-    {% set flash_text = flash_message[1] %}
-    {% include "components/_flash.html" %}
-{% endif %}
+<div id="profile-shell" hx-history-elt hx-history="false">
+    {% if flash_message %}
+        {% set flash_tone = flash_message[0] %}
+        {% set flash_text = flash_message[1] %}
+        {% include "components/_flash.html" %}
+    {% endif %}
 
-<div id="profile-overview">
-    {% include "profile/_overview.html" %}
+    <section class="profile-workspace">
+        {% include "profile/_section_nav.html" %}
+
+        <section class="stack-panel">
+            <div class="section-title">
+                <div>
+                    <h2>{{ active_profile_section_title }}</h2>
+                    <p>{{ active_profile_section_summary }}</p>
+                </div>
+            </div>
+
+            {% include active_profile_section_template %}
+        </section>
+    </section>
 </div>
-
-<section class="layout-two-columns profile-layout">
-    {% include "profile/_basics.html" %}
-
-    {% include "profile/_skills_shell.html" %}
-</section>
-
-<section class="profile-sections-grid">
-    {% include "profile/_experiences_shell.html" %}
-
-    {% include "profile/_projects_shell.html" %}
-</section>
-
-{% include "profile/_formation_shell.html" %}
-
-{% include "profile/_cv_preview.html" %}
-
-
