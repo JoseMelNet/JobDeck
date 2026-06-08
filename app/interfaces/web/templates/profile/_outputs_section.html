@@ -1,14 +1,14 @@
 <section id="profile-outputs-shell" class="stack-panel">
     <article class="helper-box soft">
         <h3>Salidas</h3>
-        <p>Esta seccion concentra lo que el Perfil Laboral ya puede producir o reutilizar hoy: contacto, CV base y piezas listas para futuras aplicaciones.</p>
+        <p>Aqui ves lo que el Perfil Laboral ya puede reutilizar hoy: contacto visible y CV base.</p>
     </article>
 
-    <section class="profile-hint-grid">
-        <article class="helper-box soft">
+    <section class="outputs-toolbar">
+        <article class="helper-box soft outputs-toolbar-card">
             <h3>Inventario actual</h3>
             <p>{{ profile_outputs.summary }}</p>
-            <div class="pill-group">
+            <div class="pill-group outputs-pill-group">
                 <span class="soft-badge">{{ profile_outputs.contact.ready_count }}/{{ profile_outputs.contact.total_count }} datos de salida disponibles</span>
                 <span class="soft-badge">{{ profile_outputs.cv_base.ready_count }}/{{ profile_outputs.cv_base.total_count }} entradas activas para CV base</span>
                 {% if profile_outputs.cv_base.is_renderable %}
@@ -18,10 +18,10 @@
                 {% endif %}
             </div>
         </article>
-        <article class="helper-box">
+        <article class="helper-box outputs-toolbar-card">
             <h3>Revision rapida</h3>
             {% if profile_outputs.alerts %}
-                <ul class="flow-list">
+                <ul class="flow-list compact-list">
                     {% for alert in profile_outputs.alerts %}
                         <li>{{ alert }}</li>
                     {% endfor %}
@@ -32,11 +32,11 @@
         </article>
     </section>
 
-    <section class="profile-hint-grid">
-        <article class="helper-box soft">
+    <section class="outputs-summary-strip">
+        <article class="helper-box soft outputs-summary-card">
             <h3>Datos de contacto y salida</h3>
-            <p>Estos datos se pueden reutilizar hoy en el CV base y en futuras aplicaciones.</p>
-            <div class="pill-group">
+            <p>Datos visibles que ya puedes reutilizar en salidas y futuras aplicaciones.</p>
+            <div class="pill-group outputs-pill-group">
                 {% if profile_outputs.contact.has_name %}<span class="soft-badge">Nombre</span>{% endif %}
                 {% if profile_outputs.contact.has_email %}<span class="soft-badge">Correo</span>{% endif %}
                 {% if profile_outputs.contact.has_city %}<span class="soft-badge">Ciudad</span>{% endif %}
@@ -48,10 +48,10 @@
                 {% endif %}
             </div>
         </article>
-        <article class="helper-box soft">
+        <article class="helper-box soft outputs-summary-card">
             <h3>Estado del CV base</h3>
             <p>Hoy el CV base toma nombre, titulo, contacto visible, skills, experiencias y credenciales registradas.</p>
-            <div class="pill-group">
+            <div class="pill-group outputs-pill-group">
                 {% if profile_outputs.cv_base.has_name %}<span class="soft-badge">Nombre</span>{% endif %}
                 {% if profile_outputs.cv_base.has_title %}<span class="soft-badge">Titulo</span>{% endif %}
                 {% if profile_outputs.cv_base.has_email %}<span class="soft-badge">Correo</span>{% endif %}
@@ -65,18 +65,18 @@
         </article>
     </section>
 
-    <section class="profile-hint-grid">
-        <article class="helper-box">
+    <section class="outputs-support-strip">
+        <article class="helper-box outputs-support-card">
             <h3>Limites actuales</h3>
-            <ul class="flow-list">
+            <ul class="flow-list compact-list">
                 {% for limit in profile_outputs.limits %}
                     <li>{{ limit }}</li>
                 {% endfor %}
             </ul>
         </article>
-        <article class="helper-box soft">
+        <article class="helper-box soft outputs-support-card">
             <h3>Salidas futuras</h3>
-            <p>Este bloque prepara el terreno para CV adaptado, cartas y mensajes, pero hoy solo expone el estado del CV base y los datos de salida ya disponibles.</p>
+            <p>Este espacio prepara el terreno para CV adaptado y mensajes, pero hoy la salida principal sigue siendo el CV base.</p>
         </article>
     </section>
 

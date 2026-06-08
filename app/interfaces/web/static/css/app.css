@@ -2457,6 +2457,95 @@ a {
     padding: 12px 14px;
 }
 
+.credentials-toolbar,
+.credentials-summary-strip,
+.outputs-toolbar,
+.outputs-summary-strip,
+.outputs-support-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.credentials-toolbar-card,
+.credentials-summary-card,
+.outputs-toolbar-card,
+.outputs-summary-card,
+.outputs-support-card {
+    margin-top: 0;
+}
+
+.credentials-toolbar-card p,
+.credentials-summary-card p,
+.outputs-toolbar-card p,
+.outputs-summary-card p,
+.outputs-support-card p {
+    margin: 0;
+}
+
+.credentials-pill-group,
+.outputs-pill-group {
+    margin-top: 10px;
+}
+
+.credentials-library-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.credentials-library-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.credentials-library-link:hover {
+    border-color: #bfdbfe;
+    background: #ffffff;
+}
+
+.credentials-library-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.credentials-library-grid-single {
+    grid-template-columns: 1fr;
+}
+
+.credentials-block {
+    padding: 16px 18px;
+}
+
+.credentials-block-title {
+    margin-bottom: 8px;
+}
+
+.credentials-caption {
+    margin-bottom: 12px;
+}
+
+.credentials-action-disclosure {
+    margin-bottom: 12px;
+}
+
+.credentials-action-disclosure > summary {
+    padding: 12px 14px;
+}
+
+.cv-panel {
+    margin-top: 8px;
+}
+
 .profile-summary-link {
     display: inline-flex;
     align-items: center;
@@ -2856,7 +2945,13 @@ a {
     .signal-create-actions,
     .evidence-toolbar,
     .evidence-summary-strip,
-    .evidence-library-grid {
+    .evidence-library-grid,
+    .credentials-toolbar,
+    .credentials-summary-strip,
+    .credentials-library-grid,
+    .outputs-toolbar,
+    .outputs-summary-strip,
+    .outputs-support-strip {
         grid-template-columns: 1fr;
     }
 
